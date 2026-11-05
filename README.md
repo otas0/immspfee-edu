@@ -4,7 +4,7 @@ Classroom edition of IMMSPFEE. Lessons follow a textbook, one section at a time.
 
 This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)
 
-Every mapped lesson in Shanghai junior, Shanghai senior, PEP junior grade 8, and the university entrances draws readouts, checks, and the mistake overlay from the governing equations in `js/physics/`. The chapter tree shows only lesson titles—no Ready, Exam, or N/N chips. A section that is only queued stays empty on the stage; this tree currently has no queued secondary lessons. Textbook edition notes live under About in the teach column, not in the header.
+Every mapped lesson in Shanghai junior, Shanghai senior, PEP junior grade 8, and University physics draws readouts, checks, and the mistake overlay from the governing equations in `js/physics/`. The chapter tree shows only lesson titles—no Ready, Exam, or N/N chips. A section that is only queued stays empty on the stage; this tree currently has no queued secondary lessons. Textbook edition notes live under About in the teach column, not in the header.
 
 ## 中文说明（镜像）
 
@@ -12,7 +12,7 @@ IMMSPFEE 教育版：按教材一节一节上课。标准实验室在独立仓�
 
 本版地址：[github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)
 
-沪科初中、沪科高中、人教八年级，以及大学学科入口里已映射的节，读数、判定和排故叠层都来自 `js/physics/` 中的方程。章节树只显示节名。仅排队的节舞台保持空白；当前树无排队的中学节。教材版次说明在授课栏的 About，不在顶栏。
+沪科初中、沪科高中、人教八年级，以及「大学物理」（地区标签「大学」）里已映射的节，读数、判定和排故叠层都来自 `js/physics/` 中的方程。章节树只显示节名；大学目录按学科折叠。仅排队的节舞台保持空白；当前树无排队的中学节。教材版次说明在授课栏的 About，不在顶栏。界面默认英文，可切中文。
 
 ## Run
 

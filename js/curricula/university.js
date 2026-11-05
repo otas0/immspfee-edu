@@ -37,10 +37,6 @@ export const university = {
           '两堵墙、两个等质量物块、三根等劲度弹簧。对称模 ω = √(k/m)，反对称模 ω = √(3k/m)。',
           'Two walls, two equal masses, three equal springs. The symmetric frequency is √(k/m) and the antisymmetric frequency is √(3k/m).',
           { m: 1, k: 4, A1: 0.4, A2: 0.25 }),
-        R('uni-cm-6', 'coupled-pendula', '耦合摆', 'Coupled pendula',
-          '两等长摆经弱弹簧耦合：能量在两摆间交换。ω0² = g/L，反对称模 √(ω0²+2κ)。',
-          'Two equal pendulums coupled by a weak spring exchange energy. ω0² = g/L; antisymmetric √(ω0²+2κ).',
-          { g: 9.8, L: 1, kappa: 2, A1: 0.3, A2: 0 }, true),
       ]),
     ]),
     chapter('uni-em', 'uni', '电磁学进阶', 'Electromagnetism', [
