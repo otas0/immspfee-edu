@@ -7,6 +7,7 @@ const PRECACHE = [
   './js/fmt.js',
   './js/i18n.js',
   './assets/immspfee-education-logo.png',
+  './assets/immspfee-education-favicon.png',
 ];
 
 function isCode(url) {
