@@ -8,8 +8,8 @@ import {
   lever, pulley, workPower, circuit, electricalEnergy, CIRCUIT_LINKS,
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
-  specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork,
-  barMagnet, solenoidField, ampereForce, inductionRod,
+  specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork, emWave,
+  barMagnet, solenoidField, ampereForce, inductionRod, circularMotion,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -198,6 +198,13 @@ near(watch.reading, 15, 1e-9, 'stopwatch from angle');
 near(watch.angle, Math.PI / 2, 1e-9, 'quarter turn is 15 s');
 const fork = tuningFork({ f: 10, A: 2 }, 0.025);
 near(fork.y, 2, 1e-9, 'fork at quarter period of 10 Hz');
+const wave = emWave({ f: 1e8, A: 1 }, 0);
+near(wave.lambda, 2.99792458, 1e-6, 'λ = c/f at 100 MHz');
+near(wave.E, 0, 1e-9, 'E starts at 0');
+const circ = circularMotion({ m: 0.5, r: 0.4, omega: 4 }, 0);
+near(circ.v, 1.6, 1e-9, 'v = ωr');
+near(circ.a, 6.4, 1e-9, 'a = ω²r');
+near(circ.F, 3.2, 1e-9, 'F = ma');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

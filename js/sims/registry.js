@@ -57,6 +57,8 @@ const MAP = {
   ruler: ['measure', 'rulerSim'],
   stopwatch: ['measure', 'stopwatchSim'],
   'sound-wave': ['waves', 'soundSim'],
+  'em-wave': ['waves', 'emWaveSim'],
+  circular: ['motion', 'circularSim'],
   'bar-magnet': ['em', 'magnetSim'],
   solenoid: ['em', 'solenoidSim'],
   'ampere-force': ['em', 'ampereSim'],

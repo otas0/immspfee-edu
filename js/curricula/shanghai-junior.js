@@ -386,10 +386,16 @@ export const shanghaiJunior = {
     ]),
     C('shj-15', 'g9v2', '电磁波及其应用', 'Electromagnetic waves', [
       S('shj-15-1', '电磁波', 'Electromagnetic waves', [
-        Q('shj-15-1a', '电磁波', 'A wave', 'c = fλ。', 'c = fλ.'),
+        R('shj-15-1a', 'em-wave', '电磁波', 'A wave',
+          '真空中 c = f λ。E 和 B 同相位、互相垂直，也垂直于传播方向。改频率，波长按 λ = c / f 变。',
+          'In vacuum c = f λ. E and B stay in phase, perpendicular to each other and to the travel direction. Change f and λ follows λ = c / f.',
+          { f: 1e8, A: 1 }, true),
       ]),
       S('shj-15-2', '电磁波的应用', 'Using the waves', [
-        Q('shj-15-2a', '应用', 'Uses', '频率与波段的公开对应。', 'The public map from frequency to band.'),
+        R('shj-15-2a', 'em-wave', '应用', 'Uses',
+          '同一关系：选定频段的 f，就得到公开的 λ = c / f。不另造发射装置。',
+          'Same relation: pick the band’s f and the public λ = c / f follows. No transmitter design.',
+          { f: 1e8, A: 0.8 }),
       ]),
     ]),
     C('shj-16', 'g9v2', '从原子到星系', 'From atoms to galaxies', [
