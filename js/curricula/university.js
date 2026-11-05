@@ -146,8 +146,8 @@ export const university = {
     chapter('uni-op', 'uni', '光学进阶', 'Optics', [
       section('uni-op-s', '光学进阶', 'Optics', [
         R('uni-op-1', 'double-slit', '双缝的定量', 'Double slit, quantitative',
-          '杨氏双缝加单缝包络：I ∝ cos²(β) sinc²(α)，中央极大宽 ≈ 2 λ D / a。',
-          'Young with single-slit envelope: I ∝ cos²(β) sinc²(α); central max width ≈ 2 λ D / a.',
+          '杨氏双缝加单缝包络：I ∝ cos²(β) sinc²(α)，中央极大宽 ≈ 2 λ D / a，可拖宽条改 a。',
+          'Young with single-slit envelope: I ∝ cos²(β) sinc²(α); central max width ≈ 2 λ D / a — drag the width bar to change a.',
           { lambda: 6e-7, D: 1.2, d: 2e-4, a: 4e-5, y: 0, envelope: true }, true),
         R('uni-op-2', 'single-slit', '单缝衍射', 'Single-slit diffraction',
           '小角度极小 y_m ≈ m λ L / a。',
@@ -178,9 +178,9 @@ export const university = {
           'L = L0 / γ.',
           { L0: 2, v: 1.5e8 }, true),
         R('uni-rel-3', 'simultaneity', '同时性', 'Simultaneity',
-          'Minkowski 教学尺：固有长度 L0 的杆两端在杆系同时闪光；运动系中 Δt = γ v L0 / c²，同时线斜率 v/c²。',
-          'Minkowski teaching ruler: ends of a rod of proper length L0 flash together in the rod frame; in a moving frame Δt = γ v L0 / c² with simultaneous-line slope v/c².',
-          { L0: 3e8, v: 1.5e8 }, true),
+          'Minkowski 教学尺：固有长度 L0 的杆两端在杆系同时闪光；β = v/c 滑条改斜率 v/c²；运动系中 Δt = γ v L0 / c²。',
+          'Minkowski teaching ruler: ends of a rod of proper length L0 flash together in the rod frame; β = v/c sets the slope v/c²; in a moving frame Δt = γ v L0 / c².',
+          { L0: 3e8, beta: 0.5 }, true),
       ]),
     ]),
   ],

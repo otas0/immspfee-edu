@@ -4,7 +4,7 @@ import {
   massEnergy, halfLife, photoelectric, capacitance, resistivity, timeDilation,
   simultaneity,
 } from '../physics/modern.js';
-import { num, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, clear, line, text, lab, handle, hit, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -538,17 +538,18 @@ export const dilationSim = {
 export const simultaneitySim = {
   id: 'simultaneity',
   timed: false,
-  authority: 'Relativity of simultaneity teaching ruler: ends of a rod of proper length L0 flash together in the rod frame; in a frame where the rod moves at v, Δt = γ v L0 / c².',
-  params: { L0: 3e8, v: 1.5e8 },
+  authority: 'Relativity of simultaneity teaching ruler: ends of a rod of proper length L0 flash together in the rod frame; in a frame where the rod moves at β c, Δt = γ β L0 / c. Minkowski sketch slope of the rod-simultaneous line is v/c² = β/c.',
+  params: { L0: 3e8, beta: 0.5 },
   schema: [
     num('L0', 'Proper length L0', '固有长度 L0', 'm', 1e7, 1e9, 1e7),
-    num('v', 'Speed v', '速率 v', 'm/s', 1e7, 2.9e8, 1e7),
+    num('beta', 'β = v/c', 'β = v/c', '', 0.05, 0.95, 0.05),
   ],
-  compute: (p) => simultaneity(p),
+  compute: (p) => simultaneity({ L0: p.L0, v: Math.max(0.05, Math.min(0.95, p.beta)) * 2.99792458e8 }),
   readouts: (d) => [
+    ro('β', 'β', fmt(d.beta, 3)),
     ro('γ', 'γ', fmt(d.gamma, 4)),
     ro('Δt', 'Δt', d.dt.toExponential(3) + ' s'),
-    ro('L', 'L', d.L.toExponential(3) + ' m'),
+    ro('v/c²', '斜率 v/c²', d.slope.toExponential(3) + ' s/m'),
   ],
   checks: (d) => [
     q('dt', 'Desynchronisation of the end events is', '两端事件的时差是', [
@@ -578,6 +579,11 @@ export const simultaneitySim = {
     const xB = xA + Lpix;
     const tRod = oy - sy * 0.35;
     line(ctx, xA, tRod, xB, tRod, INK, 2);
+    // Lab frame: rod-simultaneous line through A has Minkowski slope ct/x = β (from t = (v/c²)x).
+    const beta = ui.wrong ? 0 : d.beta;
+    const dx = sx * 0.42;
+    const dct = beta * dx;
+    line(ctx, xA - dx, tRod + dct, xA + dx, tRod - dct, RAY, 1.5, [4, 3]);
     // Light cones (±45°) from A and B.
     const cone = sy * 0.45;
     line(ctx, xA, tRod, xA + cone, tRod - cone, RAY2, 1, [3, 3]);
@@ -597,8 +603,8 @@ export const simultaneitySim = {
     ctx.fill();
     text(ctx, 'A', xA, tRod + 14, MUTED, 11, 'center');
     text(ctx, 'B', xB, (ui.wrong ? tRod : tRod - tShift) + 14, MUTED, 11, 'center');
-    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 15, 'center');
-    text(ctx, `γ=${fmt(d.gamma, 3)}  light cones 45°`, w * 0.5, h * 0.92, MUTED, 11, 'center');
+    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s  β=${fmt(d.beta, 2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, `slope v/c²  light cones 45°`, w * 0.5, h * 0.92, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

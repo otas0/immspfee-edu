@@ -150,12 +150,17 @@ async function loadGroup(name, reload = false) {
   const href = reload
     ? `${path}?v=__BUILD__&reload=${Date.now()}`
     : `${path}?v=__BUILD__`;
+  let absolute = href;
+  try {
+    absolute = new URL(href, import.meta.url).href;
+  } catch (_) { /* keep relative */ }
   const pending = import(href);
   groupCache.set(name, pending);
   try {
     return await pending;
   } catch (err) {
     groupCache.delete(name);
+    err.__immspfeeModuleUrl = absolute;
     throw err;
   }
 }
@@ -182,7 +187,11 @@ export async function getSim(id, opts = {}) {
     if (sim) cache.set(id, sim);
     return sim || null;
   } catch (err) {
-    reportError(err, `getSim(${id})`);
+    const url = err?.__immspfeeModuleUrl
+      || (() => {
+        try { return new URL(PATHS[group], import.meta.url).href; } catch (_) { return PATHS[group]; }
+      })();
+    reportError(err, url);
     if (!reload) return getSim(id, { reload: true });
     return null;
   }

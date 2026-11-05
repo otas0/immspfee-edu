@@ -16,8 +16,9 @@ function showToast(message) {
 }
 
 setImportErrorHandler((err, detail) => {
-  if (DEV_TOAST) showToast(`${detail}: ${err && err.message ? err.message : err}`);
-  else showToast(t(lang, 'importFail'));
+  const msg = err && err.message ? err.message : String(err);
+  if (DEV_TOAST) showToast(`${detail}: ${msg}`);
+  else showToast(`${t(lang, 'importFail')} ${detail || ''}`.trim());
 });
 
 function prefetchOpenVolume() {
@@ -288,7 +289,11 @@ function renderChrome() {
       if (id === bookId) opt.selected = true;
       sel.appendChild(opt);
     }
-    sel.addEventListener('change', () => pickBook(sel.value));
+    sel.title = tx(lang, getBook(bookId).title);
+    sel.addEventListener('change', () => {
+      pickBook(sel.value);
+      sel.title = tx(lang, getBook(sel.value).title);
+    });
     bookHost.appendChild(sel);
   } else {
     bookHost.className = 'seg';
@@ -363,8 +368,11 @@ function renderTree() {
           const map = JSON.parse(sessionStorage.getItem('immspfee-edu-uni-folds') || '{}');
           if (Object.prototype.hasOwnProperty.call(map, ch.id)) saved = !!map[ch.id];
         } catch (_) { /* ignore */ }
-        if (q || current?.chapter?.id === ch.id || saved === true) block.open = true;
+        // First visit (no saved map entry): only the current subject is open.
+        if (q) block.open = true;
+        else if (saved === true) block.open = true;
         else if (saved === false) block.open = false;
+        else block.open = current?.chapter?.id === ch.id;
         block.addEventListener('toggle', () => {
           try {
             const map = JSON.parse(sessionStorage.getItem('immspfee-edu-uni-folds') || '{}');

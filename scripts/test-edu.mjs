@@ -16,7 +16,7 @@ import {
   bohrLevels, internalEnergy, energyShare, efficiency, scaleLength,
   massEnergy, halfLife, photoelectric, capacitance, resistivity,
   lorentzForce, cyclotronRadius, pointField, fieldPotential,
-  vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell,
+  vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell, finiteWell,
   doubleSlit, malus, telescope, acPeakRms, transformer, doppler, beats, dispersion, timeDilation,
   isingMetropolis, barrierTunnel, barrierScan, hydrogenRadial, gaussianPacket,
   maxwellHistogram, fourierSquare, membraneMode, bellSinglet, sternGerlach,
@@ -263,6 +263,9 @@ near(idealGas({ n: 1, T: 300, V: 0.024 }).pV, 1 * 8.314462618 * 300, 1e-6, 'pV=n
 near(carnotEta({ Th: 600, Tc: 300 }).eta, 0.5, 1e-9, 'Carnot η');
 near(kineticGas({ rho: 1.2, vrms: 500 }).p, 1e5, 1e-6, 'kinetic p');
 assert(infiniteWell({ n: 1, m: 9.1e-31, L: 1e-9 }).En > 0, 'well energy');
+const fw = finiteWell({ m: 9.1e-31, L: 1e-9, V0: 1.6e-18, E: 2e-18 });
+assert(fw.bound.length >= 1 && fw.bound[0].samples?.length > 10, 'finite-well ψ samples');
+assert(fw.bound[0].parity === 'even' || fw.bound[0].parity === 'odd', 'finite-well parity');
 near(doubleSlit({ lambda: 6e-7, D: 1.2, d: 2e-4 }).dy, (6e-7 * 1.2) / 2e-4, 1e-15, 'Δy');
 near(malus({ I0: 1, theta: 60 }).I, 0.25, 1e-9, 'Malus');
 near(telescope({ fObj: 50, fEye: 5 }).M, -10, 1e-9, 'telescope M');
@@ -284,6 +287,13 @@ assert(scan.curve.length > 40 && Array.isArray(scan.peaks), 'barrier scan');
 assert(scan.resonances.length >= 1 && scan.resonances[0].E > scan.V0, 'barrier k2a=nπ');
 const rad = hydrogenRadial({ n: 1, l: 0, r: 5.29177210903e-11 });
 assert(rad.dens > 0 && rad.R !== 0, 'hydrogen R10 dens');
+const rad41 = hydrogenRadial({ n: 4, l: 1, r: 4 * 5.29177210903e-11 });
+near(rad41.integ, 1, 0.02, 'R41 ∫P ≈ 1');
+const a0 = 5.29177210903e-11;
+const rho41 = 4;
+const R41tab = (Math.sqrt(5) / (16 * Math.sqrt(3))) * a0 ** -1.5 * rho41
+  * (1 - rho41 / 4 + (rho41 * rho41) / 80) * Math.exp(-rho41 / 4);
+near(rad41.R, R41tab, 1e-6 * Math.abs(R41tab), 'R41 table form at ρ=4');
 const pkt = gaussianPacket({ m: 9.1e-31, sigma0: 2e-10, k0: 0, x0: 0 }, 1e-14);
 assert(pkt.sigma > pkt.sigma0, 'packet spreads');
 const hist = maxwellHistogram({ m: 4.65e-26, T: 300, bins: 12, vmax: 1500 });
@@ -358,6 +368,8 @@ for (const id of Object.keys(SIMS)) {
   assert(mounted.has(id), `sim ${id} is mounted`);
 }
 const senior = getBook('sh-senior');
+assert(senior.title.zh === '沪科高中物理', 'senior title matches junior naming');
+assert(getBook('sh-junior').title.zh === '沪科初中物理', 'junior title 沪科初中物理');
 assert(senior.tocConfidence === 'compulsory-1-3-and-elective-2-2021', 'senior contents note');
 assert(flatten(senior).some((row) => row.lesson.sim === 'vt-area'), 'v–t lesson');
 assert(flatten(senior).some((row) => row.lesson.id === 'shs-2-2a' && row.lesson.sim === 'vt-area'), 'free-fall on v–t');

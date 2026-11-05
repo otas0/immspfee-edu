@@ -10,6 +10,7 @@ import { num, sel, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } f
 
 const KB = 1.380649e-23;
 let isingBuf = null;
+let isingSweepCache = { key: '', sweep: null };
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -19,26 +20,34 @@ export const isingSim = {
   id: 'ising',
   timed: true,
   tMax: () => 1,
-  authority: '2-D Ising Metropolis on an N×N lattice with H = −J Σ s_i s_j (J = 1). Play sweeps T across Onsager Tc = 2/ln(1+√2) and plots |M|(T).',
-  params: { N: 12, T: 2.2, sweeps: 40, seed: 1, Tmin: 0.5, Tmax: 4 },
+  authority: '2-D Ising Metropolis on an N×N lattice with H = −J Σ s_i s_j (J = 1). Play sweeps T across Onsager Tc = 2/ln(1+√2) and plots |M|(T). Paint step 2 or 3 redraws every nth cell to cut cost on large lattices.',
+  params: { N: 12, T: 2.2, sweeps: 40, seed: 1, Tmin: 0.5, Tmax: 4, paintStep: 1 },
   schema: [
     num('N', 'Lattice N', '格子边长 N', '', 6, 20, 2),
     num('T', 'Probe T', '探针 T', 'J/kB', 0.5, 5, 0.1),
     num('sweeps', 'Sweeps', '扫描次数', '', 10, 120, 10),
     num('seed', 'Seed', '随机种子', '', 1, 99, 1),
+    num('paintStep', 'Paint step', '降采样步长', '', 1, 3, 1),
   ],
   compute: (p, t) => {
-    const sweep = isingTempSweep({ ...p, steps: 20 });
+    const key = [p.N, p.sweeps, p.seed, p.Tmin ?? 0.5, p.Tmax ?? 4, 20].join('|');
+    if (isingSweepCache.key !== key) {
+      isingSweepCache = { key, sweep: isingTempSweep({ ...p, steps: 20 }) };
+    }
+    const sweep = isingSweepCache.sweep;
     const Tplay = sweep.Tmin + Math.min(1, Math.max(0, t)) * (sweep.Tmax - sweep.Tmin);
     const at = isingMetropolis({ ...p, T: p.T });
     const play = isingMetropolis({ ...p, T: Tplay, seed: p.seed + Math.round(Tplay * 10) });
-    return { ...at, sweep, Tplay, playAbsM: play.absM, playSpins: play.spins, Tc: sweep.Tc };
+    const paintStep = Math.max(1, Math.min(3, Math.round(p.paintStep ?? 1)));
+    const cells = Math.ceil(at.N / paintStep) ** 2;
+    return { ...at, sweep, Tplay, playAbsM: play.absM, playSpins: play.spins, Tc: sweep.Tc, paintStep, cells };
   },
   readouts: (d) => [
     ro('|M|', '|M|', fmt(d.absM, 3)),
     ro('T', 'T', fmt(d.T, 2)),
     ro('T▶', '扫温 T', fmt(d.Tplay, 2)),
     ro('Tc', 'Onsager Tc', fmt(d.Tc, 4)),
+    ro('paint', '有效格点', `${d.cells} (×${d.paintStep})`),
   ],
   checks: (d) => [
     q('Tc', 'Onsager critical temperature (J = k_B = 1) is', 'Onsager 临界温度（J = k_B = 1）是', [
@@ -64,11 +73,12 @@ export const isingSim = {
     const y0 = h * 0.22;
     const side = Math.ceil(cell * d.N);
     const spins = ui.wrong ? d.playSpins.map(() => 1) : d.playSpins;
+    const step = d.paintStep || 1;
     const paint = (g, ox, oy) => {
-      for (let y = 0; y < d.N; y += 1) {
-        for (let x = 0; x < d.N; x += 1) {
+      for (let y = 0; y < d.N; y += step) {
+        for (let x = 0; x < d.N; x += step) {
           g.fillStyle = spins[y * d.N + x] > 0 ? RAY : RAY2;
-          g.fillRect(ox + x * cell, oy + y * cell, cell - 0.5, cell - 0.5);
+          g.fillRect(ox + x * cell, oy + y * cell, cell * step - 0.5, cell * step - 0.5);
         }
       }
     };
@@ -122,12 +132,23 @@ export const tunnelSim = {
     num('a', 'Width a', '宽度 a', 'm', 2e-11, 5e-10, 1e-11),
   ],
   compute: (p) => barrierScan(p),
-  readouts: (d) => [
-    ro('T', 'T', fmt(d.T, 4)),
-    ro('Regime', '情形', { en: d.regime, zh: { tunnel: '隧穿', over: '越过', edge: '边缘' }[d.regime] || d.regime }),
-    ro('Peaks', '扫描峰数', String(d.peaks.length)),
-    ro('k₂a=nπ', '理论共振', String(d.resonances.length)),
-  ],
+  readouts: (d) => {
+    const rows = [
+      ro('T', 'T', fmt(d.T, 4)),
+      ro('Regime', '情形', { en: d.regime, zh: { tunnel: '隧穿', over: '越过', edge: '边缘' }[d.regime] || d.regime }),
+      ro('Peaks', '扫描峰数', String(d.peaks.length)),
+      ro('k₂a=nπ', '理论共振', String(d.resonances.length)),
+    ];
+    if (d.nearest) {
+      rows.push(ro('En', `最近 Eₙ (n=${d.nearest.n})`, d.nearest.E.toExponential(3) + ' J'));
+      rows.push(ro('ΔE', '|E−Eₙ|', d.nearest.dE.toExponential(3) + ' J'));
+    }
+    if (d.peakDelta?.[0]?.nearest) {
+      const m = d.peakDelta[0].nearest;
+      rows.push(ro('peakΔE', '首峰 ΔE', `n=${m.n}, ${m.dE.toExponential(2)} J`));
+    }
+    return rows;
+  },
   checks: (d) => [
     q('T', 'Transmission coefficient is', '透射系数是', [
       opt(fmt(d.T, 4), fmt(d.T, 4)),
@@ -206,16 +227,25 @@ export const hydrogenRadialSim = {
     ro('r²R²', 'r² R²', d.dens.toExponential(3)),
     ro('∫P', '∫ P(r) dr', fmt(d.integ, 3)),
   ],
-  checks: (d) => [
-    q('norm', 'The radial integral ∫ P(r) dr is about', '径向积分 ∫ P(r) dr 约为', [
-      opt(fmt(d.integ, 3), fmt(d.integ, 3)),
-      opt('0', '0'),
-    ], 0),
-    q('form', 'The plotted density is', '图上画的是', [
-      opt('r² R_nl²(r)', 'r² R_nl²(r)'),
-      opt('|R_nl| alone', '只有 |R_nl|'),
-    ], 0),
-  ],
+  checks: (d) => {
+    const qs = [
+      q('norm', 'The radial integral ∫ P(r) dr is about', '径向积分 ∫ P(r) dr 约为', [
+        opt(`${fmt(d.integ, 3)} ≈ 1`, `${fmt(d.integ, 3)} ≈ 1`),
+        opt('0', '0'),
+      ], 0),
+      q('form', 'The plotted density is', '图上画的是', [
+        opt('r² R_nl²(r)', 'r² R_nl²(r)'),
+        opt('|R_nl| alone', '只有 |R_nl|'),
+      ], 0),
+    ];
+    if (d.n === 4 && d.l === 1) {
+      qs.push(q('R41', 'For n=4, l=1 the normalisation check ∫P is', 'n=4、l=1 时归一化检查 ∫P 是', [
+        opt(`∫P ≈ 1 (${fmt(d.integ, 3)})`, `∫P ≈ 1（${fmt(d.integ, 3)}）`),
+        opt('∫P ≈ 0', '∫P ≈ 0'),
+      ], 0));
+    }
+    return qs;
+  },
   debug: {
     en: 'Plotting |R| without the r² weight shifts the peaks inward.',
     zh: '不乘 r² 只画 |R|，峰会往里移。',

@@ -100,7 +100,28 @@ export function finiteWell(p) {
     prevOdd = { xi, f: fo };
   }
   levels.sort((u, v) => u.E - v.E);
-  const bound = levels.slice(0, 4);
+  const bound = levels.slice(0, 4).map((lv) => {
+    const k = lv.xi / a;
+    const kappa = Math.sqrt(Math.max(0, 2 * m * (V0 - lv.E))) / HBAR;
+    const samples = [];
+    const xMax = a * 2.4;
+    for (let i = 0; i <= 80; i += 1) {
+      const x = -xMax + (2 * xMax * i) / 80;
+      let psi;
+      if (Math.abs(x) <= a) {
+        psi = lv.parity === 'even' ? Math.cos(k * x) : Math.sin(k * x);
+      } else {
+        const edge = lv.parity === 'even' ? Math.cos(k * a) : Math.sin(k * a);
+        const sign = lv.parity === 'even' ? 1 : Math.sign(x) || 1;
+        psi = sign * edge * Math.exp(-kappa * (Math.abs(x) - a));
+      }
+      samples.push({ x, psi });
+    }
+    let maxAbs = 1e-12;
+    for (const s of samples) maxAbs = Math.max(maxAbs, Math.abs(s.psi));
+    for (const s of samples) s.psi /= maxAbs;
+    return { ...lv, k, kappa, samples };
+  });
   const Einf = [];
   for (let n = 1; n <= Math.max(1, bound.length); n += 1) {
     Einf.push(infiniteWell({ n, m, L }).En);
@@ -120,7 +141,7 @@ export function finiteWell(p) {
     Tcoef = Math.min(1, Math.max(0, Tcoef));
   }
   return {
-    m, L, V0, E: Eprobe, z0, bound, Einf, T: Tcoef, regime, hbar: HBAR,
+    m, L, V0, E: Eprobe, z0, a, bound, Einf, T: Tcoef, regime, hbar: HBAR,
     E1f: bound[0]?.E ?? null,
     E1inf: infiniteWell({ n: 1, m, L }).En,
   };

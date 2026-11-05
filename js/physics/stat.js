@@ -95,7 +95,20 @@ export function barrierScan(p) {
     resonances.push({ n, E: Eres, k2a: n * Math.PI });
   }
   const at = barrierTunnel(p);
-  return { ...at, Emin, Emax, samples, curve, peaks, resonances };
+  let nearest = null;
+  for (const rs of resonances) {
+    const dE = Math.abs(rs.E - at.E);
+    if (!nearest || dE < nearest.dE) nearest = { n: rs.n, E: rs.E, dE };
+  }
+  const peakDelta = peaks.map((pk) => {
+    let best = null;
+    for (const rs of resonances) {
+      const dE = Math.abs(rs.E - pk.E);
+      if (!best || dE < best.dE) best = { n: rs.n, E: rs.E, dE };
+    }
+    return { E: pk.E, T: pk.T, nearest: best };
+  });
+  return { ...at, Emin, Emax, samples, curve, peaks, resonances, nearest, peakDelta };
 }
 
 const A0 = 5.29177210903e-11;
@@ -129,6 +142,7 @@ export function hydrogenRadial(p) {
     if (nn === 4 && ll === 0) {
       return (1 / 4) * a ** -1.5 * (1 - (3 * rh) / 4 + (rh * rh) / 8 - (rh ** 3) / 192) * Math.exp(-rh / 4);
     }
+    // Standard table (ρ=r/a0): R₄₁ = [√5/(16√3)] a0^{-3/2} ρ (1 − ρ/4 + ρ²/80) e^{-ρ/4}
     if (nn === 4 && ll === 1) {
       return (Math.sqrt(5) / (16 * Math.sqrt(3))) * a ** -1.5 * rh * (1 - rh / 4 + (rh * rh) / 80) * Math.exp(-rh / 4);
     }

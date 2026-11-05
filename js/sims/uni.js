@@ -284,14 +284,31 @@ export const finiteWellSim = {
     const yOf = (E) => gy - (E / Emax) * gh;
     line(ctx, gx, yOf(d.V0), gx + gw, yOf(d.V0), MUTED, 1, [3, 3]);
     text(ctx, 'V0', gx + gw + 4, yOf(d.V0), MUTED, 11);
+    const a = d.a || d.L / 2;
+    const xMax = a * 2.4;
     const levels = ui.wrong ? d.Einf.map((E, i) => ({ E, tag: `∞${i + 1}` }))
-      : d.bound.map((b, i) => ({ E: b.E, tag: `${i + 1}` }));
+      : d.bound.map((b, i) => ({ E: b.E, tag: `${i + 1}${b.parity === 'even' ? 'e' : 'o'}`, samples: b.samples }));
     levels.forEach((lv, i) => {
       const y = yOf(lv.E);
-      line(ctx, gx + gw * 0.15, y, gx + gw * 0.55, y, RAY2, 2);
-      text(ctx, lv.tag, gx + gw * 0.58, y, INK, 11);
+      line(ctx, gx + gw * 0.02, y, gx + gw * 0.58, y, RAY2, 1);
+      if (!ui.wrong && lv.samples?.length) {
+        const amp = Math.min(gh * 0.07, h * 0.045);
+        const x0 = gx + gw * 0.05;
+        const xw = gw * 0.5;
+        ctx.beginPath();
+        lv.samples.forEach((s, j) => {
+          const X = x0 + ((s.x + xMax) / (2 * xMax)) * xw;
+          const Y = y - s.psi * amp;
+          if (j === 0) ctx.moveTo(X, Y);
+          else ctx.lineTo(X, Y);
+        });
+        ctx.strokeStyle = RAY;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      text(ctx, lv.tag, gx + gw * 0.6, y, INK, 11);
       if (!ui.wrong && d.Einf[i] != null) {
-        line(ctx, gx + gw * 0.7, yOf(d.Einf[i]), gx + gw * 0.95, yOf(d.Einf[i]), MUTED, 1, [2, 2]);
+        line(ctx, gx + gw * 0.72, yOf(d.Einf[i]), gx + gw * 0.95, yOf(d.Einf[i]), MUTED, 1, [2, 2]);
       }
     });
     line(ctx, gx, yOf(d.E), gx + gw, yOf(d.E), RAY, 1, [4, 2]);

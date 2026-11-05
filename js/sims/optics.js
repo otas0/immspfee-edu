@@ -559,19 +559,20 @@ export const doubleSlitSim = {
   id: 'double-slit',
   timed: false,
   authority: 'Young double-slit: Δy = λ D / d and I ∝ cos²(π d y /(λ D)). Optional single-slit envelope multiplies by sinc²(π a y /(λ D)).',
-  params: { lambda: 6e-7, D: 1.2, d: 2e-4, y: 0, a: 4e-5, envelope: true },
+  params: { lambda: 6e-7, D: 1.2, d: 2e-4, y: 0, a: 4e-5, envelope: false },
   schema: [
     num('lambda', 'Wavelength λ', '波长 λ', 'm', 4e-7, 7e-7, 1e-8),
     num('D', 'Screen distance D', '屏距 D', 'm', 0.4, 3, 0.1),
     num('d', 'Slit spacing d', '缝距 d', 'm', 5e-5, 5e-4, 1e-5),
     num('a', 'Slit width a', '缝宽 a', 'm', 1e-5, 2e-4, 5e-6),
     num('y', 'Screen y', '屏上 y', 'm', -0.01, 0.01, 0.0005),
-    tog('envelope', 'sinc² envelope', 'sinc² 包络'),
+    tog('envelope', 'sinc² envelope (optional)', 'sinc² 包络（选修）'),
   ],
   compute: (p) => doubleSlitIntensity(p),
   readouts: (d) => [
     ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
     ro('I', 'I/I0', fmt(d.I, 3)),
+    ro('env', 'sinc²', d.useEnv ? fmt(d.env, 3) : 'off'),
     ro('2λD/a', '中央极大宽', d.centralWidth.toExponential(3) + ' m'),
   ],
   checks: (d) => [
@@ -579,9 +580,9 @@ export const doubleSlitSim = {
       opt(`${d.dy.toExponential(3)} m = λ D / d`, `${d.dy.toExponential(3)} m = λ D / d`),
       opt(`${(d.lambda * d.d / d.D).toExponential(3)} m`, `${(d.lambda * d.d / d.D).toExponential(3)} m`),
     ], 0),
-    q('width', 'Central-maximum full width is about', '中央极大全宽约为', [
-      opt(`${d.centralWidth.toExponential(3)} m = 2 λ D / a`, `${d.centralWidth.toExponential(3)} m = 2 λ D / a`),
-      opt(`${d.dy.toExponential(3)} m = Δy`, `${d.dy.toExponential(3)} m = Δy`),
+    q('I', 'Intensity at the probe follows', '探针处强度满足', [
+      opt(d.useEnv ? 'I ∝ cos² · sinc²' : 'I ∝ cos²(π d y /(λ D))', d.useEnv ? 'I ∝ cos² · sinc²' : 'I ∝ cos²(π d y /(λ D))'),
+      opt('I ∝ sin(π d y /(λ D))', 'I ∝ sin(π d y /(λ D))'),
     ], 0),
   ],
   debug: {
@@ -600,6 +601,8 @@ export const doubleSlitSim = {
     const gw = w * 0.35;
     const gh = h * 0.6;
     const ySpan = Math.max(2.2 * d.centralWidth, 4 * d.dy);
+    let yLo = gy;
+    let yHi = gy;
     if (d.useEnv) {
       ctx.beginPath();
       for (let i = 0; i <= 120; i += 1) {
@@ -617,11 +620,14 @@ export const doubleSlitSim = {
       ctx.stroke();
       ctx.setLineDash([]);
       const half = d.centralWidth / 2;
-      const yLo = gy - ((-half + ySpan) / (2 * ySpan)) * gh;
-      const yHi = gy - ((half + ySpan) / (2 * ySpan)) * gh;
+      yLo = gy - ((-half + ySpan) / (2 * ySpan)) * gh;
+      yHi = gy - ((half + ySpan) / (2 * ySpan)) * gh;
       line(ctx, gx - 6, yLo, gx - 6, yHi, RAY, 2);
+      handle(ctx, gx - 6, yLo, ui.drag === 'width');
+      handle(ctx, gx - 6, yHi, ui.drag === 'width');
       text(ctx, '2λD/a', gx - 10, (yLo + yHi) / 2, RAY, 10, 'right');
     }
+    ui._slit = { gx, gy, gw, gh, ySpan, yLo, yHi, barX: gx - 6 };
     ctx.beginPath();
     for (let i = 0; i <= 120; i += 1) {
       const y = -ySpan + (2 * ySpan * i) / 120;
@@ -643,7 +649,26 @@ export const doubleSlitSim = {
     text(ctx, `Δy=${dyShow.toExponential(2)}  width=${d.centralWidth.toExponential(2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 12, 'center');
     text(ctx, d.useEnv ? 'I∝cos²·sinc²' : 'I∝cos²', gx + gw * 0.5, h * 0.92, MUTED, 11, 'center');
   },
-  pointer() { return null; },
+  pointer(ev, p, d, ui) {
+    const g = ui._slit;
+    if (!g || !d.useEnv) return null;
+    if (ev.type === 'down') {
+      const onBar = Math.abs(ev.x - g.barX) < 16
+        && ev.y >= Math.min(g.yLo, g.yHi) - 10
+        && ev.y <= Math.max(g.yLo, g.yHi) + 10;
+      if (onBar || hit(ev.x, ev.y, g.barX, g.yLo) || hit(ev.x, ev.y, g.barX, g.yHi)) {
+        ui.drag = 'width';
+        return {};
+      }
+      return null;
+    }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    if (ev.type !== 'move' || ui.drag !== 'width') return null;
+    const yPhys = g.ySpan - ((g.gy - ev.y) / g.gh) * 2 * g.ySpan;
+    const half = Math.max(1e-5, Math.abs(yPhys));
+    const a = (p.lambda * p.D) / half;
+    return { a: Math.min(2e-4, Math.max(1e-5, a)) };
+  },
 };
 
 export const malusSim = {

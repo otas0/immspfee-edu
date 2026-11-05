@@ -287,7 +287,7 @@ export const modesSim = {
     ro('ω1', 'ω1', `${fmt(d.w1, 3)} rad/s`),
     ro('ω2', 'ω2', `${fmt(d.w2, 3)} rad/s`),
     ro('E', 'E', `${fmt(d.E, 3)} J`),
-    ro('E0', 'E₀', `${fmt(d.E0, 3)} J`),
+    ro('E0', 'E₀ = kA₁²+3kA₂²', `${fmt(d.E0, 3)} J`),
   ],
   checks: (d) => [
     q('w', 'The antisymmetric frequency is', '反对称模的角频率是', [

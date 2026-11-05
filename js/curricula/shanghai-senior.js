@@ -17,7 +17,7 @@ export const shanghaiSenior = {
   region: 'shanghai',
   stage: 'senior',
   tocConfidence: 'compulsory-1-3-and-elective-2-2021',
-  title: { zh: '上海高中物理', en: 'Shanghai senior physics' },
+  title: { zh: '沪科高中物理', en: 'Shanghai senior physics' },
   edition: {
     zh: '沪科版（上海科学技术出版社，2021）。必修一至必修三、选择性必修二按出版目录。选择性必修一和三仍是章节图，尚未逐节核对。',
     en: 'Huke senior (Shanghai Science and Technology Press, 2021). Compulsory 1–3 and elective 2 follow the published contents. Elective 1 and 3 are still a chapter map.',
