@@ -8,7 +8,7 @@ import {
   lever, pulley, workPower, circuit, CIRCUIT_LINKS,
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
-  specificHeat, ottoCycle,
+  specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -161,6 +161,16 @@ assert(otto.stroke.id === 'intake', 'first stroke is intake');
 const power = ottoCycle({ r: 8, Qin: 1000, Vmin: 0.0002 }, 2.2);
 assert(power.stroke.id === 'power', 'third stroke is power');
 assert(flatten(getBook('sh-junior')).some((row) => row.lesson.sim === 'heat-engine'), 'heat-engine mounted');
+
+const ruler = rulerReading({ trueCm: 3.64, division: 0.1 });
+near(ruler.main, 3.6, 1e-9, 'ruler main mark');
+assert(ruler.estimate === 4, 'ruler estimate digit');
+near(ruler.reading, 3.64, 1e-9, 'ruler reading');
+const watch = stopwatchReading({ t: 15 });
+near(watch.reading, 15, 1e-9, 'stopwatch from angle');
+near(watch.angle, Math.PI / 2, 1e-9, 'quarter turn is 15 s');
+const fork = tuningFork({ f: 10, A: 2 }, 0.025);
+near(fork.y, 2, 1e-9, 'fork at quarter period of 10 Hz');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

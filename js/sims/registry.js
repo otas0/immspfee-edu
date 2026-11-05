@@ -8,6 +8,8 @@ const LOADERS = {
   motion: () => import('./motion.js'),
   advance: () => import('./advance.js'),
   thermal: () => import('./thermal.js'),
+  measure: () => import('./measure.js'),
+  waves: () => import('./waves.js'),
 };
 
 const MAP = {
@@ -51,6 +53,9 @@ const MAP = {
   'normal-modes': ['advance', 'modesSim'],
   'specific-heat': ['thermal', 'heatSim'],
   'heat-engine': ['thermal', 'heatEngineSim'],
+  ruler: ['measure', 'rulerSim'],
+  stopwatch: ['measure', 'stopwatchSim'],
+  'sound-wave': ['waves', 'soundSim'],
 };
 
 const cache = new Map();

@@ -24,10 +24,16 @@ export const shanghaiJunior = {
   chapters: [
     C('shj-1', 'g8v1', '测量', 'Measurement', [
       S('shj-1-1', '长度的测量', 'Measuring length', [
-        Q('shj-1-1a', '刻度尺读数', 'Ruler reading', '估读到分度值的下一位。', 'Estimate one place past the division.'),
+        R('shj-1-1a', 'ruler', '刻度尺读数', 'Ruler reading',
+          '读数要估到分度值的下一位。整格是主尺读数，估读位由物体边缘在下一格里的位置给出。拖动物体边缘。',
+          'Report one estimated digit past the division. The main mark is the floor reading; the estimated digit comes from how far the edge sits into the next division. Drag the object edge.',
+          { trueCm: 3.64, division: 0.1 }),
       ]),
       S('shj-1-2', '时间的测量', 'Measuring time', [
-        Q('shj-1-2a', '停表', 'Stopwatch', '读数来自指针位置。', 'The reading is the hand position.'),
+        R('shj-1-2a', 'stopwatch', '停表', 'Stopwatch',
+          '60 秒表盘上，指针转角是 2π t / 60。读数就是把这个转角换回秒。拖动指针。',
+          'On a 60 s dial the hand angle is 2π t / 60. The reading is that angle turned back into seconds. Drag the hand.',
+          { t: 12.5 }),
       ]),
       S('shj-1-3', '质量的测量', 'Measuring mass', [
         Q('shj-1-3a', '天平', 'Balance', '左物右码，游码读数计入总质量。', 'Object and weights; rider included in the mass.'),
@@ -55,10 +61,16 @@ export const shanghaiJunior = {
     ]),
     C('shj-3', 'g8v1', '声现象', 'Sound', [
       S('shj-3-1', '声音的产生和传播', 'Making and carrying sound', [
-        Q('shj-3-1a', '振动与波形', 'Vibration and waveform', '介质中的纵波。', 'A longitudinal wave in a medium.'),
+        R('shj-3-1a', 'sound-wave', '振动与波形', 'Vibration and waveform',
+          '音叉和波形都服从 y = A sin(2π f t)。频率决定音调，振幅决定响度。',
+          'The fork and the wave both follow y = A sin(2π f t). Frequency is pitch; amplitude is loudness.',
+          { f: 256, A: 0.8 }),
       ]),
       S('shj-3-2', '声音的特性', 'Pitch, loudness, timbre', [
-        Q('shj-3-2a', '音调响度音色', 'Pitch, loudness, timbre', '频率、振幅、波形。', 'Frequency, amplitude, waveform.'),
+        R('shj-3-2a', 'sound-wave', '音调响度音色', 'Pitch, loudness, timbre',
+          '只改 f 就改音调，只改 A 就改响度。音色需要别的波形，这个模型不画。',
+          'Change only f to change pitch, only A to change loudness. Timbre needs another waveform and is outside this model.',
+          { f: 440, A: 0.6 }),
       ]),
       S('shj-3-3', '声波的应用和控制', 'Using and controlling sound', [
         Q('shj-3-3a', '隔声与吸声', 'Blocking and absorbing', '反射与吸收，不另造分贝曲线。', 'Reflection and absorption, no invented decibel curve.'),

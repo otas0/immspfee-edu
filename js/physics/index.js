@@ -7,3 +7,5 @@ export * from './motion.js';
 export * from './circuits.js';
 export * from './advance.js';
 export * from './thermal.js';
+export * from './measure.js';
+export * from './waves.js';
