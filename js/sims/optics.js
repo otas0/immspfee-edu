@@ -1,7 +1,7 @@
 import { fmt } from '../fmt.js';
 import {
   pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle,
-  doubleSlit, malus, telescope, singleSlit,
+  doubleSlit, doubleSlitIntensity, malus, telescope, singleSlit,
 } from '../physics/optics.js';
 import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
@@ -558,22 +558,28 @@ export const vision = {
 export const doubleSlitSim = {
   id: 'double-slit',
   timed: false,
-  authority: 'Young double-slit fringe spacing on a distant screen: Δy = λ D / d.',
-  params: { lambda: 6e-7, D: 1.2, d: 2e-4 },
+  authority: 'Young double-slit: fringe spacing Δy = λ D / d and intensity envelope I ∝ cos²(π d y /(λ D)).',
+  params: { lambda: 6e-7, D: 1.2, d: 2e-4, y: 0 },
   schema: [
     num('lambda', 'Wavelength λ', '波长 λ', 'm', 4e-7, 7e-7, 1e-8),
     num('D', 'Screen distance D', '屏距 D', 'm', 0.4, 3, 0.1),
     num('d', 'Slit spacing d', '缝距 d', 'm', 5e-5, 5e-4, 1e-5),
+    num('y', 'Screen y', '屏上 y', 'm', -0.01, 0.01, 0.0005),
   ],
-  compute: (p) => doubleSlit(p),
+  compute: (p) => doubleSlitIntensity(p),
   readouts: (d) => [
     ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
+    ro('I', 'I/I0', fmt(d.I, 3)),
     ro('λ', 'λ', `${(d.lambda * 1e9).toFixed(0)} nm`),
   ],
   checks: (d) => [
     q('dy', 'Fringe spacing is', '条纹间距是', [
       opt(`${d.dy.toExponential(3)} m = λ D / d`, `${d.dy.toExponential(3)} m = λ D / d`),
       opt(`${(d.lambda * d.d / d.D).toExponential(3)} m`, `${(d.lambda * d.d / d.D).toExponential(3)} m`),
+    ], 0),
+    q('I', 'Intensity at the probe follows', '探针处强度满足', [
+      opt('I ∝ cos²(π d y /(λ D))', 'I ∝ cos²(π d y /(λ D))'),
+      opt('I ∝ sin(π d y /(λ D))', 'I ∝ sin(π d y /(λ D))'),
     ], 0),
   ],
   debug: {
@@ -584,17 +590,31 @@ export const doubleSlitSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    line(ctx, w * 0.2, h * 0.25, w * 0.2, h * 0.75, INK, 2);
-    line(ctx, w * 0.2, h * 0.42, w * 0.2, h * 0.45, '#f3efe6', 4);
-    line(ctx, w * 0.2, h * 0.55, w * 0.2, h * 0.58, '#f3efe6', 4);
-    line(ctx, w * 0.8, h * 0.2, w * 0.8, h * 0.8, MUTED, 2);
-    const dyShow = ui.wrong ? (d.lambda * d.d) / d.D : d.dy;
-    const scale = Math.min(h * 0.15, dyShow * 1e5);
-    for (let i = -3; i <= 3; i += 1) {
-      const y = h * 0.5 + i * scale;
-      line(ctx, w * 0.78, y, w * 0.82, y, RAY, 2);
+    line(ctx, w * 0.12, h * 0.25, w * 0.12, h * 0.75, INK, 2);
+    line(ctx, w * 0.12, h * 0.42, w * 0.12, h * 0.45, '#f3efe6', 4);
+    line(ctx, w * 0.12, h * 0.55, w * 0.12, h * 0.58, '#f3efe6', 4);
+    const gx = w * 0.55;
+    const gy = h * 0.82;
+    const gw = w * 0.35;
+    const gh = h * 0.6;
+    const ySpan = 4 * d.dy;
+    ctx.beginPath();
+    for (let i = 0; i <= 120; i += 1) {
+      const y = -ySpan + (2 * ySpan * i) / 120;
+      const I = Math.cos((Math.PI * d.d * y) / (d.lambda * d.D)) ** 2;
+      const Y = gy - ((y + ySpan) / (2 * ySpan)) * gh;
+      const X = gx + I * gw;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
     }
-    text(ctx, `Δy=${dyShow.toExponential(2)} m`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    const dyShow = ui.wrong ? (d.lambda * d.d) / d.D : d.dy;
+    const probeY = gy - ((d.y + ySpan) / (2 * ySpan)) * gh;
+    line(ctx, gx, probeY, gx + gw, probeY, RAY, 1, [3, 3]);
+    text(ctx, `Δy=${dyShow.toExponential(2)} m  I/I0=${fmt(d.I, 2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 13, 'center');
+    text(ctx, 'I∝cos²', gx + gw * 0.5, h * 0.92, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

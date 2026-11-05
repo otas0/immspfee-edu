@@ -2,6 +2,7 @@ import { fmt } from '../fmt.js';
 import {
   bohrLevels, internalEnergy, energyShare, efficiency, scaleLength,
   massEnergy, halfLife, photoelectric, capacitance, resistivity, timeDilation,
+  simultaneity,
 } from '../physics/modern.js';
 import { num, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
@@ -530,6 +531,53 @@ export const dilationSim = {
     text(ctx, `Δτ=${fmt(d.dtau, 2)} s`, w * 0.32, h * 0.45, MUTED, 12, 'center');
     text(ctx, `Δt=${fmt(dtShow, 2)} s`, w * 0.75, h * 0.45, ui.wrong ? '#a33' : INK, 12, 'center');
     text(ctx, `γ=${fmt(d.gamma, 3)}`, w * 0.5, h * 0.25, INK, 16, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const simultaneitySim = {
+  id: 'simultaneity',
+  timed: false,
+  authority: 'Relativity of simultaneity teaching ruler: ends of a rod of proper length L0 flash together in the rod frame; in a frame where the rod moves at v, Δt = γ v L0 / c².',
+  params: { L0: 3e8, v: 1.5e8 },
+  schema: [
+    num('L0', 'Proper length L0', '固有长度 L0', 'm', 1e7, 1e9, 1e7),
+    num('v', 'Speed v', '速率 v', 'm/s', 1e7, 2.9e8, 1e7),
+  ],
+  compute: (p) => simultaneity(p),
+  readouts: (d) => [
+    ro('γ', 'γ', fmt(d.gamma, 4)),
+    ro('Δt', 'Δt', d.dt.toExponential(3) + ' s'),
+    ro('L', 'L', d.L.toExponential(3) + ' m'),
+  ],
+  checks: (d) => [
+    q('dt', 'Desynchronisation of the end events is', '两端事件的时差是', [
+      opt(`${d.dt.toExponential(3)} s = γ v L0 / c²`, `${d.dt.toExponential(3)} s = γ v L0 / c²`),
+      opt('0 in every frame', '在每一系中都是 0'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Claiming the flashes stay simultaneous in every frame denies relativity of simultaneity.',
+    zh: '声称闪光在每一系都同时，就否认了同时性的相对性。',
+    toggleEn: 'Force Δt = 0',
+    toggleZh: '强制 Δt = 0',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const y = h * 0.55;
+    const Lpix = Math.min(w * 0.7, 40 + d.L0 / 1e9 * 200);
+    const x0 = (w - Lpix) / 2;
+    line(ctx, x0, y, x0 + Lpix, y, INK, 6);
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(x0, y, 8, 0, Math.PI * 2);
+    ctx.arc(x0 + Lpix, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    const dtShow = ui.wrong ? 0 : d.dt;
+    text(ctx, 'A', x0, y - 18, MUTED, 12, 'center');
+    text(ctx, 'B', x0 + Lpix, y - 18, MUTED, 12, 'center');
+    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s`, w * 0.5, h * 0.28, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `γ=${fmt(d.gamma, 3)}  L=${d.L.toExponential(2)} m`, w * 0.5, h * 0.78, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

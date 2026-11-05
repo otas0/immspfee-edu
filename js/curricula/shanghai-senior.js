@@ -307,8 +307,8 @@ export const shanghaiSenior = {
         'n1 sin θ1 = n2 sin θ2. Raise the incidence angle to reach total internal reflection.',
         { theta: 40, n1: 1.5, n2: 1 }),
       live('shs-e4-2', 'double-slit', '干涉、衍射与偏振', 'Interference and diffraction',
-        '杨氏双缝条纹间距 Δy = λ D / d。偏振见大学入口马吕斯课。',
-        'Young fringe spacing Δy = λ D / d. Polarisation is the Malus entrance at university.',
+        '杨氏双缝条纹间距 Δy = λ D / d。偏振见大学马吕斯课。',
+        'Young fringe spacing Δy = λ D / d. Polarisation is the Malus lesson under University.',
         { lambda: 6e-7, D: 1.2, d: 2e-4 }, true),
     ]),
     chapter('shs-e5', 'e2', '磁场', 'Magnetic fields', [
@@ -387,8 +387,8 @@ export const shanghaiSenior = {
     ]),
     chapter('shs-e10', 'e3', '热学', 'Thermal physics', [
       live('shs-e10-1', 'kinetic-gas', '分子动理论与气体实验定律', 'Kinetic theory and gas laws',
-        '动理学压强 p = (1/3) ρ v_rms²。理想气体 pV = nRT 见大学入口。',
-        'Kinetic pressure p = (1/3) ρ v_rms². Ideal gas pV = nRT is the university entrance.',
+        '动理学压强 p = (1/3) ρ v_rms²。理想气体 pV = nRT 见大学。',
+        'Kinetic pressure p = (1/3) ρ v_rms². Ideal gas pV = nRT is under University.',
         { rho: 1.2, vrms: 500 }, true),
       live('shs-e10-2', 'internal-energy', '热力学定律', 'Laws of thermodynamics',
         '教学形式 ΔU = W + Q（进入系统为正）。',

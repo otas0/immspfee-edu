@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
       - name: Smoke ready sim modules
@@ -56,9 +56,23 @@ jobs:
             js/sims/modern.js \
             js/sims/uni.js \
             js/sims/stat.js \
-            js/sims/optics.js
+            js/sims/optics.js \
+            js/sims/advance.js
           do
             code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/$path")
             echo "$path -> $code"
             test "$code" = "200"
           done
+      - name: Smoke home HTML build stamp
+        if: success()
+        run: |
+          BASE="${{ steps.deployment.outputs.page_url }}"
+          BASE="${BASE%/}"
+          SHORT="$(echo '${{ github.sha }}' | cut -c1-7)"
+          html=$(curl -sS "$BASE/")
+          if echo "$html" | grep -q '__BUILD__'; then
+            echo 'FAIL: literal __BUILD__ still in index (stamp did not run)'
+            exit 1
+          fi
+          echo "$html" | grep -F "$SHORT"
+          echo "home HTML contains stamped build $SHORT"

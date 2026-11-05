@@ -20,7 +20,7 @@ export const REGIONS = [
   },
   {
     id: 'university',
-    zh: '大学入口',
+    zh: '大学',
     en: 'University',
     books: ['university'],
   },

@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes } from '../physics/advance.js';
+import { oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes, coupledPendula } from '../physics/advance.js';
 import { num, clear, line, text, handle, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -334,5 +334,76 @@ export const modesSim = {
     text(ctx, '1', x1, y - 22, MUTED, 12, 'center');
     text(ctx, '2', x2, y - 22, MUTED, 12, 'center');
   },
+};
+
+export const coupledPendulaSim = {
+  id: 'coupled-pendula',
+  timed: true,
+  tMax: (p) => {
+    const w0 = Math.sqrt(p.g / p.L);
+    const wa = Math.sqrt(w0 * w0 + 2 * Math.max(p.kappa, 0));
+    const beat = Math.abs(wa - w0);
+    return beat > 1e-6 ? (4 * Math.PI) / beat : (4 * Math.PI) / Math.max(w0, 0.1);
+  },
+  authority: 'Two equal pendulums coupled by a weak spring: θ1′′ = −ω0²θ1 − κ(θ1−θ2), θ2′′ = −ω0²θ2 − κ(θ2−θ1). Energy per unit mass exchanges between the two when one starts displaced.',
+  params: { g: 9.8, L: 1, kappa: 2, A1: 0.3, A2: 0 },
+  schema: [
+    num('L', 'Length L', '摆长 L', 'm', 0.4, 2, 0.05),
+    num('kappa', 'Coupling κ', '耦合 κ', '1/s²', 0, 8, 0.2),
+    num('A1', 'θ1(0)', 'θ1(0)', 'rad', -0.5, 0.5, 0.05),
+    num('A2', 'θ2(0)', 'θ2(0)', 'rad', -0.5, 0.5, 0.05),
+  ],
+  compute: (p, t) => coupledPendula(p, t),
+  readouts: (d) => [
+    ro('E1', 'E1', fmt(d.E1, 4)),
+    ro('E2', 'E2', fmt(d.E2, 4)),
+    ro('E', 'E', fmt(d.E, 4)),
+    ro('ωs', 'ωs', fmt(d.ws, 3)),
+    ro('ωa', 'ωa', fmt(d.wa, 3)),
+  ],
+  checks: (d) => [
+    q('ex', 'When only one pendulum starts displaced, energy', '只有一端初位移时，能量', [
+      opt('exchanges between the two pendulums', '在两摆之间交换'),
+      opt('stays forever in the first pendulum only', '永远只在第一摆'),
+    ], 0),
+    q('wa', 'The antisymmetric frequency is', '反对称模角频率是', [
+      opt(`${fmt(d.wa, 3)} = √(ω0²+2κ)`, `${fmt(d.wa, 3)} = √(ω0²+2κ)`),
+      opt(`${fmt(d.ws, 3)}`, `${fmt(d.ws, 3)}`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Setting κ = 0 freezes each pendulum’s energy and kills the exchange.',
+    zh: '令 κ = 0 会冻住各摆能量，交换就消失了。',
+    toggleEn: 'Set κ = 0',
+    toggleZh: '令 κ = 0',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const pivotY = h * 0.18;
+    const scale = Math.min(h * 0.45, d.L * 120);
+    const x1p = w * 0.35;
+    const x2p = w * 0.65;
+    const kappa = ui.wrong ? 0 : d.kappa;
+    const state = ui.wrong ? coupledPendula({ ...p, kappa: 0 }, d.t) : d;
+    const bob = (xp, th) => [xp + scale * Math.sin(th), pivotY + scale * Math.cos(th)];
+    const [bx1, by1] = bob(x1p, state.th1);
+    const [bx2, by2] = bob(x2p, state.th2);
+    line(ctx, x1p, pivotY, bx1, by1, INK, 2);
+    line(ctx, x2p, pivotY, bx2, by2, INK, 2);
+    line(ctx, bx1, by1, bx2, by2, kappa > 0 ? RAY2 : MUTED, 1.5, kappa > 0 ? [] : [4, 4]);
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(bx1, by1, 10, 0, Math.PI * 2);
+    ctx.arc(bx2, by2, 10, 0, Math.PI * 2);
+    ctx.fill();
+    const eMax = Math.max(state.E1 + state.E2, 1e-9);
+    ctx.fillStyle = RAY;
+    ctx.fillRect(w * 0.12, h * 0.88, (state.E1 / eMax) * w * 0.3, 8);
+    ctx.fillStyle = RAY2;
+    ctx.fillRect(w * 0.58, h * 0.88, (state.E2 / eMax) * w * 0.3, 8);
+    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.27, h * 0.82, INK, 12, 'center');
+    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.73, h * 0.82, INK, 12, 'center');
+  },
+  pointer() { return null; },
 };
 

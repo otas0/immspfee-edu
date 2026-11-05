@@ -53,9 +53,65 @@ export function isingMetropolis(p) {
   let mag = 0;
   for (const s of spins) mag += s;
   const M = mag / (N * N);
+  // Onsager Tc for the square lattice with J = k_B = 1: Tc = 2 / ln(1+√2).
+  const Tc = 2 / Math.log(1 + Math.SQRT2);
   return {
     N, T, J, sweeps, seed, spins, energy, M, absM: Math.abs(M),
+    Tc, aboveTc: T > Tc,
   };
+}
+
+/**
+ * Scan rectangular-barrier T(E) over [Emin, Emax] and mark local maxima
+ * above V0 (resonance-like peaks of the sin form).
+ */
+export function barrierScan(p) {
+  const samples = Math.max(40, Math.min(400, Math.round(p.samples ?? 120)));
+  const Emin = Math.max(p.Emin ?? p.E * 0.2, 1e-40);
+  const Emax = Math.max(p.Emax ?? p.V0 * 3, Emin * 1.1);
+  const curve = [];
+  for (let i = 0; i <= samples; i += 1) {
+    const E = Emin + ((Emax - Emin) * i) / samples;
+    const d = barrierTunnel({ ...p, E });
+    curve.push({ E, T: d.T, regime: d.regime });
+  }
+  const peaks = [];
+  for (let i = 1; i < curve.length - 1; i += 1) {
+    if (curve[i].E <= p.V0) continue;
+    if (curve[i].T >= curve[i - 1].T && curve[i].T >= curve[i + 1].T && curve[i].T > 0.5) {
+      peaks.push(curve[i]);
+    }
+  }
+  const at = barrierTunnel(p);
+  return { ...at, Emin, Emax, samples, curve, peaks };
+}
+
+const A0 = 5.29177210903e-11;
+
+/**
+ * Hydrogen radial wave R_nl and radial probability density r² R_nl².
+ * Classroom Bohr radius a0; n = 1..3, l = 0..n−1.
+ */
+export function hydrogenRadial(p) {
+  const n = Math.max(1, Math.min(3, Math.round(p.n)));
+  const l = Math.max(0, Math.min(n - 1, Math.round(p.l)));
+  const r = Math.max(p.r, 0);
+  const a = A0;
+  const rho = r / a;
+  let R;
+  if (n === 1 && l === 0) R = 2 * a ** -1.5 * Math.exp(-rho);
+  else if (n === 2 && l === 0) R = (1 / Math.SQRT2) * a ** -1.5 * (1 - rho / 2) * Math.exp(-rho / 2);
+  else if (n === 2 && l === 1) R = (1 / Math.sqrt(24)) * a ** -1.5 * rho * Math.exp(-rho / 2);
+  else if (n === 3 && l === 0) {
+    R = (2 / (3 * Math.sqrt(3))) * a ** -1.5 * (1 - (2 * rho) / 3 + (2 * rho * rho) / 27) * Math.exp(-rho / 3);
+  }   else if (n === 3 && l === 1) {
+    R = (8 / 27) * Math.sqrt(2 / 3) * a ** -1.5 * (rho / 6) * (1 - rho / 6) * Math.exp(-rho / 3);
+  } else {
+    // n = 3, l = 2
+    R = (8 / (27 * Math.sqrt(30))) * a ** -1.5 * (rho * rho) * Math.exp(-rho / 3);
+  }
+  const dens = r * r * R * R;
+  return { n, l, r, a, R, dens, rho };
 }
 
 /**

@@ -170,17 +170,34 @@ export function singleSlit(p) {
 }
 
 /**
- * Thin-film constructive reflection (net phase flip of π): 2 n t = (m + ½) λ.
- * Solve for order m from thickness, or the design wavelength for given m.
+ * Thin-film bright condition.
+ * mode 'reflect' (net π phase flip): constructive when 2 n t = (m + ½) λ.
+ * mode 'transmit' (no net flip): constructive when 2 n t = m λ.
  */
 export function thinFilm(p) {
   const n = Math.max(p.n, 1e-6);
   const thickness = Math.max(p.t, 0);
   const lambda = Math.max(p.lambda, 1e-12);
   const m = Math.max(0, Math.round(p.m ?? 0));
+  const mode = p.mode === 'transmit' ? 'transmit' : 'reflect';
   const lhs = 2 * n * thickness;
-  const condition = (m + 0.5) * lambda;
-  const lambdaBright = (2 * n * thickness) / (m + 0.5);
+  const half = mode === 'reflect';
+  const condition = (m + (half ? 0.5 : 0)) * lambda;
+  const denom = m + (half ? 0.5 : 0);
+  const lambdaBright = denom > 0 ? lhs / denom : Infinity;
   const match = Math.abs(lhs - condition) / Math.max(condition, 1e-15);
-  return { n, t: thickness, lambda, m, lhs, condition, lambdaBright, match };
+  return { n, t: thickness, lambda, m, mode, lhs, condition, lambdaBright, match, half };
+}
+
+/**
+ * Young double-slit intensity on the screen (far field):
+ * I(y) = I0 cos²(π d y / (λ D)), with fringe spacing Δy = λ D / d.
+ */
+export function doubleSlitIntensity(p) {
+  const base = doubleSlit(p);
+  const y = p.y ?? 0;
+  const I0 = Math.max(p.I0 ?? 1, 0);
+  const phase = (Math.PI * base.d * y) / (base.lambda * base.D);
+  const I = I0 * Math.cos(phase) ** 2;
+  return { ...base, y, I0, I, phase };
 }

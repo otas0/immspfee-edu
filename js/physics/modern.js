@@ -127,3 +127,18 @@ export function timeDilation(p) {
   const dt = gamma * dtau;
   return { v, dtau, beta, gamma, dt, c: C_LIGHT };
 }
+
+/**
+ * Relativity of simultaneity teaching ruler.
+ * Two ends of a rod of proper length L0 flash at the same time in the rod frame.
+ * In a frame where the rod moves at v, the end events differ by Δt = γ v L0 / c².
+ */
+export function simultaneity(p) {
+  const L0 = Math.max(p.L0, 0);
+  const v = Math.min(Math.max(p.v, 0), C_LIGHT * (1 - 1e-12));
+  const beta = v / C_LIGHT;
+  const gamma = 1 / Math.sqrt(1 - beta * beta);
+  const dt = (gamma * v * L0) / (C_LIGHT * C_LIGHT);
+  const L = L0 / gamma;
+  return { L0, v, beta, gamma, dt, L, c: C_LIGHT };
+}

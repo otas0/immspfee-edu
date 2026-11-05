@@ -4,6 +4,8 @@ const need = [
   'circuit', 'bar-magnet', 'ruler', 'balance', 'charges', 'current', 'thermometer',
   'boiling', 'atom-levels', 'lorentz',
   'double-slit', 'transformer', 'time-dilation',
+  'ising', 'barrier-tunnel', 'wave-packet',
+  'hydrogen-radial', 'coupled-pendula', 'simultaneity',
 ];
 let failed = 0;
 for (const id of need) {

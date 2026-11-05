@@ -101,6 +101,7 @@ const MAP = {
   capacitance: ['modern', 'capSim'],
   resistivity: ['modern', 'resistivitySim'],
   'time-dilation': ['modern', 'dilationSim'],
+  simultaneity: ['modern', 'simultaneitySim'],
   'maxwell-wave': ['uni', 'maxwellSim'],
   'ideal-gas': ['uni', 'gasSim'],
   carnot: ['uni', 'carnotSim'],
@@ -121,6 +122,8 @@ const MAP = {
   'length-contraction': ['stat', 'lengthSim'],
   'laser-cavity': ['stat', 'cavitySim'],
   'thin-film': ['stat', 'filmSim'],
+  'hydrogen-radial': ['stat', 'hydrogenRadialSim'],
+  'coupled-pendula': ['advance', 'coupledPendulaSim'],
 };
 
 const cache = new Map();

@@ -44,7 +44,7 @@ button { cursor: pointer; }
   align-items: center;
   margin: 0;
   padding: 6px 8px;
-  max-width: min(495px, calc(100vw - 24px));
+  max-width: min(461px, calc(100vw - 24px));
   background: transparent;
   line-height: 0;
   color-scheme: light;
@@ -55,7 +55,7 @@ button { cursor: pointer; }
   width: 100%;
   max-width: min(300px, calc(100vw - 40px));
   height: auto;
-  aspect-ratio: 495 / 163;
+  aspect-ratio: 461 / 123;
   object-fit: contain;
   object-position: left center;
 }
@@ -186,6 +186,21 @@ aside { padding: 12px; overflow: auto; max-height: calc(100vh - 124px); }
 }
 #tree h2 { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
 #tree h3 { font-size: 14px; margin: 10px 0 4px; }
+#tree details.chapter { margin: 8px 0; }
+#tree details.chapter > summary {
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 0;
+}
+#tree details.chapter > summary::-webkit-details-marker { display: none; }
+#tree details.chapter > summary::before {
+  content: '▸ ';
+  color: var(--muted);
+  font-weight: 400;
+}
+#tree details.chapter[open] > summary::before { content: '▾ '; }
 .section { margin: 0 0 8px 8px; }
 .section p { margin: 6px 0 2px; color: var(--muted); font-size: 12px; }
 .lesson {
@@ -279,6 +294,19 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
     justify-items: start;
   }
   .lang { justify-self: start; }
+  .brand img { max-width: min(200px, calc(100vw - 24px)); }
+  .book-select {
+    font-size: 12px;
+    max-width: calc(100vw - 20px);
+  }
+}
+@media (max-width: 320px) {
+  .top { padding: 4px 6px; }
+  .brand img { max-width: calc(100vw - 16px); }
+  .book-select {
+    font-size: 11px;
+    padding: 3px 22px 3px 8px;
+  }
 }
 @media (prefers-color-scheme: dark) {
   .top { background: #fff; color-scheme: light; }

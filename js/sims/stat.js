@@ -1,11 +1,15 @@
 import { fmt } from '../fmt.js';
 import {
-  isingMetropolis, barrierTunnel, gaussianPacket, gaussianPacketPsi2,
+  isingMetropolis, barrierTunnel, barrierScan, hydrogenRadial,
+  gaussianPacket, gaussianPacketPsi2,
   maxwellHistogram, fourierSquare, membraneMode, bellSinglet, sternGerlach,
   lengthContraction, laserCavity,
 } from '../physics/stat.js';
 import { thinFilm } from '../physics/optics.js';
-import { num, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+
+const KB = 1.380649e-23;
+let isingBuf = null;
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -14,7 +18,7 @@ function ro(en, zh, value) { return { en, zh, value }; }
 export const isingSim = {
   id: 'ising',
   timed: false,
-  authority: '2-D Ising Metropolis on an N×N lattice with H = −J Σ s_i s_j (J = 1). Temperature is in units of J/k_B. Magnetisation M = (1/N²) Σ s_i after a fixed number of sweeps from a seeded RNG.',
+  authority: '2-D Ising Metropolis on an N×N lattice with H = −J Σ s_i s_j (J = 1). Temperature is in units of J/k_B. Onsager Tc = 2/ln(1+√2). Magnetisation M = (1/N²) Σ s_i after a fixed number of sweeps from a seeded RNG.',
   params: { N: 16, T: 2.2, sweeps: 50, seed: 1 },
   schema: [
     num('N', 'Lattice N', '格子边长 N', '', 6, 24, 2),
@@ -27,12 +31,18 @@ export const isingSim = {
     ro('|M|', '|M|', fmt(d.absM, 3)),
     ro('E', 'E', fmt(d.energy, 1)),
     ro('T', 'T', fmt(d.T, 2)),
+    ro('Tc', 'Onsager Tc', fmt(d.Tc, 4)),
   ],
   checks: (d) => [
     q('M', 'Magnetisation magnitude |M| is', '磁化强度 |M| 是', [
       opt(fmt(d.absM, 3), fmt(d.absM, 3)),
       opt('always 1', '恒为 1'),
       opt('always 0', '恒为 0'),
+    ], 0),
+    q('Tc', 'Onsager critical temperature (J = k_B = 1) is', 'Onsager 临界温度（J = k_B = 1）是', [
+      opt(`${fmt(d.Tc, 4)} = 2/ln(1+√2)`, `${fmt(d.Tc, 4)} = 2/ln(1+√2)`),
+      opt('1.0000', '1.0000'),
+      opt('4.0000', '4.0000'),
     ], 0),
     q('lowT', 'Lowering T (more sweeps fixed) tends to', '降低 T（扫描次数固定）倾向于', [
       opt('increase |M| toward an ordered state', '使 |M| 增大、趋向有序'),
@@ -50,14 +60,30 @@ export const isingSim = {
     const cell = Math.min((w * 0.7) / d.N, (h * 0.7) / d.N);
     const x0 = (w - cell * d.N) / 2;
     const y0 = (h - cell * d.N) / 2;
-    for (let y = 0; y < d.N; y += 1) {
-      for (let x = 0; x < d.N; x += 1) {
-        const s = ui.wrong ? 1 : d.spins[y * d.N + x];
-        ctx.fillStyle = s > 0 ? RAY : RAY2;
-        ctx.fillRect(x0 + x * cell, y0 + y * cell, cell - 0.5, cell - 0.5);
+    const side = Math.ceil(cell * d.N);
+    const paint = (g, ox, oy) => {
+      for (let y = 0; y < d.N; y += 1) {
+        for (let x = 0; x < d.N; x += 1) {
+          const s = ui.wrong ? 1 : d.spins[y * d.N + x];
+          g.fillStyle = s > 0 ? RAY : RAY2;
+          g.fillRect(ox + x * cell, oy + y * cell, cell - 0.5, cell - 0.5);
+        }
       }
+    };
+    if (d.N >= 16) {
+      if (!isingBuf || isingBuf.width !== side) {
+        isingBuf = typeof OffscreenCanvas !== 'undefined'
+          ? new OffscreenCanvas(side, side)
+          : Object.assign(document.createElement('canvas'), { width: side, height: side });
+      }
+      const g = isingBuf.getContext('2d');
+      g.clearRect(0, 0, side, side);
+      paint(g, 0, 0);
+      ctx.drawImage(isingBuf, x0, y0);
+    } else {
+      paint(ctx, x0, y0);
     }
-    text(ctx, `|M|=${fmt(ui.wrong ? 1 : d.absM, 3)}`, w * 0.5, h * 0.08, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, `|M|=${fmt(ui.wrong ? 1 : d.absM, 3)}  T=${fmt(d.T, 2)}  Tc=${fmt(d.Tc, 3)}`, w * 0.5, h * 0.08, ui.wrong ? '#a33' : INK, 13, 'center');
   },
   pointer() { return null; },
 };
@@ -65,17 +91,18 @@ export const isingSim = {
 export const tunnelSim = {
   id: 'barrier-tunnel',
   timed: false,
-  authority: 'Rectangular barrier transmission T(E). For E < V0, T = [1 + V0² sinh²(κa)/(4E(V0−E))]^{-1} with κ = √(2m(V0−E))/ℏ.',
-  params: { m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 8e-19 },
+  authority: 'Rectangular barrier transmission T(E). For E < V0, T = [1 + V0² sinh²(κa)/(4E(V0−E))]^{-1}. Above V0 the sin form produces resonance-like peaks; the stage scans T(E) and marks those maxima.',
+  params: { m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 8e-19, samples: 120 },
   schema: [
     num('E', 'Energy E', '能量 E', 'J', 1e-19, 3e-18, 1e-19),
     num('V0', 'Barrier V0', '势垒 V0', 'J', 2e-19, 4e-18, 1e-19),
     num('a', 'Width a', '宽度 a', 'm', 2e-11, 5e-10, 1e-11),
   ],
-  compute: (p) => barrierTunnel(p),
+  compute: (p) => barrierScan(p),
   readouts: (d) => [
     ro('T', 'T', fmt(d.T, 4)),
     ro('Regime', '情形', { en: d.regime, zh: { tunnel: '隧穿', over: '越过', edge: '边缘' }[d.regime] || d.regime }),
+    ro('Peaks', '共振峰数', String(d.peaks.length)),
   ],
   checks: (d) => [
     q('T', 'Transmission coefficient is', '透射系数是', [
@@ -92,17 +119,104 @@ export const tunnelSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y0 = h * 0.7;
-    line(ctx, w * 0.1, y0, w * 0.35, y0, INK, 2);
-    const top = y0 - h * 0.35;
-    line(ctx, w * 0.35, y0, w * 0.35, top, INK, 2);
-    line(ctx, w * 0.35, top, w * 0.55, top, INK, 2);
-    line(ctx, w * 0.55, top, w * 0.55, y0, INK, 2);
-    line(ctx, w * 0.55, y0, w * 0.9, y0, INK, 2);
-    const eY = y0 - (d.E / Math.max(d.V0, d.E)) * h * 0.35;
-    line(ctx, w * 0.1, eY, w * 0.9, eY, RAY, 1.5, [4, 3]);
+    const gx = w * 0.1;
+    const gy = h * 0.82;
+    const gw = w * 0.8;
+    const gh = h * 0.55;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
+    ctx.beginPath();
+    d.curve.forEach((pt, i) => {
+      const X = gx + ((pt.E - d.Emin) / (d.Emax - d.Emin)) * gw;
+      const Y = gy - (ui.wrong && pt.regime === 'tunnel' ? 0 : pt.T) * gh;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    const vX = gx + ((d.V0 - d.Emin) / (d.Emax - d.Emin)) * gw;
+    line(ctx, vX, gy, vX, gy - gh, MUTED, 1, [3, 3]);
+    text(ctx, 'V0', vX, gy - gh - 6, MUTED, 11, 'center');
+    for (const pk of d.peaks) {
+      const X = gx + ((pk.E - d.Emin) / (d.Emax - d.Emin)) * gw;
+      const Y = gy - pk.T * gh;
+      ctx.fillStyle = RAY;
+      ctx.beginPath();
+      ctx.arc(X, Y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const eX = gx + ((d.E - d.Emin) / (d.Emax - d.Emin)) * gw;
+    line(ctx, eX, gy, eX, gy - gh, RAY, 1, [2, 2]);
     const Tshow = ui.wrong && d.regime === 'tunnel' ? 0 : d.T;
-    text(ctx, `T=${fmt(Tshow, 4)}`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `T=${fmt(Tshow, 4)}  peaks=${d.peaks.length}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 14, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const hydrogenRadialSim = {
+  id: 'hydrogen-radial',
+  timed: false,
+  authority: 'Hydrogen radial probability density P(r) = r² R_nl(r)² with Bohr radius a0. Classroom forms for n = 1…3, l = 0…n−1.',
+  params: { n: 2, l: 0, r: 1e-10 },
+  schema: [
+    num('n', 'n', 'n', '', 1, 3, 1),
+    num('l', 'l', 'l', '', 0, 2, 1),
+    num('r', 'Probe r', '探针 r', 'm', 0, 1e-9, 2e-11),
+  ],
+  compute: (p) => hydrogenRadial(p),
+  readouts: (d) => [
+    ro('Rnl', 'R_nl', d.R.toExponential(3)),
+    ro('r²R²', 'r² R²', d.dens.toExponential(3)),
+    ro('ρ', 'ρ=r/a0', fmt(d.rho, 2)),
+  ],
+  checks: (d) => [
+    q('dens', 'Radial probability density r² R² at the probe is', '探针处径向概率密度 r² R² 是', [
+      opt(d.dens.toExponential(3), d.dens.toExponential(3)),
+      opt('always 0', '恒为 0'),
+    ], 0),
+    q('form', 'The plotted density is', '图上画的是', [
+      opt('r² R_nl²(r)', 'r² R_nl²(r)'),
+      opt('|R_nl| alone', '只有 |R_nl|'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Plotting |R| without the r² weight shifts the peaks inward.',
+    zh: '不乘 r² 只画 |R|，峰会往里移。',
+    toggleEn: 'Plot |R| only',
+    toggleZh: '只画 |R|',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const gx = w * 0.1;
+    const gy = h * 0.78;
+    const gw = w * 0.8;
+    const gh = h * 0.55;
+    const rMax = d.a * (3 * d.n * d.n + 2);
+    let maxY = 1e-40;
+    const pts = [];
+    for (let i = 0; i <= 160; i += 1) {
+      const r = (rMax * i) / 160;
+      const pt = hydrogenRadial({ n: d.n, l: d.l, r });
+      const y = ui.wrong ? Math.abs(pt.R) : pt.dens;
+      pts.push({ r, y });
+      if (y > maxY) maxY = y;
+    }
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    ctx.beginPath();
+    pts.forEach((pt, i) => {
+      const X = gx + (pt.r / rMax) * gw;
+      const Y = gy - (pt.y / maxY) * gh;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const px = gx + (Math.min(d.r, rMax) / rMax) * gw;
+    line(ctx, px, gy, px, gy - gh, RAY, 1, [3, 3]);
+    text(ctx, ui.wrong ? '|R|' : 'r² R²', w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, `n=${d.n}, l=${d.l}`, w * 0.5, h * 0.9, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -203,12 +317,41 @@ export const maxwellHistSim = {
       ctx.fillStyle = RAY2;
       ctx.fillRect(gx + i * bw, gy - bh, bw * 0.9, bh);
     });
+    // Overlay continuous f(v) scaled to the same peak height.
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i += 1) {
+      const v = (d.vmax * i) / 100;
+      const a = Math.sqrt((KB * d.T) / d.m);
+      const f = Math.sqrt(2 / Math.PI) * (v * v) / (a ** 3) * Math.exp(-(v * v) / (2 * a * a));
+      const X = gx + (v / d.vmax) * gw;
+      const Y = gy - (f / maxH) * gh;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    }
+    ctx.strokeStyle = MUTED;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
     const peak = ui.wrong ? d.vrms : d.vmp;
     const px = gx + (peak / d.vmax) * gw;
     line(ctx, px, gy, px, gy - gh, RAY, 1.5, [3, 3]);
-    text(ctx, ui.wrong ? 'vrms?' : 'vmp', px, gy - gh - 8, ui.wrong ? '#a33' : INK, 12, 'center');
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(px, gy - gh, 5, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, ui.wrong ? 'vrms?' : 'vmp', px, gy - gh - 12, ui.wrong ? '#a33' : INK, 12, 'center');
   },
-  pointer() { return null; },
+  pointer(ev, _p, d, ui) {
+    if (ev.type === 'down') { ui.drag = 'vmp'; return {}; }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    if (ev.type !== 'move' || ui.drag !== 'vmp') return null;
+    const host = typeof document !== 'undefined' ? document.getElementById('stage') : null;
+    const W = host ? host.getBoundingClientRect().width : 640;
+    const gx = W * 0.1;
+    const gw = W * 0.8;
+    const v = Math.max(50, Math.min(d.vmax * 0.98, ((ev.x - gx) / gw) * d.vmax));
+    const T = (d.m * v * v) / (2 * KB);
+    return { T: Math.max(50, Math.min(2000, T)) };
+  },
 };
 
 export const fourierSim = {
@@ -484,9 +627,13 @@ export const cavitySim = {
 export const filmSim = {
   id: 'thin-film',
   timed: false,
-  authority: 'Thin-film constructive reflection with a net π phase flip: 2 n t = (m + ½) λ.',
-  params: { n: 1.33, t: 2e-7, lambda: 5.32e-7, m: 0 },
+  authority: 'Thin-film bright condition. Reflect (net π flip): 2 n t = (m + ½) λ. Transmit (no net flip): 2 n t = m λ. Switch the phase convention on the stage.',
+  params: { n: 1.33, t: 2e-7, lambda: 5.32e-7, m: 0, mode: 'reflect' },
   schema: [
+    sel('mode', 'Channel', '通道', [
+      { value: 'reflect', en: 'Reflect (½)', zh: '反射（½）' },
+      { value: 'transmit', en: 'Transmit (m)', zh: '透射（m）' },
+    ]),
     num('n', 'Index n', '折射率 n', '', 1.1, 2, 0.01),
     num('t', 'Thickness t', '厚度 t', 'm', 5e-8, 8e-7, 1e-8),
     num('lambda', 'Wavelength λ', '波长 λ', 'm', 4e-7, 7e-7, 1e-8),
@@ -495,20 +642,20 @@ export const filmSim = {
   compute: (p) => thinFilm(p),
   readouts: (d) => [
     ro('2nt', '2nt', d.lhs.toExponential(3) + ' m'),
-    ro('(m+½)λ', '(m+½)λ', d.condition.toExponential(3) + ' m'),
-    ro('λ_bright', '亮纹 λ', d.lambdaBright.toExponential(3) + ' m'),
+    ro('cond', d.half ? '(m+½)λ' : 'mλ', d.condition.toExponential(3) + ' m'),
+    ro('λ_bright', '亮纹 λ', Number.isFinite(d.lambdaBright) ? d.lambdaBright.toExponential(3) + ' m' : '—'),
   ],
   checks: (d) => [
-    q('cond', 'Constructive reflection uses', '反射相长使用', [
-      opt('2 n t = (m + ½) λ', '2 n t = (m + ½) λ'),
-      opt('2 n t = m λ only', '只有 2 n t = m λ'),
+    q('cond', 'Bright condition for this channel is', '本通道亮纹条件是', [
+      opt(d.half ? '2 n t = (m + ½) λ' : '2 n t = m λ', d.half ? '2 n t = (m + ½) λ' : '2 n t = m λ'),
+      opt(d.half ? '2 n t = m λ only' : '2 n t = (m + ½) λ', d.half ? '只有 2 n t = m λ' : '2 n t = (m + ½) λ'),
     ], 0),
   ],
   debug: {
-    en: 'Dropping the ½ turns the bright condition into the dark one for this phase convention.',
-    zh: '丢掉 ½，在这个相位约定下亮纹条件就变成暗纹了。',
-    toggleEn: 'Use 2nt = m λ',
-    toggleZh: '改用 2nt = m λ',
+    en: 'Swapping the ½ convention exchanges bright and dark for this channel.',
+    zh: '对调 ½ 约定，本通道的亮暗就对换。',
+    toggleEn: 'Flip the ½ convention',
+    toggleZh: '对调 ½ 约定',
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
@@ -516,9 +663,10 @@ export const filmSim = {
     ctx.fillRect(w * 0.2, h * 0.4, w * 0.6, h * 0.2);
     line(ctx, w * 0.2, h * 0.4, w * 0.8, h * 0.4, INK, 2);
     line(ctx, w * 0.2, h * 0.6, w * 0.8, h * 0.6, INK, 2);
-    const cond = ui.wrong ? d.m * d.lambda : d.condition;
+    const half = ui.wrong ? !d.half : d.half;
+    const cond = (d.m + (half ? 0.5 : 0)) * d.lambda;
     text(ctx, `2nt=${d.lhs.toExponential(2)}`, w * 0.5, h * 0.2, INK, 14, 'center');
-    text(ctx, ui.wrong ? `mλ=${cond.toExponential(2)}` : `(m+½)λ=${cond.toExponential(2)}`, w * 0.5, h * 0.78, ui.wrong ? '#a33' : MUTED, 13, 'center');
+    text(ctx, `${d.mode} · ${half ? '(m+½)λ' : 'mλ'}=${cond.toExponential(2)}`, w * 0.5, h * 0.78, ui.wrong ? '#a33' : MUTED, 13, 'center');
   },
   pointer() { return null; },
 };

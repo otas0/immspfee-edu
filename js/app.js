@@ -317,12 +317,12 @@ function renderTree() {
     vol.appendChild(h);
     let volCount = 0;
     for (const ch of chapters) {
-      const block = document.createElement('div');
+      const fold = bookId === 'university';
+      const block = document.createElement(fold ? 'details' : 'div');
       block.className = 'chapter';
-      const chTitle = document.createElement('h3');
-      chTitle.textContent = tx(lang, ch.title);
-      block.appendChild(chTitle);
       let chCount = 0;
+      const body = document.createElement('div');
+      body.className = 'chapter-body';
       for (const sec of ch.sections) {
         const lessons = sec.lessons.filter((ls) => {
           if (!q) return true;
@@ -344,12 +344,22 @@ function renderTree() {
           chCount += 1;
           shown += 1;
         }
-        block.appendChild(secEl);
+        body.appendChild(secEl);
       }
-      if (chCount) {
-        vol.appendChild(block);
-        volCount += 1;
+      if (!chCount) continue;
+      if (fold) {
+        const sum = document.createElement('summary');
+        sum.textContent = tx(lang, ch.title);
+        block.append(sum, body);
+        const current = findLesson(bookId, lessonId);
+        if (q || current?.chapter?.id === ch.id) block.open = true;
+      } else {
+        const chTitle = document.createElement('h3');
+        chTitle.textContent = tx(lang, ch.title);
+        block.append(chTitle, body);
       }
+      vol.appendChild(block);
+      volCount += 1;
     }
     if (volCount) host.appendChild(vol);
   }

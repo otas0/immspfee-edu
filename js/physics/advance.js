@@ -61,6 +61,37 @@ export function pendulumPair(p, t) {
   return { g, L, t: tt, theta0: p.theta0, delta: p.delta, theta: a.th, theta2: b.th, sep, E: a.E, E0: a.E0 };
 }
 
+/**
+ * Two equal pendulums coupled by a weak spring (small-angle teaching form).
+ * θ1'' = −ω0² θ1 − κ (θ1 − θ2), θ2'' = −ω0² θ2 − κ (θ2 − θ1),
+ * with ω0² = g/L and κ = k/m. Energies per unit mass exchange between the two.
+ */
+export function coupledPendula(p, t) {
+  const g = Math.max(p.g, 1e-6);
+  const L = Math.max(p.L, 1e-6);
+  const kappa = Math.max(p.kappa, 0);
+  const w0 = Math.sqrt(g / L);
+  const ws = Math.sqrt(w0 * w0);
+  const wa = Math.sqrt(w0 * w0 + 2 * kappa);
+  const A1 = p.A1;
+  const A2 = p.A2;
+  const tt = Math.max(0, t);
+  // Symmetric / antisymmetric decomposition of initial (A1, A2) at rest.
+  const As = 0.5 * (A1 + A2);
+  const Aa = 0.5 * (A1 - A2);
+  const th1 = As * Math.cos(ws * tt) + Aa * Math.cos(wa * tt);
+  const th2 = As * Math.cos(ws * tt) - Aa * Math.cos(wa * tt);
+  const w1 = -As * ws * Math.sin(ws * tt) - Aa * wa * Math.sin(wa * tt);
+  const w2 = -As * ws * Math.sin(ws * tt) + Aa * wa * Math.sin(wa * tt);
+  const E1 = 0.5 * (L * w1) ** 2 + 0.5 * g * L * th1 * th1;
+  const E2 = 0.5 * (L * w2) ** 2 + 0.5 * g * L * th2 * th2;
+  const Ecoup = 0.5 * kappa * L * L * (th1 - th2) ** 2;
+  const E = E1 + E2 + Ecoup;
+  return {
+    g, L, kappa, t: tt, w0, ws, wa, th1, th2, w1, w2, E1, E2, Ecoup, E, A1, A2,
+  };
+}
+
 /** Inverse-square orbit. Launch is perpendicular to the radius. GM is the model parameter. */
 export function centralOrbit(p, t) {
   const GM = Math.max(p.GM, 1e-9);
