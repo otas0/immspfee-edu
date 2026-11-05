@@ -264,10 +264,16 @@ export const shanghaiJunior = {
         Q('shj-10-2a', '改变内能', 'Changing internal energy', '做功和热传递。', 'Work and heating.'),
       ]),
       S('shj-10-3', '热机及其工作原理', 'Heat engines', [
-        Q('shj-10-3a', '四冲程', 'Four strokes', '循环和 p–V 图上的功。', 'The cycle and the work on a p–V diagram.'),
+        R('shj-10-3a', 'heat-engine', '四冲程', 'Four strokes',
+          '理想奥托循环：η = 1 − 1/r^(γ−1)，γ = 1.4，净功 W = η Qin。p–V 图上阴影面积等于 W。冲程顺序是吸气、压缩、做功、排气。这是公开的热力学关系，不是装置设计。',
+          'Ideal Otto cycle: η = 1 − 1/r^(γ−1) with γ = 1.4, and net work W = η Qin. The shaded p–V area equals W. Stroke order is intake, compression, power, exhaust. This is the public thermodynamic relation, not a device design.',
+          { r: 8, Qin: 1200, Vmin: 0.0002 }),
       ]),
       S('shj-10-4', '热机的效率', 'Engine efficiency', [
-        Q('shj-10-4a', '热机效率', 'Efficiency', 'η = W / Q。', 'η = W / Q.'),
+        R('shj-10-4a', 'heat-engine', '热机效率', 'Engine efficiency',
+          '效率就是 η = W / Qin。改压缩比，看 η 和阴影面积怎么一起变。',
+          'Efficiency is η = W / Qin. Change the compression ratio and watch η and the shaded area move together.',
+          { r: 8, Qin: 1200, Vmin: 0.0002 }),
       ]),
     ]),
     C('shj-11', 'g9v1', '静电与电流', 'Charge and current', [

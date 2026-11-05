@@ -50,6 +50,7 @@ const MAP = {
   'central-orbit': ['advance', 'orbitSim'],
   'normal-modes': ['advance', 'modesSim'],
   'specific-heat': ['thermal', 'heatSim'],
+  'heat-engine': ['thermal', 'heatEngineSim'],
 };
 
 const cache = new Map();

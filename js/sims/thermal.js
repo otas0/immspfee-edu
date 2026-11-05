@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { specificHeat } from '../physics/thermal.js';
+import { specificHeat, ottoCycle, STROKES } from '../physics/thermal.js';
 import { num, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -96,6 +96,105 @@ export const heatSim = {
     text(ctx, lab(ui, 'sample 2', '样品 2'), w * 0.42, h * 0.12, RAY2, 13);
     text(ctx, `ΔT1=${fmt(ui.wrong ? d.Q / (d.c2 * d.m1) : d.dT1, 1)}`, w * 0.7, h * 0.1, RAY, 12);
     text(ctx, `ΔT2=${fmt(d.dT2, 1)}`, w * 0.7, h * 0.16, RAY2, 12);
+  },
+  pointer() { return null; },
+};
+
+export const heatEngineSim = {
+  id: 'heat-engine',
+  timed: true,
+  tMax: () => 4,
+  authority: 'Ideal Otto cycle for the four-stroke classroom model. η = 1 − 1/r^(γ−1) with γ = 1.4, and W = η Qin. The shaded p–V loop is scaled so its area equals W. Stroke order is intake, compression, power, exhaust. This is the public thermodynamic relation, not a device design.',
+  params: { r: 8, Qin: 1200, Vmin: 0.0002 },
+  schema: [
+    num('r', 'Compression ratio r', '压缩比 r', '', 2, 16, 0.5),
+    num('Qin', 'Heat in per cycle Qin', '每循环吸热 Qin', 'J', 200, 4000, 50),
+    num('Vmin', 'Minimum volume', '最小容积', 'm³', 0.0001, 0.001, 0.00005),
+  ],
+  compute: (p, t) => ottoCycle(p, t),
+  readouts: (d) => [
+    ro('Stroke', '冲程', { en: d.stroke.en, zh: d.stroke.zh }),
+    ro('η', 'η', fmt(d.eta, 3)),
+    ro('W', 'W', `${fmt(d.W, 1)} J`),
+    ro('p–V area', 'p–V 面积', `${fmt(d.area, 1)} J`),
+  ],
+  checks: (d) => [
+    q('eta', 'The Otto efficiency is', '奥托热效率是', [
+      opt(fmt(d.eta, 3), fmt(d.eta, 3)),
+      opt(fmt(1 - 1 / d.r, 3), fmt(1 - 1 / d.r, 3)),
+      opt(fmt(1 / d.r, 3), fmt(1 / d.r, 3)),
+    ], 0),
+    q('work', 'The net work of one cycle is', '一个循环的净功是', [
+      opt(`${fmt(d.W, 1)} J`, `${fmt(d.W, 1)} J`),
+      opt(`${fmt(d.Qin, 1)} J`, `${fmt(d.Qin, 1)} J`),
+      opt(`${fmt(d.Qout, 1)} J`, `${fmt(d.Qout, 1)} J`),
+    ], 0),
+    q('area', 'The shaded area on the p–V graph equals', 'p–V 图上的阴影面积等于', [
+      opt('the net work W', '净功 W'),
+      opt('the heat in Qin', '吸热 Qin'),
+      opt('the compression ratio r', '压缩比 r'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Writing η = 1 − 1/r (without the γ power) overstates the efficiency at this r.',
+    zh: '写成 η = 1 − 1/r（去掉 γ 的幂）会把这个压缩比下的效率算大。',
+    toggleEn: 'Drop the γ exponent',
+    toggleZh: '去掉 γ 的幂',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const left = w * 0.08;
+    const mid = w * 0.46;
+    // Cylinder + piston
+    const cy = h * 0.22;
+    const ch = h * 0.56;
+    const cw = w * 0.28;
+    const cx = left;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx, cy, cw, ch);
+    const frac = (d.V - d.V2) / Math.max(d.V1 - d.V2, 1e-12);
+    const pistonY = cy + 16 + (1 - frac) * (ch - 40);
+    ctx.fillStyle = '#d8d0c4';
+    ctx.fillRect(cx + 4, pistonY, cw - 8, 18);
+    ctx.strokeRect(cx + 4, pistonY, cw - 8, 18);
+    const name = lab(ui, d.stroke.en, d.stroke.zh);
+    text(ctx, name, cx + cw / 2, cy - 14, INK, 15, 'center');
+    text(ctx, `V=${fmt(d.V * 1e3, 2)} L`, cx + cw / 2, cy + ch + 16, MUTED, 12, 'center');
+    // p–V
+    const gx = mid;
+    const gy = h * 0.82;
+    const gw = w * 0.44;
+    const gh = h * 0.58;
+    line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
+    line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
+    text(ctx, 'V', gx + gw + 6, gy, MUTED, 12);
+    text(ctx, 'p', gx - 4, gy - gh - 8, MUTED, 12);
+    const Vs = d.loop.map((pt) => pt.V);
+    const ps = d.loop.map((pt) => pt.p);
+    const Vmin = Math.min(...Vs) * 0.85;
+    const Vmax = Math.max(...Vs) * 1.1;
+    const pmax = Math.max(...ps) * 1.1;
+    const X = (V) => gx + ((V - Vmin) / (Vmax - Vmin)) * gw;
+    const Y = (pv) => gy - (pv / pmax) * gh;
+    const plot = ui.wrong
+      ? d.loop.map((pt) => ({ V: pt.V, p: pt.p * (1 - 1 / d.r) / Math.max(d.eta, 1e-9) }))
+      : d.loop;
+    ctx.beginPath();
+    plot.forEach((pt, i) => {
+      const x = X(pt.V);
+      const y = Y(pt.p);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(196,73,29,0.22)';
+    ctx.fill();
+    ctx.strokeStyle = RAY;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    text(ctx, ui.wrong ? `η?=1−1/r → ${fmt(1 - 1 / d.r, 3)}` : `W=${fmt(d.W, 0)} J`, gx + gw * 0.35, gy - gh * 0.45, ui.wrong ? '#a33' : INK, 13);
+    text(ctx, STROKES.map((s) => lab(ui, s.en[0], s.zh[0])).join('·'), gx, h * 0.1, MUTED, 12);
   },
   pointer() { return null; },
 };

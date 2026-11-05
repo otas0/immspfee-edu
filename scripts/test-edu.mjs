@@ -8,7 +8,7 @@ import {
   lever, pulley, workPower, circuit, CIRCUIT_LINKS,
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
-  specificHeat,
+  specificHeat, ottoCycle,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -152,6 +152,15 @@ near(heat.Q, 4200, 1e-9, 'shared heat');
 near(heat.dT1, 5, 1e-9, 'water rise Q/(c m)');
 near(heat.dT2, 4200 / 180, 1e-9, 'sand rise');
 assert(heat.dT2 > heat.dT1, 'smaller c rises more');
+
+const otto = ottoCycle({ r: 8, Qin: 1000, Vmin: 0.0002 }, 0.5);
+near(otto.eta, 1 - 1 / 8 ** 0.4, 1e-9, 'Otto η');
+near(otto.W, otto.eta * 1000, 1e-9, 'W = η Qin');
+near(otto.area, otto.W, 1e-6, 'p–V area equals W');
+assert(otto.stroke.id === 'intake', 'first stroke is intake');
+const power = ottoCycle({ r: 8, Qin: 1000, Vmin: 0.0002 }, 2.2);
+assert(power.stroke.id === 'power', 'third stroke is power');
+assert(flatten(getBook('sh-junior')).some((row) => row.lesson.sim === 'heat-engine'), 'heat-engine mounted');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {
