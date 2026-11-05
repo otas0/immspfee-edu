@@ -28,6 +28,11 @@ jobs:
         run: node scripts/test-edu.mjs
       - name: Smoke ready sim modules
         run: node scripts/smoke-sims.mjs
+      - name: Guard against edition / ready-count chrome
+        run: |
+          ! grep -n 'id="edition"' index.html
+          ! grep -n 'readyCount' js/app.js
+          ! grep -n 'tag exam\|t(lang, .exam.)\|t(lang, .ready.)' js/app.js
       - name: Stamp build id into cache-busting URLs
         run: node scripts/stamp-build.mjs
         env:

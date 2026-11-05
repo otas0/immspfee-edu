@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { BOOKS, flatten, getBook } from '../js/curricula/index.js';
 import { SIMS, loadAllSims } from '../js/sims/registry.js';
 import {
@@ -356,6 +357,14 @@ assert(uni.length >= 5 && uni.every((row) => row.lesson.status === 'ready'), 'cl
 const pepLens = flatten(getBook('pep-junior')).find((r) => r.lesson.sim === 'convex-lens');
 const shLens = flatten(junior).find((r) => r.lesson.sim === 'convex-lens');
 assert(pepLens && shLens && pepLens.lesson.sim === shLens.lesson.sim, 'one lens engine, two books');
+
+const indexHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+assert(!indexHtml.includes('id="edition"'), 'index has no edition strip');
+const appJs = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
+assert(!appJs.includes('readyCount'), 'app has no readyCount');
+assert(!/t\(lang,\s*['"]exam['"]\)/.test(appJs), 'app has no exam chip');
+assert(!/t\(lang,\s*['"]ready['"]\)/.test(appJs), 'app has no Ready label');
+assert(appJs.includes('sourcesBlock'), 'teach column mounts About/sources');
 
 if (failed) {
   console.error(`${failed} failed`);

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/dev-server.mjs",
-    "test": "node scripts/test-edu.mjs"
+    "test": "node scripts/test-edu.mjs",
+    "push:main": "bash scripts/push-main.sh"
   }
 }

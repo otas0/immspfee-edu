@@ -393,7 +393,7 @@ function renderTeach() {
       intent.textContent = tx(lang, current.lesson.intent);
       box.append(ht, p, intent);
     }
-    host.appendChild(box);
+    host.append(box, sourcesBlock());
     return;
   }
 
@@ -426,7 +426,20 @@ function renderTeach() {
   back.textContent = t(lang, 'reset');
   back.addEventListener('click', () => loadLesson(lessonId, phase));
   body.appendChild(back);
-  host.appendChild(body);
+  host.append(body, sourcesBlock());
+}
+
+function sourcesBlock() {
+  const wrap = document.createElement('footer');
+  wrap.className = 'sources';
+  const h = document.createElement('h3');
+  h.textContent = t(lang, 'about');
+  const edition = document.createElement('p');
+  edition.textContent = tx(lang, getBook(bookId).edition);
+  const note = document.createElement('p');
+  note.textContent = t(lang, 'sources');
+  wrap.append(h, edition, note);
+  return wrap;
 }
 
 function paragraph(text) {
