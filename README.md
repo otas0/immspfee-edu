@@ -15,6 +15,8 @@ npm start
 
 Open http://127.0.0.1:4174/ . Deep link: `#/sh-junior/shj-4-4a/explore`.
 
+Each new browser tab hard-boots once (clears this site’s Cache Storage and reopens with a fresh query) so a stale module cannot sit next to a newer curriculum. If the chapter list and the stage still disagree after a deploy, close the tab and open the site again, or hard-refresh once.
+
 Switch the textbook in the header. Shanghai junior and PEP junior share one simulation pool; only the chapter order changes. Language is English by default, with 中文 for the same chrome.
 
 ## A lesson

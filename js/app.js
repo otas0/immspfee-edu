@@ -633,6 +633,6 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=3').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=4').catch(() => {});
   });
 }

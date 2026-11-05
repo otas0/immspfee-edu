@@ -1,4 +1,4 @@
-const CACHE = 'immspfee-edu-v3';
+const CACHE = 'immspfee-edu-v4';
 const PRECACHE = [
   './',
   './index.html',
