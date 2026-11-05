@@ -55,5 +55,28 @@ if [[ -z "$RID" ]]; then
 fi
 
 echo "watching Pages run $RID"
+warned_waiting=0
+while true; do
+  meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
+  status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
+  url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
+  if [[ "$status" == "waiting" && "$warned_waiting" -eq 0 ]]; then
+    echo ""
+    echo "Pages is WAITING on the github-pages environment (approval / protection rule)."
+    echo "Open and approve: ${url:-https://github.com/$REPO/actions/runs/$RID}"
+    echo "This script will keep waiting until the run leaves 'waiting'."
+    echo ""
+    warned_waiting=1
+  fi
+  if [[ "$status" == "completed" ]]; then
+    break
+  fi
+  # gh run watch blocks until done once the run is in progress / queued.
+  if [[ "$status" == "in_progress" || "$status" == "queued" || "$status" == "requested" || "$status" == "pending" ]]; then
+    break
+  fi
+  sleep 5
+done
+
 gh run watch "$RID" --repo "$REPO" --exit-status
 echo "Pages ok for $SHORT"

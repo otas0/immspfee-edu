@@ -318,6 +318,13 @@ const coupMid = coupledPendula({ g: 9.8, L: 1, kappa: 2, A1: 0.3, A2: 0 }, 0.4);
 assert(Number.isFinite(coupMid.Pflow), 'coupled Pflow');
 const radClamp = hydrogenRadial({ n: 1, l: 2, r: 1e-10 });
 assert(radClamp.l === 0, 'hydrogen l clamped to n-1');
+for (let l = 0; l <= 3; l += 1) {
+  const r4 = hydrogenRadial({ n: 4, l, r: 0 });
+  near(r4.integ, 1, 0.08, `hydrogen n=4 l=${l} ∫P≈1`);
+}
+if (scan.nearest) {
+  assert(scan.nearest.n >= 1 && scan.nearest.dE >= 0, 'barrier nearest ΔE');
+}
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {
@@ -399,12 +406,22 @@ assert(!/t\(lang,\s*['"]ready['"]\)/.test(appJs), 'app has no Ready label');
 assert(appJs.includes('sourcesBlock'), 'teach column mounts About/sources');
 assert(appJs.includes("wrap.className = 'sources'"), 'sourcesBlock builds footer.sources');
 assert(appJs.includes('otas0.github.io/immspfee/'), 'About links to the separate lab site');
+assert(appJs.includes("t(lang, 'labRepo')"), 'About shows lab repo plain text');
 assert(!appJs.includes('otas0/immspfee.git'), 'About does not point git at the lab remote');
 const i18nJs = readFileSync(new URL('../js/i18n.js', import.meta.url), 'utf8');
 assert(i18nJs.includes('labLink'), 'i18n has labLink');
+assert(i18nJs.includes('labRepo'), 'i18n has labRepo');
 assert(i18nJs.includes("queuedTitle: 'Mapped, not simulated yet'"), 'empty-state Mapped title kept');
 assert(!/ready:\s*'Ready'/.test(i18nJs), 'i18n has no Ready chip string');
 assert(!/exam:\s*'Exam'/.test(i18nJs), 'i18n has no Exam chip string');
+const curriculaIndex = readFileSync(new URL('../js/curricula/index.js', import.meta.url), 'utf8');
+assert(curriculaIndex.includes('?v=testdev'), 'curricula entry imports use stamped bust');
+const swJs = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+assert(swJs.includes('./js/curricula/index.js'), 'SW precache includes curricula entry');
+assert(swJs.includes('./js/sims/registry.js'), 'SW precache includes registry');
+const stamp = readFileSync(new URL('../scripts/stamp-build.mjs', import.meta.url), 'utf8');
+assert(stamp.includes('js/curricula/index.js'), 'stamp required list includes curricula');
+assert(stamp.includes('opt-in'), 'stamp policy documents opt-in tokens');
 
 if (failed) {
   console.error(`${failed} failed`);

@@ -19,7 +19,11 @@ Before pushing, check the remote. Push to `otas0/immspfee-edu` if the repo has b
 
 Pages uses `concurrency.cancel-in-progress: true` so the latest main wins. Keep that default. Only consider `cancel-in-progress: false` if a release explicitly needs every intermediate SHA’s live smoke to finish; that is a deliberate trade-off, not the day-to-day path. Do not fire a second finished-task push while a prior Pages run is still queued or in progress—`scripts/push-main.sh` waits for watch before exiting. A cancelled run on an intermediate SHA is that race, not a content failure.
 
-After each push, watch the Pages workflow until it succeeds (`push-main.sh` does this), or report the failure.
+After each push, watch the Pages workflow until it succeeds (`push-main.sh` does this), or report the failure. If the run stays in `waiting`, the github-pages environment needs approval—`push-main.sh` prints the Actions URL and keeps waiting.
+
+`scripts/stamp-build.mjs` rewrites only files that opt in with a `__BUILD__` token (plus a small required entry list). Do not blanket-stamp every `js/**` module; physics/sim code stays token-free and is busted through `registry` / curricula imports (`?v=__BUILD__`). Keep `sw.js` PRECACHE aligned with `index.html` modulepreload and that required stamp set.
+
+Pages runs on `ubuntu-latest`. GitHub is migrating that label toward Ubuntu 26; pin or re-test when the runner image changes so Node 24 and the Pages actions stay green.
 
 Lesson commits contain equations, simulations, curricula, and tests only. Logo commits contain only the logo asset, header CSS, and README URL lines. Never mix them.
 

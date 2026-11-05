@@ -1,4 +1,5 @@
 const CACHE = 'immspfee-edu-__BUILD__';
+// Keep aligned with index.html modulepreload + scripts/stamp-build REQUIRED.
 const PRECACHE = [
   './',
   './index.html',
@@ -6,6 +7,8 @@ const PRECACHE = [
   './js/app.js',
   './js/fmt.js',
   './js/i18n.js',
+  './js/curricula/index.js',
+  './js/sims/registry.js',
   './assets/immspfee-education-logo.png',
   './assets/immspfee-education-favicon.png',
 ];

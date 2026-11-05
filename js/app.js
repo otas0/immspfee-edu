@@ -482,7 +482,9 @@ function sourcesBlock() {
   a.rel = 'noopener noreferrer';
   a.textContent = t(lang, 'labLink');
   lab.appendChild(a);
-  wrap.append(h, edition, note, lab);
+  const repo = document.createElement('p');
+  repo.textContent = t(lang, 'labRepo');
+  wrap.append(h, edition, note, lab, repo);
   return wrap;
 }
 

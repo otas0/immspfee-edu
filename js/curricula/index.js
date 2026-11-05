@@ -1,7 +1,7 @@
-import { shanghaiJunior } from './shanghai-junior.js';
-import { shanghaiSenior } from './shanghai-senior.js';
-import { pepJunior } from './pep-junior.js';
-import { university } from './university.js';
+import { shanghaiJunior } from './shanghai-junior.js?v=__BUILD__';
+import { shanghaiSenior } from './shanghai-senior.js?v=__BUILD__';
+import { pepJunior } from './pep-junior.js?v=__BUILD__';
+import { university } from './university.js?v=__BUILD__';
 
 export const BOOKS = [shanghaiJunior, shanghaiSenior, pepJunior, university];
 
