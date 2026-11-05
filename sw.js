@@ -1,4 +1,4 @@
-const CACHE = 'immspfee-edu-v2';
+const CACHE = 'immspfee-edu-v3';
 const PRECACHE = [
   './',
   './index.html',
@@ -38,10 +38,11 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   // Scripts and HTML must track GitHub Pages deploys. A stale registry with a
-  // newer curriculum leaves Ready lessons on an empty stage.
+  // newer curriculum leaves Ready lessons on an empty stage. Bypass the HTTP
+  // cache too — fetch() alone can still return a disk-cached module.
   if (req.mode === 'navigate' || isCode(url)) {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-store' })
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
