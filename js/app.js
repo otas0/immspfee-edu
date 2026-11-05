@@ -17,6 +17,7 @@ function showToast(message) {
 
 setImportErrorHandler((err, detail) => {
   if (DEV_TOAST) showToast(`${detail}: ${err && err.message ? err.message : err}`);
+  else showToast(t(lang, 'importFail'));
 });
 
 function prefetchOpenVolume() {
@@ -293,10 +294,12 @@ function renderChrome() {
       bookHost.appendChild(btn);
     }
   }
-  const rows = flatten(getBook(bookId));
-  const readyCount = rows.filter((r) => r.lesson.status === 'ready').length;
-  document.getElementById('edition').textContent = `${tx(lang, getBook(bookId).edition)} · ${readyCount}/${rows.length}`;
+  document.getElementById('edition').textContent = tx(lang, getBook(bookId).edition);
   document.getElementById('search').placeholder = t(lang, 'search');
+  const swText = document.getElementById('sw-update-text');
+  const swBtn = document.getElementById('sw-reload');
+  if (swText) swText.textContent = t(lang, 'swUpdate');
+  if (swBtn) swBtn.textContent = t(lang, 'swReload');
 }
 
 function renderTree() {
