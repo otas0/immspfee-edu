@@ -84,10 +84,61 @@ button { cursor: pointer; }
 
 .layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(240px, 280px) minmax(320px, 1fr) minmax(280px, 340px);
   gap: 14px;
   padding: 14px 18px 24px;
   min-height: calc(100vh - 120px);
+}
+@media (min-width: 1101px) {
+  .layout { min-width: 960px; }
+  body { overflow-x: auto; }
+}
+.book-select-wrap select {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: white;
+}
+.edu-update, .sw-update {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: var(--dark);
+  color: #fff;
+  font-size: 13px;
+}
+.edu-update[hidden], .sw-update[hidden] { display: none; }
+.edu-update button, .sw-update button {
+  border: 1px solid #fff;
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.edu-toast, .toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  max-width: min(420px, calc(100vw - 32px));
+  background: #9d2c2c;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.edu-toast[hidden], .toast[hidden] { display: none; }
+.book-select {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: white;
 }
 aside, .teach, .stage-wrap, .readouts {
   background: var(--panel);

@@ -21,9 +21,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Test equations and curricula
+        run: node scripts/test-edu.mjs
+      - name: Smoke ready sim modules
+        run: node scripts/smoke-sims.mjs
+      - name: Stamp build id into cache-busting URLs
+        run: node scripts/stamp-build.mjs
+        env:
+          GITHUB_SHA: ${{ github.sha }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke live module URLs
+        if: success()
+        run: |
+          BASE="${{ steps.deployment.outputs.page_url }}"
+          BASE="${BASE%/}"
+          for path in js/sims/circuits.js js/sims/em.js js/sims/measure.js; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/$path")
+            echo "$path -> $code"
+            test "$code" = "200"
+          done

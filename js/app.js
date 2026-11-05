@@ -1,7 +1,40 @@
 import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.js';
-import { getSim } from './sims/registry.js';
+import { getSim, prefetchSims, setImportErrorHandler } from './sims/registry.js';
 import { fmt } from './fmt.js';
 import { t, tx } from './i18n.js';
+
+const DEV_TOAST = new URLSearchParams(location.search).has('dev');
+const narrowMq = window.matchMedia('(max-width: 768px)');
+
+function showToast(message) {
+  const host = document.getElementById('toast');
+  if (!host) return;
+  host.hidden = false;
+  host.textContent = message;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { host.hidden = true; }, 5000);
+}
+
+setImportErrorHandler((err, detail) => {
+  if (DEV_TOAST) showToast(`${detail}: ${err && err.message ? err.message : err}`);
+});
+
+function prefetchOpenVolume() {
+  const book = getBook(bookId);
+  const current = findLesson(bookId, lessonId);
+  const volId = current?.chapter?.volume;
+  if (!volId) return;
+  const ids = [];
+  for (const ch of book.chapters) {
+    if (ch.volume !== volId) continue;
+    for (const sec of ch.sections) {
+      for (const ls of sec.lessons) {
+        if (ls.sim) ids.push(ls.sim);
+      }
+    }
+  }
+  prefetchSims(ids);
+}
 
 const LANG_KEY = 'immspfee-edu-lang';
 const CHECK_KEY = 'immspfee-edu-checks';
@@ -92,12 +125,14 @@ async function loadLesson(nextId, nextPhase) {
     if (token === loadToken) draw();
     return;
   }
-  const s = await getSim(wanted);
+  let s = await getSim(wanted);
+  if (!s) s = await getSim(wanted, { reload: true });
   if (token !== loadToken) return;
   currentSim = s;
   const preset = lesson().preset || {};
   params = s ? { ...s.params, ...preset } : {};
   render();
+  prefetchOpenVolume();
 }
 
 function clampField(field, value) {
@@ -225,18 +260,38 @@ function renderChrome() {
   const bookHost = document.getElementById('books');
   bookHost.replaceChildren();
   const region = REGIONS.find((r) => r.books.includes(bookId));
-  for (const id of region.books) {
+  const pickBook = (id) => {
+    bookId = id;
     const book = getBook(id);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = tx(lang, book.title);
-    btn.className = id === bookId ? 'on' : '';
-    btn.addEventListener('click', () => {
-      bookId = id;
-      const first = flatten(book).find((r) => r.lesson.status === 'ready') || flatten(book)[0];
-      loadLesson(first.lesson.id, 'introduce');
-    });
-    bookHost.appendChild(btn);
+    const first = flatten(book).find((r) => r.lesson.status === 'ready') || flatten(book)[0];
+    loadLesson(first.lesson.id, 'introduce');
+  };
+  if (narrowMq.matches) {
+    bookHost.className = 'seg book-select-wrap';
+    const sel = document.createElement('select');
+    sel.className = 'book-select';
+    sel.setAttribute('aria-label', t(lang, 'books'));
+    for (const id of region.books) {
+      const book = getBook(id);
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = tx(lang, book.title);
+      if (id === bookId) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', () => pickBook(sel.value));
+    bookHost.appendChild(sel);
+  } else {
+    bookHost.className = 'seg';
+    for (const id of region.books) {
+      const book = getBook(id);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = tx(lang, book.title);
+      btn.className = id === bookId ? 'on' : '';
+      btn.addEventListener('click', () => pickBook(id));
+      bookHost.appendChild(btn);
+    }
   }
   const rows = flatten(getBook(bookId));
   const readyCount = rows.filter((r) => r.lesson.status === 'ready').length;
@@ -336,10 +391,10 @@ function renderTeach() {
     const ht = document.createElement('h3');
     const p = document.createElement('p');
     if (current.lesson.status === 'ready' && current.lesson.sim) {
-      ht.textContent = lang === 'zh' ? '模拟还在加载' : 'Simulation still loading';
+      ht.textContent = lang === 'zh' ? '模拟加载失败' : 'Simulation failed to load';
       p.textContent = lang === 'zh'
-        ? '这一课已经挂上模拟，但模块还没到。硬刷新一次（或清掉本站缓存）后再打开。'
-        : 'This lesson names a simulation, but the module has not arrived. Hard-refresh (or clear this site’s cache) and open it again.';
+        ? `已重试一次仍打不开「${current.lesson.sim}」。关掉标签再进站，或在地址后加 ?dev 查看错误。`
+        : `Retried once and still could not open “${current.lesson.sim}”. Close the tab and reopen, or add ?dev to see the error.`;
       box.append(ht, p);
     } else {
       ht.textContent = t(lang, 'queuedTitle');
@@ -625,14 +680,33 @@ if (!findLesson(bookId, lessonId)) {
 loadLesson(lessonId, phase);
 requestAnimationFrame(tick);
 
-if ('serviceWorker' in navigator) {
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
-    refreshing = true;
-    location.reload();
-  });
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=4').catch(() => {});
-  });
+function showSwUpdate() {
+  const bar = document.getElementById('sw-update');
+  if (bar) bar.hidden = false;
 }
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=__BUILD__').then((reg) => {
+      if (reg.waiting) showSwUpdate();
+      reg.addEventListener('updatefound', () => {
+        const installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) showSwUpdate();
+        });
+      });
+    }).catch(() => {});
+  });
+  const reloadBtn = document.getElementById('sw-reload');
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', () => {
+      const bar = document.getElementById('sw-update');
+      if (bar) bar.hidden = true;
+      location.reload();
+    });
+  }
+}
+
+narrowMq.addEventListener('change', () => renderChrome());
+prefetchOpenVolume();
