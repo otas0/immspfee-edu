@@ -1,25 +1,30 @@
 #!/usr/bin/env bash
-# Push HEAD to otas0/immspfee-edu main with HTTP/1.1 and backoff.
-# Pages uses concurrency cancel-in-progress: wait for the watch step
-# before starting another finished-task push, or the prior deploy is cancelled.
+# Push HEAD to otas0/immspfee-edu main with HTTP/1.1 and backoff, then wait
+# for that SHA's Pages run. One push → one watch. Do not start another
+# finished-task push until this script exits; Pages cancel-in-progress
+# would otherwise drop the prior deploy.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-REMOTE_URL="https://github.com/otas0/immspfee-edu.git"
+REPO="otas0/immspfee-edu"
 TOKEN="$(gh auth token)"
-AUTH_URL="https://x-access-token:${TOKEN}@github.com/otas0/immspfee-edu.git"
+AUTH_URL="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+SHA="$(git rev-parse HEAD)"
+SHORT="$(git rev-parse --short HEAD)"
 
 attempts=6
 delay=5
 i=1
+pushed=0
 while (( i <= attempts )); do
   echo "push attempt $i/$attempts (HTTP/1.1)"
   if git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push "$AUTH_URL" HEAD:main; then
     git fetch "$AUTH_URL" main:refs/remotes/origin/main 2>/dev/null || git fetch origin
-    echo "pushed $(git rev-parse --short HEAD)"
-    exit 0
+    echo "pushed $SHORT"
+    pushed=1
+    break
   fi
   echo "push failed; sleeping ${delay}s"
   sleep "$delay"
@@ -28,5 +33,27 @@ while (( i <= attempts )); do
   i=$(( i + 1 ))
 done
 
-echo "push failed after $attempts attempts" >&2
-exit 1
+if (( pushed == 0 )); then
+  echo "push failed after $attempts attempts" >&2
+  exit 1
+fi
+
+echo "waiting for Pages run on $SHORT"
+RID=""
+for _ in $(seq 1 40); do
+  RID="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 5 --json databaseId,headSha,status \
+    --jq ".[] | select(.headSha==\"$SHA\") | .databaseId" | head -n 1 || true)"
+  if [[ -n "$RID" ]]; then
+    break
+  fi
+  sleep 3
+done
+
+if [[ -z "$RID" ]]; then
+  echo "no Pages run found for $SHA" >&2
+  exit 1
+fi
+
+echo "watching Pages run $RID"
+gh run watch "$RID" --repo "$REPO" --exit-status
+echo "Pages ok for $SHORT"

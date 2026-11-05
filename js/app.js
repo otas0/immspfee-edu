@@ -166,16 +166,22 @@ function applyPointer(patch) {
   draw();
 }
 
+function schemaOf(s) {
+  if (!s) return [];
+  return typeof s.schema === 'function' ? s.schema(params) : s.schema;
+}
+
 function setParam(key, value) {
   const s = sim();
   if (!s) return;
-  const field = s.schema.find((f) => f.key === key);
+  const field = schemaOf(s).find((f) => f.key === key);
   const clean = field ? clampField(field, value) : value;
   let next = { ...params, [key]: clean };
   const extra = s.onParam?.(key, clean, next) || {};
   params = { ...next, ...extra };
   marked = false;
   if (field && field.type !== 'number') renderTeach();
+  else if (extra && Object.keys(extra).length) renderTeach();
   else syncBench();
   draw();
 }
@@ -352,7 +358,20 @@ function renderTree() {
         sum.textContent = tx(lang, ch.title);
         block.append(sum, body);
         const current = findLesson(bookId, lessonId);
-        if (q || current?.chapter?.id === ch.id) block.open = true;
+        let saved = null;
+        try {
+          const map = JSON.parse(sessionStorage.getItem('immspfee-edu-uni-folds') || '{}');
+          if (Object.prototype.hasOwnProperty.call(map, ch.id)) saved = !!map[ch.id];
+        } catch (_) { /* ignore */ }
+        if (q || current?.chapter?.id === ch.id || saved === true) block.open = true;
+        else if (saved === false) block.open = false;
+        block.addEventListener('toggle', () => {
+          try {
+            const map = JSON.parse(sessionStorage.getItem('immspfee-edu-uni-folds') || '{}');
+            map[ch.id] = block.open;
+            sessionStorage.setItem('immspfee-edu-uni-folds', JSON.stringify(map));
+          } catch (_) { /* ignore */ }
+        });
       } else {
         const chTitle = document.createElement('h3');
         chTitle.textContent = tx(lang, ch.title);
@@ -448,7 +467,14 @@ function sourcesBlock() {
   edition.textContent = tx(lang, getBook(bookId).edition);
   const note = document.createElement('p');
   note.textContent = t(lang, 'sources');
-  wrap.append(h, edition, note);
+  const lab = document.createElement('p');
+  const a = document.createElement('a');
+  a.href = 'https://otas0.github.io/immspfee/';
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.textContent = t(lang, 'labLink');
+  lab.appendChild(a);
+  wrap.append(h, edition, note, lab);
   return wrap;
 }
 
@@ -474,7 +500,7 @@ function bench(s) {
   const h = document.createElement('h3');
   h.textContent = t(lang, 'params');
   wrap.appendChild(h);
-  for (const field of s.schema) {
+  for (const field of schemaOf(s)) {
     wrap.appendChild(fieldRow(field));
   }
   return wrap;

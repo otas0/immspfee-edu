@@ -379,6 +379,14 @@ assert(!appJs.includes('readyCount'), 'app has no readyCount');
 assert(!/t\(lang,\s*['"]exam['"]\)/.test(appJs), 'app has no exam chip');
 assert(!/t\(lang,\s*['"]ready['"]\)/.test(appJs), 'app has no Ready label');
 assert(appJs.includes('sourcesBlock'), 'teach column mounts About/sources');
+assert(appJs.includes("wrap.className = 'sources'"), 'sourcesBlock builds footer.sources');
+assert(appJs.includes('otas0.github.io/immspfee/'), 'About links to the separate lab site');
+assert(!appJs.includes('otas0/immspfee.git'), 'About does not point git at the lab remote');
+const i18nJs = readFileSync(new URL('../js/i18n.js', import.meta.url), 'utf8');
+assert(i18nJs.includes('labLink'), 'i18n has labLink');
+assert(i18nJs.includes("queuedTitle: 'Mapped, not simulated yet'"), 'empty-state Mapped title kept');
+assert(!/ready:\s*'Ready'/.test(i18nJs), 'i18n has no Ready chip string');
+assert(!/exam:\s*'Exam'/.test(i18nJs), 'i18n has no Exam chip string');
 
 if (failed) {
   console.error(`${failed} failed`);
