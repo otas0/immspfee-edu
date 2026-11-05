@@ -317,12 +317,6 @@ function renderTree() {
       block.className = 'chapter';
       const chTitle = document.createElement('h3');
       chTitle.textContent = tx(lang, ch.title);
-      if (ch.priority) {
-        const tag = document.createElement('span');
-        tag.className = 'tag exam';
-        tag.textContent = t(lang, 'exam');
-        chTitle.append(' ', tag);
-      }
       block.appendChild(chTitle);
       let chCount = 0;
       for (const sec of ch.sections) {
@@ -340,15 +334,7 @@ function renderTree() {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = `lesson${ls.id === lessonId ? ' on' : ''}`;
-          const name = document.createElement('span');
-          name.textContent = tx(lang, ls.title);
-          const state = document.createElement('small');
-          state.textContent = ls.status === 'ready' ? t(lang, 'ready') : t(lang, 'queued');
-          if (ls.exam && ls.status === 'ready') {
-            const tag = document.createElement('em');
-            tag.textContent = t(lang, 'exam');
-            btn.append(name, tag, state);
-          } else btn.append(name, state);
+          btn.textContent = tx(lang, ls.title);
           btn.addEventListener('click', () => loadLesson(ls.id, 'introduce'));
           secEl.appendChild(btn);
           chCount += 1;
