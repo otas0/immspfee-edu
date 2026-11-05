@@ -296,16 +296,28 @@ export const dopplerSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    const sx = w * 0.3;
+    const ox = w * 0.7;
+    const y = h * 0.5;
     ctx.fillStyle = RAY;
     ctx.beginPath();
-    ctx.arc(w * 0.3, h * 0.5, 18, 0, Math.PI * 2);
+    ctx.arc(sx, y, 18, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, lab(ui, 'S', '声源'), w * 0.3, h * 0.5 + 40, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'S', '声源'), sx, y + 40, MUTED, 12, 'center');
     ctx.fillStyle = RAY2;
     ctx.beginPath();
-    ctx.arc(w * 0.7, h * 0.5, 18, 0, Math.PI * 2);
+    ctx.arc(ox, y, 18, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, lab(ui, 'O', '观察者'), w * 0.7, h * 0.5 + 40, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'O', '观察者'), ox, y + 40, MUTED, 12, 'center');
+    // Toward the other: arrow points to the partner; away: arrow points outward.
+    if (d.vs > 1e-6) {
+      if (d.sourceToward) arrow(ctx, sx + 24, y - 28, sx + 54, y - 28, RAY, 2);
+      else arrow(ctx, sx - 24, y - 28, sx - 54, y - 28, RAY, 2);
+    }
+    if (d.vo > 1e-6) {
+      if (d.observerToward) arrow(ctx, ox - 24, y - 28, ox - 54, y - 28, RAY2, 2);
+      else arrow(ctx, ox + 24, y - 28, ox + 54, y - 28, RAY2, 2);
+    }
     const fpShow = ui.wrong ? d.f * (d.v + (d.sourceToward ? -d.vs : d.vs)) / Math.max(d.v + (d.observerToward ? d.vo : -d.vo), 1e-9) : d.fp;
     text(ctx, `f′=${fmt(fpShow, 1)} Hz`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
   },

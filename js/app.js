@@ -276,7 +276,9 @@ function renderChrome() {
       const book = getBook(id);
       const opt = document.createElement('option');
       opt.value = id;
-      opt.textContent = tx(lang, book.title);
+      const label = tx(lang, book.title);
+      opt.textContent = label;
+      opt.title = label;
       if (id === bookId) opt.selected = true;
       sel.appendChild(opt);
     }

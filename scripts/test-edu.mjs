@@ -17,6 +17,8 @@ import {
   lorentzForce, cyclotronRadius, pointField, fieldPotential,
   vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell,
   doubleSlit, malus, telescope, acPeakRms, transformer, doppler, beats, dispersion, timeDilation,
+  isingMetropolis, barrierTunnel, gaussianPacket, maxwellHistogram, fourierSquare,
+  membraneMode, bellSinglet, sternGerlach, lengthContraction, laserCavity, thinFilm,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -269,6 +271,22 @@ near(beats({ f1: 256, f2: 260, A: 1 }, 0).df, 4, 1e-9, 'beats');
 near(dispersion({ omega0: 0, c: 2, k: 1 }).vg, 2, 1e-9, 'vg=c when ω0=0');
 assert(timeDilation({ v: 0, dtau: 1 }).dt === 1, 'no dilation at rest');
 assert(timeDilation({ v: 1.5e8, dtau: 1 }).gamma > 1, 'gamma>1');
+
+const ising = isingMetropolis({ N: 8, T: 0.5, sweeps: 30, seed: 2 });
+assert(ising.spins.length === 64 && ising.absM >= 0, 'ising lattice');
+const tun = barrierTunnel({ m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 8e-19 });
+assert(tun.regime === 'tunnel' && tun.T > 0 && tun.T < 1, 'tunnel T');
+const pkt = gaussianPacket({ m: 9.1e-31, sigma0: 2e-10, k0: 0, x0: 0 }, 1e-14);
+assert(pkt.sigma > pkt.sigma0, 'packet spreads');
+const hist = maxwellHistogram({ m: 4.65e-26, T: 300, bins: 12, vmax: 1500 });
+assert(hist.vmp < hist.vavg && hist.vavg < hist.vrms, 'maxwell speed order');
+near(fourierSquare({ nTerms: 1, f0: 1, A: 1 }, 0.25).y, 4 / Math.PI, 1e-9, 'fourier first peak');
+near(membraneMode({ m: 1, n: 1, a: 1, b: 1, c: 1 }, 0).omega, Math.PI * Math.SQRT2, 1e-9, 'membrane ω11');
+near(bellSinglet({ alpha: 0, beta: 0 }).corr, -1, 1e-9, 'bell parallel');
+near(sternGerlach({ theta: 0 }).pUp, 1, 1e-9, 'SG aligned');
+near(lengthContraction({ L0: 2, v: 0 }).L, 2, 1e-9, 'no contraction at rest');
+near(laserCavity({ L: 0.5 }).dnu, 2.99792458e8, 1e-3, 'cavity Δν');
+near(thinFilm({ n: 1.33, t: 1e-7, lambda: 5.32e-7, m: 0 }).lhs, 2.66e-7, 1e-15, '2nt');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

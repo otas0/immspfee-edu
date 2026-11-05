@@ -168,3 +168,19 @@ export function singleSlit(p) {
   const y = (m * lambda * L) / a;
   return { a, lambda, L, m, y };
 }
+
+/**
+ * Thin-film constructive reflection (net phase flip of π): 2 n t = (m + ½) λ.
+ * Solve for order m from thickness, or the design wavelength for given m.
+ */
+export function thinFilm(p) {
+  const n = Math.max(p.n, 1e-6);
+  const thickness = Math.max(p.t, 0);
+  const lambda = Math.max(p.lambda, 1e-12);
+  const m = Math.max(0, Math.round(p.m ?? 0));
+  const lhs = 2 * n * thickness;
+  const condition = (m + 0.5) * lambda;
+  const lambdaBright = (2 * n * thickness) / (m + 0.5);
+  const match = Math.abs(lhs - condition) / Math.max(condition, 1e-15);
+  return { n, t: thickness, lambda, m, lhs, condition, lambdaBright, match };
+}

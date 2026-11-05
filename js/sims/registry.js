@@ -15,6 +15,7 @@ const PATHS = {
   charge: './charge.js',
   modern: './modern.js',
   uni: './uni.js',
+  stat: './stat.js',
 };
 
 const MAP = {
@@ -109,6 +110,17 @@ const MAP = {
   'image-charge': ['uni', 'imageSim'],
   waveguide: ['uni', 'guideSim'],
   'dipole-radiation': ['uni', 'dipoleSim'],
+  ising: ['stat', 'isingSim'],
+  'barrier-tunnel': ['stat', 'tunnelSim'],
+  'wave-packet': ['stat', 'packetSim'],
+  'maxwell-speed': ['stat', 'maxwellHistSim'],
+  'fourier-square': ['stat', 'fourierSim'],
+  membrane: ['stat', 'membraneSim'],
+  'bell-singlet': ['stat', 'bellSim'],
+  'stern-gerlach': ['stat', 'sternSim'],
+  'length-contraction': ['stat', 'lengthSim'],
+  'laser-cavity': ['stat', 'cavitySim'],
+  'thin-film': ['stat', 'filmSim'],
 };
 
 const cache = new Map();
