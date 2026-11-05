@@ -1,17 +1,18 @@
 /** Lazy loaders: only the module for the open lesson is fetched. */
-const LOADERS = {
-  optics: () => import('./optics.js'),
-  mech: () => import('./mech.js'),
-  fluids: () => import('./fluids.js'),
-  machines: () => import('./machines.js'),
-  circuits: () => import('./circuits.js'),
-  motion: () => import('./motion.js'),
-  advance: () => import('./advance.js'),
-  thermal: () => import('./thermal.js'),
-  measure: () => import('./measure.js'),
-  waves: () => import('./waves.js'),
-  em: () => import('./em.js'),
-  collide: () => import('./collide.js'),
+const PATHS = {
+  optics: './optics.js',
+  mech: './mech.js',
+  fluids: './fluids.js',
+  machines: './machines.js',
+  circuits: './circuits.js',
+  motion: './motion.js',
+  advance: './advance.js',
+  thermal: './thermal.js',
+  measure: './measure.js',
+  waves: './waves.js',
+  em: './em.js',
+  collide: './collide.js',
+  charge: './charge.js',
 };
 
 const MAP = {
@@ -57,6 +58,8 @@ const MAP = {
   'heat-engine': ['thermal', 'heatEngineSim'],
   ruler: ['measure', 'rulerSim'],
   stopwatch: ['measure', 'stopwatchSim'],
+  balance: ['measure', 'balanceSim'],
+  thermometer: ['measure', 'thermometerSim'],
   'sound-wave': ['waves', 'soundSim'],
   'em-wave': ['waves', 'emWaveSim'],
   circular: ['motion', 'circularSim'],
@@ -65,30 +68,74 @@ const MAP = {
   'ampere-force': ['em', 'ampereSim'],
   induction: ['em', 'inductionSim'],
   collide: ['collide', 'collideSim'],
+  charges: ['charge', 'chargeSim'],
+  current: ['charge', 'currentSim'],
 };
 
 const cache = new Map();
 const groupCache = new Map();
 
-async function loadGroup(name) {
-  if (!groupCache.has(name)) groupCache.set(name, LOADERS[name]());
-  return groupCache.get(name);
+let onImportError = null;
+
+export function setImportErrorHandler(fn) {
+  onImportError = typeof fn === 'function' ? fn : null;
+}
+
+function reportError(err, detail) {
+  if (onImportError) onImportError(err, detail);
+  else if (typeof console !== 'undefined') console.error(detail, err);
+}
+
+async function loadGroup(name, reload = false) {
+  if (!reload && groupCache.has(name)) return groupCache.get(name);
+  if (reload) groupCache.delete(name);
+  const path = PATHS[name];
+  if (!path) throw new Error(`Unknown sim group ${name}`);
+  const href = reload ? `${path}?reload=${Date.now()}` : path;
+  const pending = import(href);
+  groupCache.set(name, pending);
+  try {
+    return await pending;
+  } catch (err) {
+    groupCache.delete(name);
+    throw err;
+  }
 }
 
 export function listSimIds() {
   return Object.keys(MAP);
 }
 
-export async function getSim(id) {
+export function groupForSim(id) {
+  return MAP[id]?.[0] || null;
+}
+
+export async function getSim(id, opts = {}) {
   if (!id) return null;
-  if (cache.has(id)) return cache.get(id);
+  const reload = !!opts.reload;
+  if (!reload && cache.has(id)) return cache.get(id);
   const entry = MAP[id];
   if (!entry) return null;
   const [group, exportName] = entry;
-  const mod = await loadGroup(group);
-  const sim = mod[exportName];
-  if (sim) cache.set(id, sim);
-  return sim || null;
+  try {
+    if (reload) cache.delete(id);
+    const mod = await loadGroup(group, reload);
+    const sim = mod[exportName];
+    if (sim) cache.set(id, sim);
+    return sim || null;
+  } catch (err) {
+    reportError(err, `getSim(${id})`);
+    if (!reload) return getSim(id, { reload: true });
+    return null;
+  }
+}
+
+/** Prefetch every ready sim id in the given list (idle-friendly). */
+export function prefetchSims(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  for (const id of unique) {
+    getSim(id).catch(() => {});
+  }
 }
 
 /** Sync map for tests after loadAllSims(). */

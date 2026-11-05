@@ -8,8 +8,9 @@ import {
   lever, pulley, workPower, circuit, electricalEnergy, CIRCUIT_LINKS,
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
-  specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork, emWave,
+  specificHeat, ottoCycle, rulerReading, stopwatchReading, balanceReading, tuningFork, emWave,
   barMagnet, solenoidField, ampereForce, inductionRod, circularMotion, collide1d,
+  twoCharges, currentFromCharge, thermometerReading,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -196,6 +197,9 @@ near(ruler.reading, 3.64, 1e-9, 'ruler reading');
 const watch = stopwatchReading({ t: 15 });
 near(watch.reading, 15, 1e-9, 'stopwatch from angle');
 near(watch.angle, Math.PI / 2, 1e-9, 'quarter turn is 15 s');
+const scale = balanceReading({ object: 52.4, weights: 50, rider: 2.4 });
+assert(scale.balanced, 'balance when weights + rider match');
+near(scale.reading, 52.4, 1e-9, 'balance reading');
 const fork = tuningFork({ f: 10, A: 2 }, 0.025);
 near(fork.y, 2, 1e-9, 'fork at quarter period of 10 Hz');
 const wave = emWave({ f: 1e8, A: 1 }, 0);
@@ -212,6 +216,13 @@ const sticky = collide1d({ m1: 2, m2: 2, u1: 4, u2: -1, kind: 'inelastic' });
 near(sticky.v1, sticky.v2, 1e-9, 'inelastic common speed');
 near(sticky.p1, sticky.p0, 1e-9, 'inelastic momentum');
 assert(sticky.ke1 < sticky.ke0 - 1e-9, 'inelastic loses KE');
+const coulomb = twoCharges({ q1: 2e-6, q2: -3e-6, r: 0.2 });
+assert(coulomb.sense === 'attract', 'unlike charges attract');
+near(coulomb.F, (9e9 * 6e-12) / (0.2 * 0.2), 1e-6, 'Coulomb F');
+const amps = currentFromCharge({ Q: 12, t: 4 });
+near(amps.I, 3, 1e-9, 'I = Q/t');
+const thermo = thermometerReading({ T: 40, Tmin: -20, Tmax: 100 });
+near(thermo.frac, 0.5, 1e-9, 'thermometer mid-scale');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

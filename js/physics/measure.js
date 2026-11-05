@@ -32,3 +32,39 @@ export function stopwatchReading(p) {
   const reading = (angle / (Math.PI * 2)) * 60;
   return { t, angle, reading };
 }
+
+/**
+ * Beam balance: left pan holds the object; right pan holds weights.
+ * The rider on the beam adds to the right-hand mass. Balance when
+ * m_object = m_weights + m_rider.
+ */
+export function balanceReading(p) {
+  const object = Math.max(p.object ?? p.mObj ?? 0, 0);
+  const weights = Math.max(p.weights ?? p.mW ?? 0, 0);
+  const rider = Math.max(p.rider ?? p.mR ?? 0, 0);
+  const reading = weights + rider;
+  const delta = reading - object;
+  return {
+    object,
+    weights,
+    rider,
+    mObj: object,
+    mW: weights,
+    mR: rider,
+    reading,
+    delta,
+    balanced: Math.abs(delta) <= 1e-9,
+  };
+}
+
+/**
+ * Liquid-in-glass thermometer: a linear scale from Tmin to Tmax.
+ * The reading is the temperature; the column height tracks that reading.
+ */
+export function thermometerReading(p) {
+  const Tmin = p.Tmin;
+  const Tmax = Math.max(p.Tmax, Tmin + 1e-6);
+  const T = Math.min(Tmax, Math.max(Tmin, p.T));
+  const frac = (T - Tmin) / (Tmax - Tmin);
+  return { T, Tmin, Tmax, frac, reading: T };
+}

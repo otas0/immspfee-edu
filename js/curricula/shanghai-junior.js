@@ -36,7 +36,10 @@ export const shanghaiJunior = {
           { t: 12.5 }),
       ]),
       S('shj-1-3', '质量的测量', 'Measuring mass', [
-        Q('shj-1-3a', '天平', 'Balance', '左物右码，游码读数计入总质量。', 'Object and weights; rider included in the mass.'),
+        R('shj-1-3a', 'balance', '天平', 'Balance',
+          '左盘放物体，右盘放砝码，游码读数计入右盘。平衡时 m_物体 = m_砝码 + m_游码。拖动游码。',
+          'Object on the left, weights on the right; the rider adds to the right-hand mass. Balance when m_object = m_weights + m_rider. Drag the rider.',
+          { object: 52.4, weights: 50, rider: 2.4 }),
       ]),
     ]),
     C('shj-2', 'g8v1', '机械运动', 'Mechanical motion', [
@@ -250,7 +253,10 @@ export const shanghaiJunior = {
     ]),
     C('shj-9', 'g8v2', '物态变化', 'Changes of state', [
       S('shj-9-1', '温度', 'Temperature', [
-        Q('shj-9-1a', '温度计', 'Thermometer', '读数对应温度。', 'The reading is the temperature.'),
+        R('shj-9-1a', 'thermometer', '温度计', 'Thermometer',
+          '线性刻度上读数就是温度 T。液柱高度是 (T − Tmin) / (Tmax − Tmin)。',
+          'On a linear scale the reading is the temperature T. Column height is (T − Tmin) / (Tmax − Tmin).',
+          { T: 36.5, Tmin: -20, Tmax: 100 }),
       ]),
       S('shj-9-2', '汽化和液化', 'Vaporisation and liquefaction', [
         Q('shj-9-2a', '蒸发与沸腾', 'Evaporation and boiling', '沸点和饱和汽压的公开关系。', 'The public boiling-point and vapour-pressure relations.'),
@@ -290,13 +296,22 @@ export const shanghaiJunior = {
     ]),
     C('shj-11', 'g9v1', '静电与电流', 'Charge and current', [
       S('shj-11-1', '简单的静电现象', 'Electrostatics', [
-        Q('shj-11-1a', '两种电荷', 'Two kinds of charge', '同种相斥，异种相吸。', 'Like charges repel, unlike charges attract.'),
+        R('shj-11-1a', 'charges', '两种电荷', 'Two kinds of charge',
+          'F = k |q1 q2| / r²。同种电荷相斥，异种电荷相吸。q 以微库输入。',
+          'F = k |q1 q2| / r². Like charges repel, unlike charges attract. Enter q in microcoulombs.',
+          { q1: 2, q2: -3, r: 0.2 }),
       ]),
       S('shj-11-2', '电流', 'Current', [
-        Q('shj-11-2a', '电流', 'Current', 'I = Q/t。', 'I = Q/t.'),
+        R('shj-11-2a', 'current', '电流', 'Current',
+          '电流是单位时间通过的电荷：I = Q / t。',
+          'Current is charge per time: I = Q / t.',
+          { Q: 12, t: 4 }, true),
       ]),
       S('shj-11-3', '电压', 'Voltage', [
-        Q('shj-11-3a', '电压', 'Voltage', '电压表并联。', 'A voltmeter is in parallel.'),
+        R('shj-11-3a', 'circuit', '电压', 'Voltage',
+          '电压表要并联在待测两端。读 U1，它等于 R1 上的电压。',
+          'A voltmeter goes in parallel across the part you measure. Read U1, the voltage on R1.',
+          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }),
       ]),
       S('shj-11-4', '串联电路和并联电路', 'Series and parallel', [
         R('shj-11-4a', 'circuit', '通路、断路、短路', 'Closed, open, short',
