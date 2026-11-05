@@ -9,3 +9,4 @@ export * from './advance.js';
 export * from './thermal.js';
 export * from './measure.js';
 export * from './waves.js';
+export * from './em.js';

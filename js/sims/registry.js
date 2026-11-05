@@ -10,6 +10,7 @@ const LOADERS = {
   thermal: () => import('./thermal.js'),
   measure: () => import('./measure.js'),
   waves: () => import('./waves.js'),
+  em: () => import('./em.js'),
 };
 
 const MAP = {
@@ -56,6 +57,10 @@ const MAP = {
   ruler: ['measure', 'rulerSim'],
   stopwatch: ['measure', 'stopwatchSim'],
   'sound-wave': ['waves', 'soundSim'],
+  'bar-magnet': ['em', 'magnetSim'],
+  solenoid: ['em', 'solenoidSim'],
+  'ampere-force': ['em', 'ampereSim'],
+  induction: ['em', 'inductionSim'],
 };
 
 const cache = new Map();

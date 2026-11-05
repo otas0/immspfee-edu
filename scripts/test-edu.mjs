@@ -9,6 +9,7 @@ import {
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
   specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork,
+  barMagnet, solenoidField, ampereForce, inductionRod,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -175,6 +176,18 @@ assert(otto.stroke.id === 'intake', 'first stroke is intake');
 const power = ottoCycle({ r: 8, Qin: 1000, Vmin: 0.0002 }, 2.2);
 assert(power.stroke.id === 'power', 'third stroke is power');
 assert(flatten(getBook('sh-junior')).some((row) => row.lesson.sim === 'heat-engine'), 'heat-engine mounted');
+
+const magnet = barMagnet({ strength: 0.7, flip: false });
+assert(magnet.north === 'right' && magnet.south === 'left', 'bar magnet poles');
+const sole = solenoidField({ n: 1000, I: 2, turns: 8 });
+near(sole.B, 4e-7 * Math.PI * 1000 * 2, 1e-12, 'solenoid B = μ0 n I');
+assert(sole.north === 'right', 'solenoid north with +I');
+const amp = ampereForce({ B: 0.4, I: 3, L: 0.2 });
+near(amp.F, 0.24, 1e-9, 'F = BIL');
+const rod = inductionRod({ B: 0.5, ell: 0.2, x: 0.25, v: 1.5, R: 2 });
+near(rod.flux, 0.025, 1e-9, 'Φ = Bℓx');
+near(rod.emf, 0.15, 1e-9, 'ε = Bℓv');
+near(rod.I, 0.075, 1e-9, 'I = ε/R');
 
 const ruler = rulerReading({ trueCm: 3.64, division: 0.1 });
 near(ruler.main, 3.6, 1e-9, 'ruler main mark');

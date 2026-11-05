@@ -360,16 +360,28 @@ export const shanghaiJunior = {
     ]),
     C('shj-14', 'g9v2', '电与磁', 'Electricity and magnetism', [
       S('shj-14-1', '磁场', 'Magnetic field', [
-        Q('shj-14-1a', '磁感线', 'Field lines', '方向和磁极。', 'Direction and poles.'),
+        R('shj-14-1a', 'bar-magnet', '磁感线', 'Field lines',
+          '磁体外磁感线从 N 极出发回到 S 极。强弱只改变画出的线条疏密。',
+          'Outside the magnet the lines leave N and return to S. Strength only packs the drawn lines.',
+          { strength: 0.7, flip: false }),
       ]),
       S('shj-14-2', '电流的磁场', 'Magnetic field of a current', [
-        Q('shj-14-2a', '通电螺线管', 'Solenoid', '右手螺旋定则。', 'The right-hand rule.'),
+        R('shj-14-2a', 'solenoid', '通电螺线管', 'Solenoid',
+          '长直螺线管轴线上 B = μ0 n I。右手四指沿电流，拇指指向 B，也就是 N 端。',
+          'On the axis of a long solenoid B = μ0 n I. Curl the right-hand fingers with the current; the thumb is B and the north end.',
+          { n: 1000, I: 2, turns: 8 }),
       ]),
       S('shj-14-3', '通电导线在磁场中受到的作用力', 'Force on a current', [
-        Q('shj-14-3a', '磁场对电流的作用', 'Force on a wire', '电动机的转动方向。', 'Which way a motor turns.'),
+        R('shj-14-3a', 'ampere-force', '磁场对电流的作用', 'Force on a wire',
+          'B 垂直于 I 时，F = B I L。右手定则给出 F 的指向。',
+          'When B is perpendicular to I, F = B I L. The right-hand rule gives the sense of F.',
+          { B: 0.4, I: 3, L: 0.2 }, true),
       ]),
       S('shj-14-4', '电磁感应', 'Electromagnetic induction', [
-        Q('shj-14-4a', '感应电流', 'Induced current', '闭合回路磁通量变化。', 'Changing flux in a closed loop.'),
+        R('shj-14-4a', 'induction', '感应电流', 'Induced current',
+          '导轨上 Φ = B ℓ x，感应电动势 ε = B ℓ v，回路电流 I = ε / R。拖动杆改变 x。',
+          'On the rails Φ = B ℓ x, the emf is ε = B ℓ v, and I = ε / R. Drag the rod to change x.',
+          { B: 0.5, ell: 0.2, x: 0.25, v: 1.5, R: 2 }),
       ]),
     ]),
     C('shj-15', 'g9v2', '电磁波及其应用', 'Electromagnetic waves', [
