@@ -294,7 +294,6 @@ function renderChrome() {
       bookHost.appendChild(btn);
     }
   }
-  document.getElementById('edition').textContent = tx(lang, getBook(bookId).edition);
   document.getElementById('search').placeholder = t(lang, 'search');
   const swText = document.getElementById('sw-update-text');
   const swBtn = document.getElementById('sw-reload');

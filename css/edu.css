@@ -80,7 +80,6 @@ button { cursor: pointer; }
 }
 .lang { grid-area: lang; display: flex; gap: 6px; flex: 0 0 auto; }
 .lang button { width: 52px; height: 32px; padding: 0; flex: 0 0 52px; }
-.edition { margin: 0; padding: 8px 18px 0; color: var(--muted); font-size: 13px; }
 
 .layout {
   display: grid;
