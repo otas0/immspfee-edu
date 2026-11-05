@@ -9,7 +9,7 @@ export const shanghaiJunior = {
   id: 'sh-junior',
   region: 'shanghai',
   stage: 'junior',
-  title: { zh: '上海初中物理', en: 'Shanghai junior physics' },
+  title: { zh: '沪科初中物理', en: 'Shanghai junior physics' },
   edition: {
     zh: '沪科版五四制（2024）· 上海科学技术出版社',
     en: 'Huke 5–4 system (2024), Shanghai Science and Technology Publishers',
