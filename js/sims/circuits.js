@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { circuit, toggleLink, CIRCUIT_LINKS } from '../physics/circuits.js';
+import { circuit, electricalEnergy, toggleLink, CIRCUIT_LINKS } from '../physics/circuits.js';
 import { num, sel, tog, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -10,6 +10,7 @@ const LAYOUTS = [
   { value: 'series', en: 'Series', zh: '串联' },
   { value: 'parallel', en: 'Parallel', zh: '并联' },
   { value: 'ohm', en: 'Rheostat', zh: '变阻器' },
+  { value: 'household', en: 'Household', zh: '家庭电路' },
 ];
 
 function portsOf(w, h) {
@@ -30,7 +31,7 @@ function portsOf(w, h) {
 export const circuitSim = {
   id: 'circuit',
   timed: false,
-  authority: 'Steady DC. The source is an emf E in series with internal resistance r, so a short across the terminals draws I = E/r. Resistors follow Ohm’s law. Ideal wires have no resistance. The I–U line of a resistor is U = IR.',
+  authority: 'Steady DC. The source is an emf E in series with internal resistance r, so a short across the terminals draws I = E/r. Resistors follow Ohm’s law. On a load, W = U I t, P = U I, and Q = I² R t. Ideal wires have no resistance. The I–U line of a resistor is U = IR.',
   params: {
     layout: 'series',
     links: CIRCUIT_LINKS.series,
@@ -40,6 +41,7 @@ export const circuitSim = {
     R1: 4,
     R2: 6,
     Rs: 10,
+    t: 0,
   },
   schema: [
     sel('layout', 'Starter wiring', '初始接法', LAYOUTS),
@@ -49,36 +51,68 @@ export const circuitSim = {
     num('R1', 'R1', 'R1', 'Ω', 0, 40, 0.5),
     num('R2', 'R2', 'R2', 'Ω', 0, 40, 0.5),
     num('Rs', 'Rheostat Rs', '变阻器 Rs', 'Ω', 0, 40, 0.5),
+    num('t', 'Time t', '时间 t', 's', 0, 60, 0.5),
   ],
   onParam(key, value) {
     if (key === 'layout' && CIRCUIT_LINKS[value]) return { links: CIRCUIT_LINKS[value] };
     return {};
   },
-  compute: (p) => circuit(p),
+  compute: (p) => ((p.t ?? 0) > 0 || p.layout === 'household' ? electricalEnergy(p) : circuit(p)),
   readouts: (d) => {
     const fault = d.fault === 'short'
       ? { en: 'short', zh: '短路' }
       : d.fault === 'open' ? { en: 'open', zh: '断路' } : { en: 'closed path', zh: '通路' };
-    return [
+    const rows = [
       ro('Path', '电路', fault),
       ro('I', 'I', `${fmt(d.I, 3)} A`),
       ro('U1', 'U1', `${fmt(d.U1, 3)} V`),
       ro('I1', 'I1', `${fmt(d.I1, 3)} A`),
-      ro('U2', 'U2', `${fmt(d.U2, 3)} V`),
-      ro('I2', 'I2', `${fmt(d.I2, 3)} A`),
     ];
+    if (d.P != null) {
+      rows.push(
+        ro('P', 'P', `${fmt(d.P, 3)} W`),
+        ro('W', 'W', `${fmt(d.W, 3)} J`),
+        ro('Q', 'Q', `${fmt(d.Q, 3)} J`),
+      );
+    } else {
+      rows.push(
+        ro('U2', 'U2', `${fmt(d.U2, 3)} V`),
+        ro('I2', 'I2', `${fmt(d.I2, 3)} A`),
+      );
+    }
+    return rows;
   },
-  checks: (d) => [
-    q('I', 'The battery current is', '电源电流是', [
-      opt(`${fmt(d.I, 3)} A`, `${fmt(d.I, 3)} A`),
-      opt(`${fmt(d.E / Math.max(d.R1, 0.1), 3)} A`, `${fmt(d.E / Math.max(d.R1, 0.1), 3)} A`),
-      opt('0, because a wire uses no energy', '0，因为导线不消耗能量'),
-    ], 0),
-    q('ohm', 'Across R1, U and I satisfy', '对 R1，U 和 I 满足', [
-      opt(d.R1 > 1e-6 ? `U = I × ${fmt(d.R1, 2)} Ω` : 'R1 is a wire', d.R1 > 1e-6 ? `U = I × ${fmt(d.R1, 2)} Ω` : 'R1 是一根导线'),
-      opt('U is the same for every resistor no matter how they are wired', '不论怎么接，每个电阻的电压都相同'),
-    ], 0),
-  ],
+  checks: (d) => {
+    const rows = [
+      q('I', 'The battery current is', '电源电流是', [
+        opt(`${fmt(d.I, 3)} A`, `${fmt(d.I, 3)} A`),
+        opt(`${fmt(d.E / Math.max(d.R1, 0.1), 3)} A`, `${fmt(d.E / Math.max(d.R1, 0.1), 3)} A`),
+        opt('0, because a wire uses no energy', '0，因为导线不消耗能量'),
+      ], 0),
+    ];
+    if (d.P != null) {
+      rows.push(
+        q('P', 'The power in R1 is', 'R1 上的电功率是', [
+          opt(`${fmt(d.P, 3)} W = U I`, `${fmt(d.P, 3)} W = U I`),
+          opt(`${fmt(d.U * d.t, 3)} W`, `${fmt(d.U * d.t, 3)} W`),
+          opt('E / r', 'E / r'),
+        ], 0),
+        q('Q', 'Joule heat in R1 equals', 'R1 上的焦耳热等于', [
+          opt(`${fmt(d.Q, 3)} J = I² R t`, `${fmt(d.Q, 3)} J = I² R t`),
+          opt(`${fmt(d.Iload * d.t, 3)} J`, `${fmt(d.Iload * d.t, 3)} J`),
+          opt('only the battery emf', '只由电动势决定'),
+        ], 0),
+      );
+    } else {
+      rows.push(
+        q('ohm', 'Across R1, U and I satisfy', '对 R1，U 和 I 满足', [
+          opt(d.R1 > 1e-6 ? `U = I × ${fmt(d.R1, 2)} Ω` : 'R1 is a wire', d.R1 > 1e-6 ? `U = I × ${fmt(d.R1, 2)} Ω` : 'R1 是一根导线'),
+          opt('U is the same for every resistor no matter how they are wired', '不论怎么接，每个电阻的电压都相同'),
+        ], 0),
+      );
+    }
+    return rows;
+  },
   debug: {
     en: 'A wire from the positive terminal to the negative terminal bypasses the resistors. The current is then E/r, not the current of the intended loop.',
     zh: '用一根导线把电源正负极直接连上，电阻被旁路。电流变成 E/r，不再是原来回路里的电流。',
@@ -88,6 +122,7 @@ export const circuitSim = {
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
     const ports = portsOf(w, h);
+    const household = p.layout === 'household';
     const links = String(ui.wrong ? `${p.links},bp-bn` : p.links);
     const shown = links.split(',').map((s) => s.trim()).filter(Boolean);
     for (const row of shown) {
@@ -98,20 +133,36 @@ export const circuitSim = {
     }
     if (p.closed) line(ctx, ports.s1[0], ports.s1[1], ports.s2[0], ports.s2[1], INK, 2);
     line(ctx, ports.bp[0], ports.bp[1], ports.bn[0], ports.bn[1], RAY, 4);
-    text(ctx, 'E', ports.bp[0] - 16, (ports.bp[1] + ports.bn[1]) / 2, RAY, 13);
-    const box = (id, x, y, name) => {
+    text(ctx, household ? lab(ui, 'supply', '电源') : 'E', ports.bp[0] - 18, (ports.bp[1] + ports.bn[1]) / 2, RAY, 12);
+    if (household) {
+      text(ctx, lab(ui, 'live', '火线'), ports.s1[0], ports.s1[1] - 22, RAY, 12, 'center');
+      text(ctx, lab(ui, 'neutral', '零线'), ports.bn[0] + 40, ports.bn[1] + 18, MUTED, 12);
+      line(ctx, ports.bn[0] + 70, ports.bn[1], ports.a2[0], h * 0.88, MUTED, 1.5, [3, 3]);
+      text(ctx, lab(ui, 'earth', '地线'), (ports.bn[0] + 70 + ports.a2[0]) / 2, h * 0.9, MUTED, 11, 'center');
+      text(ctx, lab(ui, 'load', '用电器'), (ports.a1[0] + ports.a2[0]) / 2, ports.a1[1] - 28, INK, 12, 'center');
+    }
+    const box = (x, y, name) => {
       ctx.strokeStyle = INK;
       ctx.strokeRect(x - 18, y - 12, 36, 24);
       text(ctx, name, x, y, INK, 12, 'center');
     };
-    box('R1', (ports.a1[0] + ports.a2[0]) / 2, ports.a1[1], 'R1');
-    box('R2', (ports.b1[0] + ports.b2[0]) / 2, ports.b1[1], 'R2');
-    box('Rs', (ports.h1[0] + ports.h2[0]) / 2, ports.h1[1], 'Rs');
+    box((ports.a1[0] + ports.a2[0]) / 2, ports.a1[1], household ? 'R' : 'R1');
+    if (!household) {
+      box((ports.b1[0] + ports.b2[0]) / 2, ports.b1[1], 'R2');
+      box((ports.h1[0] + ports.h2[0]) / 2, ports.h1[1], 'Rs');
+    }
     text(ctx, p.closed ? lab(ui, 'switch', '开关') : lab(ui, 'open switch', '开关断开'), (ports.s1[0] + ports.s2[0]) / 2, ports.s1[1] - 18, MUTED, 11, 'center');
     const fault = d.fault === 'short' ? lab(ui, 'short circuit', '短路') : d.fault === 'open' ? lab(ui, 'open circuit', '断路') : lab(ui, 'closed path', '通路');
     text(ctx, fault, w * 0.22, h * 0.1, d.fault === 'ok' ? INK : '#a33', 16);
     text(ctx, `I=${fmt(d.I, 2)} A`, w * 0.22, h * 0.16, MUTED, 12);
-    if (ui.wrong) text(ctx, `E/r=${fmt(d.E / d.r, 2)} A`, w * 0.42, h * 0.16, '#a33', 12);
+    if (ui.wrong || d.fault === 'short') text(ctx, `E/r=${fmt(d.E / d.r, 2)} A`, w * 0.42, h * 0.16, '#a33', 12);
+    if (d.P != null) {
+      text(ctx, `P=${fmt(d.P, 2)} W`, w * 0.72, h * 0.12, RAY2, 13);
+      text(ctx, `Q=${fmt(d.Q, 2)} J`, w * 0.72, h * 0.18, RAY, 13);
+      const heat = Math.min(1, d.Q / Math.max(d.P * 20, 1));
+      ctx.fillStyle = `rgba(196,73,29,${0.15 + 0.55 * heat})`;
+      ctx.fillRect((ports.a1[0] + ports.a2[0]) / 2 - 18, ports.a1[1] - 12, 36, 24);
+    }
 
     const gx = w * 0.08;
     const gy = h * 0.84;
@@ -132,26 +183,32 @@ export const circuitSim = {
       ctx.fill();
     }
     for (const [name, xy] of Object.entries(ports)) {
+      if (household && (name === 'b1' || name === 'b2' || name === 'h1' || name === 'h2')) continue;
       handle(ctx, xy[0], xy[1], ui.drag === name);
     }
     if (ui.drag && ports[ui.drag] && ui._mouse) {
       line(ctx, ports[ui.drag][0], ports[ui.drag][1], ui._mouse[0], ui._mouse[1], RAY, 1.5, [4, 3]);
     }
-    const rsX = ports.h1[0] + ((ports.h2[0] - ports.h1[0]) * d.Rs) / 40;
-    handle(ctx, rsX, ports.h1[1] + 28, ui.drag === 'rs');
-    ui._geo = { ports };
+    if (!household) {
+      const rsX = ports.h1[0] + ((ports.h2[0] - ports.h1[0]) * d.Rs) / 40;
+      handle(ctx, rsX, ports.h1[1] + 28, ui.drag === 'rs');
+    }
+    ui._geo = { ports, household };
   },
   pointer(ev, p, _d, ui) {
     const g = ui._geo;
     if (!g) return null;
     ui._mouse = [ev.x, ev.y];
     if (ev.type === 'down') {
-      const rsX = g.ports.h1[0] + ((g.ports.h2[0] - g.ports.h1[0]) * p.Rs) / 40;
-      if (hit(ev.x, ev.y, rsX, g.ports.h1[1] + 28)) {
-        ui.drag = 'rs';
-        return {};
+      if (!g.household) {
+        const rsX = g.ports.h1[0] + ((g.ports.h2[0] - g.ports.h1[0]) * p.Rs) / 40;
+        if (hit(ev.x, ev.y, rsX, g.ports.h1[1] + 28)) {
+          ui.drag = 'rs';
+          return {};
+        }
       }
       for (const [name, xy] of Object.entries(g.ports)) {
+        if (g.household && (name === 'b1' || name === 'b2' || name === 'h1' || name === 'h2')) continue;
         if (hit(ev.x, ev.y, xy[0], xy[1], 12)) {
           ui.drag = name;
           return {};
@@ -179,4 +236,3 @@ export const circuitSim = {
     return null;
   },
 };
-

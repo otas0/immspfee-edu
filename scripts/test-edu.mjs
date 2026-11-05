@@ -5,7 +5,7 @@ import {
   hooke, twoForce, friction, inertiaCart, weight,
   solidPressure, hydrostatics, torricelli, bernoulliPipe,
   buoyancyOrigin, densityLab, floatState, archimedes, weighingBuoyancy,
-  lever, pulley, workPower, circuit, CIRCUIT_LINKS,
+  lever, pulley, workPower, circuit, electricalEnergy, CIRCUIT_LINKS,
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
   specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork,
@@ -109,6 +109,20 @@ assert(dead.fault === 'short', 'short across the battery');
 near(dead.I, 6, 1e-9, 'short current E/r');
 const ohm = circuit({ layout: 'ohm', links: CIRCUIT_LINKS.ohm, closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 });
 near(ohm.U1, ohm.I1 * 10, 1e-9, 'ohm U = IR');
+const joule = electricalEnergy({
+  layout: 'series', links: CIRCUIT_LINKS.series, closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 10,
+});
+near(joule.I1, 6 / 6.5, 1e-9, 'joule load current');
+near(joule.P, Math.abs(joule.U1 * joule.I1), 1e-9, 'P = UI');
+near(joule.W, joule.P * 10, 1e-9, 'W = Pt');
+near(joule.Q, joule.I1 * joule.I1 * 6 * 10, 1e-9, 'Q = I²Rt');
+near(joule.Q, joule.W, 1e-9, 'pure resistor Q = W');
+const house = electricalEnergy({
+  layout: 'household', links: CIRCUIT_LINKS.household, closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0, t: 1,
+});
+near(house.I, 220 / 486, 1e-9, 'household load current');
+const houseShort = circuit({ layout: 'household', links: 'bp-bn', closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0 });
+near(houseShort.I, 110, 1e-9, 'household short is E/r');
 
 const seen = frames({ frame: 'cart', vCart: 2, vPerson: 0.5, xCart0: 0, xPerson0: 0 }, 2);
 near(seen.vPersonView, -1.5, 1e-9, 'person relative to the cart');

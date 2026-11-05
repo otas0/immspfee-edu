@@ -163,4 +163,21 @@ export const CIRCUIT_LINKS = {
   series: 'bp-s1,s2-a1,a2-b1,b2-bn',
   parallel: 'bp-s1,s2-a1,s2-b1,a2-bn,b2-bn',
   ohm: 'bp-s1,s2-h1,h2-a1,a2-bn',
+  household: 'bp-s1,s2-a1,a2-bn',
 };
+
+/**
+ * Electrical work, power, and Joule heat on R1 from the same DC solve.
+ * W = U I t, P = U I, Q = I² R t. For a pure resistor Q equals W.
+ */
+export function electricalEnergy(p) {
+  const d = circuit(p);
+  const t = Math.max(p.t ?? 0, 0);
+  const U = Math.abs(d.U1);
+  const I = Math.abs(d.I1);
+  const R = d.R1;
+  const P = U * I;
+  const W = P * t;
+  const Q = I * I * R * t;
+  return { ...d, t, U, Iload: I, P, W, Q };
+}

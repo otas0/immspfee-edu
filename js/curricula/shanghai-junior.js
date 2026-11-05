@@ -334,16 +334,28 @@ export const shanghaiJunior = {
     ]),
     C('shj-13', 'g9v1', '电功率', 'Electric power', [
       S('shj-13-1', '电功', 'Electrical work', [
-        Q('shj-13-1a', '电功', 'Electrical work', 'W = UIt。', 'W = UIt.'),
+        R('shj-13-1a', 'circuit', '电功', 'Electrical work',
+          '同一稳态电路上，R1 的电功是 W = U I t。改时间 t，W 按比例变。',
+          'On the same steady circuit, the work in R1 is W = U I t. Change t and W scales with it.',
+          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 10 }),
       ]),
       S('shj-13-2', '电功率', 'Electric power', [
-        Q('shj-13-2a', '电功率', 'Electric power', 'P = UI。', 'P = UI.'),
+        R('shj-13-2a', 'circuit', '电功率', 'Electric power',
+          'P = U I。功率不依赖 t；焦耳热才乘时间。',
+          'P = U I. Power does not depend on t; Joule heat does.',
+          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 5 }),
       ]),
       S('shj-13-3', '焦耳定律', 'Joule heating', [
-        Q('shj-13-3a', '焦耳定律', 'Joule’s law', 'Q = I²Rt。', 'Q = I²Rt.'),
+        R('shj-13-3a', 'circuit', '焦耳定律', 'Joule’s law',
+          '纯电阻上 Q = I² R t，并且等于 W = U I t。暖色块跟着 Q 加深。',
+          'On a pure resistor Q = I² R t, and that equals W = U I t. The warm fill tracks Q.',
+          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 8, R2: 0, Rs: 0, t: 20 }, true),
       ]),
       S('shj-13-4', '家庭电路', 'Household circuits', [
-        Q('shj-13-4a', '家庭电路', 'Household circuit', '火线、零线、地线，以及短路时的电流。', 'Live, neutral, earth, and the current in a short.'),
+        R('shj-13-4a', 'circuit', '家庭电路', 'Household circuit',
+          '火线、零线、地线。正常通路电流由用电器电阻决定；火零直接短接时 I = E/r。',
+          'Live, neutral, and earth. On a closed path the load sets the current; a live–neutral short draws I = E/r.',
+          { layout: 'household', links: 'bp-s1,s2-a1,a2-bn', closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0, t: 1 }),
       ]),
     ]),
     C('shj-14', 'g9v2', '电与磁', 'Electricity and magnetism', [
