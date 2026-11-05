@@ -11,6 +11,7 @@ const LOADERS = {
   measure: () => import('./measure.js'),
   waves: () => import('./waves.js'),
   em: () => import('./em.js'),
+  collide: () => import('./collide.js'),
 };
 
 const MAP = {
@@ -63,6 +64,7 @@ const MAP = {
   solenoid: ['em', 'solenoidSim'],
   'ampere-force': ['em', 'ampereSim'],
   induction: ['em', 'inductionSim'],
+  collide: ['collide', 'collideSim'],
 };
 
 const cache = new Map();

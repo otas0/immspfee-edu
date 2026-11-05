@@ -9,7 +9,7 @@ import {
   frames, segmentMotion, vtArea, projectile, energyTrack, melting,
   oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
   specificHeat, ottoCycle, rulerReading, stopwatchReading, tuningFork, emWave,
-  barMagnet, solenoidField, ampereForce, inductionRod, circularMotion,
+  barMagnet, solenoidField, ampereForce, inductionRod, circularMotion, collide1d,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -205,6 +205,13 @@ const circ = circularMotion({ m: 0.5, r: 0.4, omega: 4 }, 0);
 near(circ.v, 1.6, 1e-9, 'v = ωr');
 near(circ.a, 6.4, 1e-9, 'a = ω²r');
 near(circ.F, 3.2, 1e-9, 'F = ma');
+const hit = collide1d({ m1: 2, m2: 1, u1: 3, u2: 0, kind: 'elastic' });
+near(hit.p1, hit.p0, 1e-9, 'elastic momentum');
+near(hit.ke1, hit.ke0, 1e-9, 'elastic KE');
+const sticky = collide1d({ m1: 2, m2: 2, u1: 4, u2: -1, kind: 'inelastic' });
+near(sticky.v1, sticky.v2, 1e-9, 'inelastic common speed');
+near(sticky.p1, sticky.p0, 1e-9, 'inelastic momentum');
+assert(sticky.ke1 < sticky.ke0 - 1e-9, 'inelastic loses KE');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {
