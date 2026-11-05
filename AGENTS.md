@@ -8,3 +8,17 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - A queued section stays empty. Do not ship a placeholder animation.
 - Nuclear and modern items stay on public teaching relations (half-life, energy levels, mass–energy). Do not add device, yield, or production steps.
 - `npm test` must stay green.
+
+## Release
+
+When a task is finished and `npm test` is green, commit and push `main` immediately so GitHub Pages deploys. Do not batch finished tasks. Do not wait to be asked again.
+
+If the test fails, fix it before pushing. Never deploy a red tree.
+
+Before pushing, check the remote. Push to `otas0/immspfee-edu` if the repo has been renamed; otherwise `otas0/immspfee-education`. Use `git -c credential.helper='!gh auth git-credential'`. Do not change git config. Do not touch `otas0/immspfee`.
+
+After each push, watch the Pages workflow until it succeeds, or report the failure.
+
+Lesson commits contain equations, simulations, curricula, and tests only. Logo commits contain only the logo asset, header CSS, and README URL lines. Never mix them.
+
+Confirm that `https://github.com/otas0/immspfee-education` redirects to the renamed repo once the rename exists. Do not rename the repo if that work is already in progress; just check.
