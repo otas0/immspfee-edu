@@ -26,13 +26,19 @@
         u.searchParams.set('boot', String(Date.now()));
         location.replace(u.pathname + u.search + u.hash);
       };
-      if (!('caches' in window)) {
-        go();
-        return;
-      }
-      caches.keys().then(function (keys) {
-        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-      }).then(go, go);
+      var clearCaches = function () {
+        if (!('caches' in window)) return Promise.resolve();
+        return caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        });
+      };
+      var dropSW = function () {
+        if (!('serviceWorker' in navigator)) return Promise.resolve();
+        return navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
+        });
+      };
+      Promise.all([clearCaches(), dropSW()]).then(go, go);
     })();
   </script>
   <link rel="icon" type="image/png" href="./assets/immspfee-education-favicon.png?v=__BUILD__">

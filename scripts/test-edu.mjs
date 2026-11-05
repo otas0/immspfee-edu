@@ -281,6 +281,7 @@ const tun = barrierTunnel({ m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 8e-19 });
 assert(tun.regime === 'tunnel' && tun.T > 0 && tun.T < 1, 'tunnel T');
 const scan = barrierScan({ m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 2.4e-18, samples: 80 });
 assert(scan.curve.length > 40 && Array.isArray(scan.peaks), 'barrier scan');
+assert(scan.resonances.length >= 1 && scan.resonances[0].E > scan.V0, 'barrier k2a=nπ');
 const rad = hydrogenRadial({ n: 1, l: 0, r: 5.29177210903e-11 });
 assert(rad.dens > 0 && rad.R !== 0, 'hydrogen R10 dens');
 const pkt = gaussianPacket({ m: 9.1e-31, sigma0: 2e-10, k0: 0, x0: 0 }, 1e-14);
@@ -297,11 +298,16 @@ near(thinFilm({ n: 1.33, t: 1e-7, lambda: 5.32e-7, m: 0 }).lhs, 2.66e-7, 1e-15, 
 assert(thinFilm({ n: 1.33, t: 1e-7, lambda: 5.32e-7, m: 0, mode: 'reflect' }).half === true, 'film reflect half');
 assert(thinFilm({ n: 1.33, t: 1e-7, lambda: 5.32e-7, m: 1, mode: 'transmit' }).half === false, 'film transmit');
 near(doubleSlitIntensity({ lambda: 6e-7, D: 1.2, d: 2e-4, y: 0 }).I, 1, 1e-9, 'double-slit I at centre');
+near(doubleSlitIntensity({ lambda: 6e-7, D: 1.2, d: 2e-4, a: 4e-5, y: 0, envelope: true }).I, 1, 1e-9, 'double-slit I centre with env');
 assert(simultaneity({ L0: 3e8, v: 0 }).dt === 0, 'simultaneity at rest');
 assert(simultaneity({ L0: 3e8, v: 1.5e8 }).dt > 0, 'simultaneity moving');
 const coup = coupledPendula({ g: 9.8, L: 1, kappa: 2, A1: 0.3, A2: 0 }, 0);
 near(coup.E2, 0, 1e-9, 'coupled E2 at t=0');
 assert(coup.E1 > 0, 'coupled E1 at t=0');
+const coupMid = coupledPendula({ g: 9.8, L: 1, kappa: 2, A1: 0.3, A2: 0 }, 0.4);
+assert(Number.isFinite(coupMid.Pflow), 'coupled Pflow');
+const radClamp = hydrogenRadial({ n: 1, l: 2, r: 1e-10 });
+assert(radClamp.l === 0, 'hydrogen l clamped to n-1');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

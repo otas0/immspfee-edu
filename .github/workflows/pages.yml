@@ -20,10 +20,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
       - name: Smoke ready sim modules
@@ -37,12 +38,12 @@ jobs:
         run: node scripts/stamp-build.mjs
         env:
           GITHUB_SHA: ${{ github.sha }}
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: .
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
       - name: Smoke live module URLs
         if: success()
         run: |
@@ -64,15 +65,33 @@ jobs:
             test "$code" = "200"
           done
       - name: Smoke home HTML build stamp
+        id: stamp_smoke
         if: success()
         run: |
           BASE="${{ steps.deployment.outputs.page_url }}"
           BASE="${BASE%/}"
           SHORT="$(echo '${{ github.sha }}' | cut -c1-7)"
+          echo "SHORT=$SHORT" >> "$GITHUB_ENV"
           html=$(curl -sS "$BASE/")
           if echo "$html" | grep -q '__BUILD__'; then
             echo 'FAIL: literal __BUILD__ still in index (stamp did not run)'
             exit 1
           fi
-          echo "$html" | grep -F "$SHORT"
+          if ! echo "$html" | grep -F "$SHORT"; then
+            echo "FAIL: stamped short SHA $SHORT missing from home HTML"
+            exit 1
+          fi
           echo "home HTML contains stamped build $SHORT"
+      - name: Report stamp failure
+        if: failure() && steps.stamp_smoke.outcome == 'failure'
+        run: |
+          SHORT="${SHORT:-$(echo '${{ github.sha }}' | cut -c1-7)}"
+          {
+            echo "### ❌ Pages home stamp failed"
+            echo ""
+            echo "Expected short SHA \`$SHORT\` missing from deployed \`index.html\` (or literal \`__BUILD__\` left unstamped)."
+            echo ""
+            echo "@otas0 please inspect the Pages artifact and \`scripts/stamp-build.mjs\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Pages stamp missing::Home HTML missing build stamp $SHORT — @otas0"
+          exit 1

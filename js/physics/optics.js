@@ -190,14 +190,22 @@ export function thinFilm(p) {
 }
 
 /**
- * Young double-slit intensity on the screen (far field):
- * I(y) = I0 cos²(π d y / (λ D)), with fringe spacing Δy = λ D / d.
+ * Young double-slit intensity (far field): I ∝ cos²(β), β = π d y /(λ D).
+ * Optional single-slit envelope: multiply by sinc²(α), α = π a y /(λ D).
  */
 export function doubleSlitIntensity(p) {
   const base = doubleSlit(p);
+  const a = Math.max(p.a ?? base.d * 0.2, 1e-12);
   const y = p.y ?? 0;
   const I0 = Math.max(p.I0 ?? 1, 0);
-  const phase = (Math.PI * base.d * y) / (base.lambda * base.D);
-  const I = I0 * Math.cos(phase) ** 2;
-  return { ...base, y, I0, I, phase };
+  const useEnv = !!p.envelope;
+  const beta = (Math.PI * base.d * y) / (base.lambda * base.D);
+  const alpha = (Math.PI * a * y) / (base.lambda * base.D);
+  const cos2 = Math.cos(beta) ** 2;
+  const env = Math.abs(alpha) < 1e-12 ? 1 : (Math.sin(alpha) / alpha) ** 2;
+  const I = I0 * cos2 * (useEnv ? env : 1);
+  const centralWidth = (2 * base.lambda * base.D) / a;
+  return {
+    ...base, a, y, I0, I, beta, alpha, cos2, env, useEnv, centralWidth,
+  };
 }

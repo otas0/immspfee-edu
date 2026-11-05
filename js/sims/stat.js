@@ -1,12 +1,12 @@
 import { fmt } from '../fmt.js';
 import {
-  isingMetropolis, barrierTunnel, barrierScan, hydrogenRadial,
+  isingMetropolis, barrierTunnel, barrierScan, hydrogenRadial, isingTempSweep,
   gaussianPacket, gaussianPacketPsi2,
-  maxwellHistogram, fourierSquare, membraneMode, bellSinglet, sternGerlach,
+  maxwellHistogram, maxwellSpeed, fourierSquare, membraneMode, bellSinglet, sternGerlach,
   lengthContraction, laserCavity,
 } from '../physics/stat.js';
 import { thinFilm } from '../physics/optics.js';
-import { num, sel, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 const KB = 1.380649e-23;
 let isingBuf = null;
@@ -17,36 +17,38 @@ function ro(en, zh, value) { return { en, zh, value }; }
 
 export const isingSim = {
   id: 'ising',
-  timed: false,
-  authority: '2-D Ising Metropolis on an N×N lattice with H = −J Σ s_i s_j (J = 1). Temperature is in units of J/k_B. Onsager Tc = 2/ln(1+√2). Magnetisation M = (1/N²) Σ s_i after a fixed number of sweeps from a seeded RNG.',
-  params: { N: 16, T: 2.2, sweeps: 50, seed: 1 },
+  timed: true,
+  tMax: () => 1,
+  authority: '2-D Ising Metropolis on an N×N lattice with H = −J Σ s_i s_j (J = 1). Play sweeps T across Onsager Tc = 2/ln(1+√2) and plots |M|(T).',
+  params: { N: 12, T: 2.2, sweeps: 40, seed: 1, Tmin: 0.5, Tmax: 4 },
   schema: [
-    num('N', 'Lattice N', '格子边长 N', '', 6, 24, 2),
-    num('T', 'Temperature T', '温度 T', 'J/kB', 0.5, 5, 0.1),
-    num('sweeps', 'Sweeps', '扫描次数', '', 10, 200, 10),
+    num('N', 'Lattice N', '格子边长 N', '', 6, 20, 2),
+    num('T', 'Probe T', '探针 T', 'J/kB', 0.5, 5, 0.1),
+    num('sweeps', 'Sweeps', '扫描次数', '', 10, 120, 10),
     num('seed', 'Seed', '随机种子', '', 1, 99, 1),
   ],
-  compute: (p) => isingMetropolis(p),
+  compute: (p, t) => {
+    const sweep = isingTempSweep({ ...p, steps: 20 });
+    const Tplay = sweep.Tmin + Math.min(1, Math.max(0, t)) * (sweep.Tmax - sweep.Tmin);
+    const at = isingMetropolis({ ...p, T: p.T });
+    const play = isingMetropolis({ ...p, T: Tplay, seed: p.seed + Math.round(Tplay * 10) });
+    return { ...at, sweep, Tplay, playAbsM: play.absM, playSpins: play.spins, Tc: sweep.Tc };
+  },
   readouts: (d) => [
     ro('|M|', '|M|', fmt(d.absM, 3)),
-    ro('E', 'E', fmt(d.energy, 1)),
     ro('T', 'T', fmt(d.T, 2)),
+    ro('T▶', '扫温 T', fmt(d.Tplay, 2)),
     ro('Tc', 'Onsager Tc', fmt(d.Tc, 4)),
   ],
   checks: (d) => [
-    q('M', 'Magnetisation magnitude |M| is', '磁化强度 |M| 是', [
-      opt(fmt(d.absM, 3), fmt(d.absM, 3)),
-      opt('always 1', '恒为 1'),
-      opt('always 0', '恒为 0'),
-    ], 0),
     q('Tc', 'Onsager critical temperature (J = k_B = 1) is', 'Onsager 临界温度（J = k_B = 1）是', [
       opt(`${fmt(d.Tc, 4)} = 2/ln(1+√2)`, `${fmt(d.Tc, 4)} = 2/ln(1+√2)`),
       opt('1.0000', '1.0000'),
       opt('4.0000', '4.0000'),
     ], 0),
-    q('lowT', 'Lowering T (more sweeps fixed) tends to', '降低 T（扫描次数固定）倾向于', [
-      opt('increase |M| toward an ordered state', '使 |M| 增大、趋向有序'),
-      opt('force |M| = 0 exactly', '强制 |M| 恰好为 0'),
+    q('cross', 'As the sweep passes above Tc, |M| tends to', '扫温越过 Tc 后，|M| 倾向于', [
+      opt('drop toward a disordered value', '降到更接近无序'),
+      opt('lock at exactly 1', '锁死在 1'),
     ], 0),
   ],
   debug: {
@@ -57,20 +59,20 @@ export const isingSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cell = Math.min((w * 0.7) / d.N, (h * 0.7) / d.N);
-    const x0 = (w - cell * d.N) / 2;
-    const y0 = (h - cell * d.N) / 2;
+    const cell = Math.min((w * 0.32) / d.N, (h * 0.55) / d.N);
+    const x0 = w * 0.06;
+    const y0 = h * 0.22;
     const side = Math.ceil(cell * d.N);
+    const spins = ui.wrong ? d.playSpins.map(() => 1) : d.playSpins;
     const paint = (g, ox, oy) => {
       for (let y = 0; y < d.N; y += 1) {
         for (let x = 0; x < d.N; x += 1) {
-          const s = ui.wrong ? 1 : d.spins[y * d.N + x];
-          g.fillStyle = s > 0 ? RAY : RAY2;
+          g.fillStyle = spins[y * d.N + x] > 0 ? RAY : RAY2;
           g.fillRect(ox + x * cell, oy + y * cell, cell - 0.5, cell - 0.5);
         }
       }
     };
-    if (d.N >= 16) {
+    if (d.N >= 12) {
       if (!isingBuf || isingBuf.width !== side) {
         isingBuf = typeof OffscreenCanvas !== 'undefined'
           ? new OffscreenCanvas(side, side)
@@ -83,7 +85,28 @@ export const isingSim = {
     } else {
       paint(ctx, x0, y0);
     }
-    text(ctx, `|M|=${fmt(ui.wrong ? 1 : d.absM, 3)}  T=${fmt(d.T, 2)}  Tc=${fmt(d.Tc, 3)}`, w * 0.5, h * 0.08, ui.wrong ? '#a33' : INK, 13, 'center');
+    const gx = w * 0.48;
+    const gy = h * 0.82;
+    const gw = w * 0.46;
+    const gh = h * 0.55;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
+    ctx.beginPath();
+    d.sweep.curve.forEach((pt, i) => {
+      const X = gx + ((pt.T - d.sweep.Tmin) / (d.sweep.Tmax - d.sweep.Tmin)) * gw;
+      const Y = gy - pt.absM * gh;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    const tcX = gx + ((d.Tc - d.sweep.Tmin) / (d.sweep.Tmax - d.sweep.Tmin)) * gw;
+    line(ctx, tcX, gy, tcX, gy - gh, MUTED, 1.5, [4, 3]);
+    text(ctx, 'Tc', tcX, gy - gh - 6, MUTED, 11, 'center');
+    const pX = gx + ((d.Tplay - d.sweep.Tmin) / (d.sweep.Tmax - d.sweep.Tmin)) * gw;
+    line(ctx, pX, gy, pX, gy - gh, RAY, 1, [2, 2]);
+    text(ctx, `|M| vs T  ·  T▶=${fmt(d.Tplay, 2)}`, w * 0.72, h * 0.1, INK, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -91,7 +114,7 @@ export const isingSim = {
 export const tunnelSim = {
   id: 'barrier-tunnel',
   timed: false,
-  authority: 'Rectangular barrier transmission T(E). For E < V0, T = [1 + V0² sinh²(κa)/(4E(V0−E))]^{-1}. Above V0 the sin form produces resonance-like peaks; the stage scans T(E) and marks those maxima.',
+  authority: 'Rectangular barrier transmission T(E). For E < V0, T = [1 + V0² sinh²(κa)/(4E(V0−E))]^{-1}. Above V0, exact resonances when k₂ a = n π are marked against the scanned T(E) peaks.',
   params: { m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 8e-19, samples: 120 },
   schema: [
     num('E', 'Energy E', '能量 E', 'J', 1e-19, 3e-18, 1e-19),
@@ -102,7 +125,8 @@ export const tunnelSim = {
   readouts: (d) => [
     ro('T', 'T', fmt(d.T, 4)),
     ro('Regime', '情形', { en: d.regime, zh: { tunnel: '隧穿', over: '越过', edge: '边缘' }[d.regime] || d.regime }),
-    ro('Peaks', '共振峰数', String(d.peaks.length)),
+    ro('Peaks', '扫描峰数', String(d.peaks.length)),
+    ro('k₂a=nπ', '理论共振', String(d.resonances.length)),
   ],
   checks: (d) => [
     q('T', 'Transmission coefficient is', '透射系数是', [
@@ -146,10 +170,15 @@ export const tunnelSim = {
       ctx.arc(X, Y, 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
+    for (const rs of d.resonances) {
+      const X = gx + ((rs.E - d.Emin) / (d.Emax - d.Emin)) * gw;
+      line(ctx, X, gy, X, gy - gh, MUTED, 1, [1, 3]);
+      text(ctx, String(rs.n), X, gy + 12, MUTED, 10, 'center');
+    }
     const eX = gx + ((d.E - d.Emin) / (d.Emax - d.Emin)) * gw;
     line(ctx, eX, gy, eX, gy - gh, RAY, 1, [2, 2]);
     const Tshow = ui.wrong && d.regime === 'tunnel' ? 0 : d.T;
-    text(ctx, `T=${fmt(Tshow, 4)}  peaks=${d.peaks.length}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, `T=${fmt(Tshow, 4)}  peaks=${d.peaks.length}  k₂a=nπ×${d.resonances.length}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 13, 'center');
   },
   pointer() { return null; },
 };
@@ -157,23 +186,30 @@ export const tunnelSim = {
 export const hydrogenRadialSim = {
   id: 'hydrogen-radial',
   timed: false,
-  authority: 'Hydrogen radial probability density P(r) = r² R_nl(r)² with Bohr radius a0. Classroom forms for n = 1…3, l = 0…n−1.',
+  authority: 'Hydrogen radial probability density P(r) = r² R_nl(r)² with Bohr radius a0. Classroom forms for n = 1…4; a trapezoid integral of P(r) checks normalisation ≈ 1.',
   params: { n: 2, l: 0, r: 1e-10 },
-  schema: [
-    num('n', 'n', 'n', '', 1, 3, 1),
-    num('l', 'l', 'l', '', 0, 2, 1),
-    num('r', 'Probe r', '探针 r', 'm', 0, 1e-9, 2e-11),
+  schema: (p) => [
+    num('n', 'n', 'n', '', 1, 4, 1),
+    num('l', 'l', 'l', '', 0, Math.max(0, Math.round(p.n) - 1), 1),
+    num('r', 'Probe r', '探针 r', 'm', 0, 2e-9, 2e-11),
   ],
+  onParam(key, value, next) {
+    if (key !== 'n') return {};
+    const n = Math.max(1, Math.min(4, Math.round(value)));
+    const lMax = n - 1;
+    if (next.l > lMax) return { l: lMax };
+    return {};
+  },
   compute: (p) => hydrogenRadial(p),
   readouts: (d) => [
     ro('Rnl', 'R_nl', d.R.toExponential(3)),
     ro('r²R²', 'r² R²', d.dens.toExponential(3)),
-    ro('ρ', 'ρ=r/a0', fmt(d.rho, 2)),
+    ro('∫P', '∫ P(r) dr', fmt(d.integ, 3)),
   ],
   checks: (d) => [
-    q('dens', 'Radial probability density r² R² at the probe is', '探针处径向概率密度 r² R² 是', [
-      opt(d.dens.toExponential(3), d.dens.toExponential(3)),
-      opt('always 0', '恒为 0'),
+    q('norm', 'The radial integral ∫ P(r) dr is about', '径向积分 ∫ P(r) dr 约为', [
+      opt(fmt(d.integ, 3), fmt(d.integ, 3)),
+      opt('0', '0'),
     ], 0),
     q('form', 'The plotted density is', '图上画的是', [
       opt('r² R_nl²(r)', 'r² R_nl²(r)'),
@@ -310,21 +346,21 @@ export const maxwellHistSim = {
     const gy = h * 0.78;
     const gw = w * 0.8;
     const gh = h * 0.55;
-    const maxH = Math.max(...d.heights, 1e-12);
+    const fPeak = maxwellSpeed({ m: d.m, T: d.T, v: d.vmp }).f;
+    const scale = Math.max(fPeak, ...d.heights, 1e-12);
     const bw = gw / d.bins;
     d.heights.forEach((ht, i) => {
-      const bh = (ht / maxH) * gh;
+      const bh = (ht / scale) * gh;
       ctx.fillStyle = RAY2;
       ctx.fillRect(gx + i * bw, gy - bh, bw * 0.9, bh);
     });
-    // Overlay continuous f(v) scaled to the same peak height.
+    // Overlay continuous f(v) on the same peak normalisation as the bars.
     ctx.beginPath();
     for (let i = 0; i <= 100; i += 1) {
       const v = (d.vmax * i) / 100;
-      const a = Math.sqrt((KB * d.T) / d.m);
-      const f = Math.sqrt(2 / Math.PI) * (v * v) / (a ** 3) * Math.exp(-(v * v) / (2 * a * a));
+      const f = maxwellSpeed({ m: d.m, T: d.T, v }).f;
       const X = gx + (v / d.vmax) * gw;
-      const Y = gy - (f / maxH) * gh;
+      const Y = gy - (f / scale) * gh;
       if (i === 0) ctx.moveTo(X, Y);
       else ctx.lineTo(X, Y);
     }

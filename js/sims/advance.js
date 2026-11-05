@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js';
 import { oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes, coupledPendula } from '../physics/advance.js';
-import { num, clear, line, text, handle, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, clear, line, text, handle, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -286,17 +286,17 @@ export const modesSim = {
   readouts: (d) => [
     ro('ω1', 'ω1', `${fmt(d.w1, 3)} rad/s`),
     ro('ω2', 'ω2', `${fmt(d.w2, 3)} rad/s`),
-    ro('x1', 'x1', `${fmt(d.x1, 3)} m`),
-    ro('x2', 'x2', `${fmt(d.x2, 3)} m`),
+    ro('E', 'E', `${fmt(d.E, 3)} J`),
+    ro('E0', 'E₀', `${fmt(d.E0, 3)} J`),
   ],
   checks: (d) => [
     q('w', 'The antisymmetric frequency is', '反对称模的角频率是', [
       opt(`${fmt(d.w2, 3)} rad/s`, `${fmt(d.w2, 3)} rad/s`),
       opt(`${fmt(d.w1, 3)} rad/s`, `${fmt(d.w1, 3)} rad/s`),
     ], 0),
-    q('x', 'x1 − x2 is', 'x1 − x2 是', [
-      opt(`${fmt(d.x1 - d.x2, 3)} m`, `${fmt(d.x1 - d.x2, 3)} m`),
-      opt(`${fmt(d.x1 + d.x2, 3)} m`, `${fmt(d.x1 + d.x2, 3)} m`),
+    q('E', 'Mechanical energy E = T + V stays', '机械能 E = T + V 保持', [
+      opt(`${fmt(d.E, 3)} J ≈ E₀`, `${fmt(d.E, 3)} J ≈ E₀`),
+      opt('only kinetic', '只有动能'),
     ], 0),
   ],
   debug: {
@@ -357,6 +357,7 @@ export const coupledPendulaSim = {
   readouts: (d) => [
     ro('E1', 'E1', fmt(d.E1, 4)),
     ro('E2', 'E2', fmt(d.E2, 4)),
+    ro('P 1→2', 'E1↔E2', `${d.Pflow >= 0 ? '+' : ''}${fmt(d.Pflow, 3)}`),
     ro('E', 'E', fmt(d.E, 4)),
     ro('ωs', 'ωs', fmt(d.ws, 3)),
     ro('ωa', 'ωa', fmt(d.wa, 3)),
@@ -366,9 +367,9 @@ export const coupledPendulaSim = {
       opt('exchanges between the two pendulums', '在两摆之间交换'),
       opt('stays forever in the first pendulum only', '永远只在第一摆'),
     ], 0),
-    q('wa', 'The antisymmetric frequency is', '反对称模角频率是', [
-      opt(`${fmt(d.wa, 3)} = √(ω0²+2κ)`, `${fmt(d.wa, 3)} = √(ω0²+2κ)`),
-      opt(`${fmt(d.ws, 3)}`, `${fmt(d.ws, 3)}`),
+    q('E', 'Total energy E1+E2+Ecoup stays', '总能量 E1+E2+Ecoup 保持', [
+      opt(`${fmt(d.E, 4)} conserved`, `${fmt(d.E, 4)} 守恒`),
+      opt('only E1', '只有 E1'),
     ], 0),
   ],
   debug: {
@@ -403,6 +404,15 @@ export const coupledPendulaSim = {
     ctx.fillRect(w * 0.58, h * 0.88, (state.E2 / eMax) * w * 0.3, 8);
     text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.27, h * 0.82, INK, 12, 'center');
     text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.73, h * 0.82, INK, 12, 'center');
+    const flow = ui.wrong ? 0 : state.Pflow;
+    const midY = h * 0.72;
+    if (Math.abs(flow) > 1e-6) {
+      const dir = flow > 0 ? 1 : -1;
+      arrow(ctx, w * 0.42, midY, w * 0.42 + dir * w * 0.16, midY, RAY, 2);
+      text(ctx, `P₁→₂=${fmt(flow, 2)}`, w * 0.5, midY - 12, MUTED, 11, 'center');
+    } else {
+      text(ctx, 'P₁→₂≈0', w * 0.5, midY - 12, MUTED, 11, 'center');
+    }
   },
   pointer() { return null; },
 };

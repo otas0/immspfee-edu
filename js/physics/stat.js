@@ -67,8 +67,13 @@ export function isingMetropolis(p) {
  */
 export function barrierScan(p) {
   const samples = Math.max(40, Math.min(400, Math.round(p.samples ?? 120)));
-  const Emin = Math.max(p.Emin ?? p.E * 0.2, 1e-40);
-  const Emax = Math.max(p.Emax ?? p.V0 * 3, Emin * 1.1);
+  const m = Math.max(p.m, 1e-40);
+  const a = Math.max(p.a, 1e-15);
+  const V0 = Math.max(p.V0, 0);
+  const Emin = Math.max(p.Emin ?? Math.min(p.E, V0) * 0.2, 1e-40);
+  // Default span covers at least the first k₂ a = π resonance above V0.
+  const E1 = V0 + ((Math.PI * HBAR) / a) ** 2 / (2 * m);
+  const Emax = Math.max(p.Emax ?? Math.max(V0 * 3, E1 * 1.4), Emin * 1.1);
   const curve = [];
   for (let i = 0; i <= samples; i += 1) {
     const E = Emin + ((Emax - Emin) * i) / samples;
@@ -77,41 +82,90 @@ export function barrierScan(p) {
   }
   const peaks = [];
   for (let i = 1; i < curve.length - 1; i += 1) {
-    if (curve[i].E <= p.V0) continue;
+    if (curve[i].E <= V0) continue;
     if (curve[i].T >= curve[i - 1].T && curve[i].T >= curve[i + 1].T && curve[i].T > 0.5) {
       peaks.push(curve[i]);
     }
   }
+  // Exact rectangular-barrier resonances when k₂ a = n π (E > V0): T → 1.
+  const resonances = [];
+  for (let n = 1; n <= 12; n += 1) {
+    const Eres = V0 + ((n * Math.PI * HBAR) / a) ** 2 / (2 * m);
+    if (Eres < Emin || Eres > Emax) continue;
+    resonances.push({ n, E: Eres, k2a: n * Math.PI });
+  }
   const at = barrierTunnel(p);
-  return { ...at, Emin, Emax, samples, curve, peaks };
+  return { ...at, Emin, Emax, samples, curve, peaks, resonances };
 }
 
 const A0 = 5.29177210903e-11;
 
 /**
  * Hydrogen radial wave R_nl and radial probability density r² R_nl².
- * Classroom Bohr radius a0; n = 1..3, l = 0..n−1.
+ * Classroom Bohr radius a0; n = 1..4, l = 0..n−1 (n=4 uses closed classroom forms).
+ * Also returns a trapezoid integral of P(r) out to rMax ≈ 20 n² a0 (should ≈ 1).
  */
 export function hydrogenRadial(p) {
-  const n = Math.max(1, Math.min(3, Math.round(p.n)));
+  const n = Math.max(1, Math.min(4, Math.round(p.n)));
   const l = Math.max(0, Math.min(n - 1, Math.round(p.l)));
   const r = Math.max(p.r, 0);
   const a = A0;
   const rho = r / a;
-  let R;
-  if (n === 1 && l === 0) R = 2 * a ** -1.5 * Math.exp(-rho);
-  else if (n === 2 && l === 0) R = (1 / Math.SQRT2) * a ** -1.5 * (1 - rho / 2) * Math.exp(-rho / 2);
-  else if (n === 2 && l === 1) R = (1 / Math.sqrt(24)) * a ** -1.5 * rho * Math.exp(-rho / 2);
-  else if (n === 3 && l === 0) {
-    R = (2 / (3 * Math.sqrt(3))) * a ** -1.5 * (1 - (2 * rho) / 3 + (2 * rho * rho) / 27) * Math.exp(-rho / 3);
-  }   else if (n === 3 && l === 1) {
-    R = (8 / 27) * Math.sqrt(2 / 3) * a ** -1.5 * (rho / 6) * (1 - rho / 6) * Math.exp(-rho / 3);
-  } else {
-    // n = 3, l = 2
-    R = (8 / (27 * Math.sqrt(30))) * a ** -1.5 * (rho * rho) * Math.exp(-rho / 3);
-  }
+  const Rof = (nn, ll, rr) => {
+    const rh = rr / a;
+    if (nn === 1 && ll === 0) return 2 * a ** -1.5 * Math.exp(-rh);
+    if (nn === 2 && ll === 0) return (1 / Math.SQRT2) * a ** -1.5 * (1 - rh / 2) * Math.exp(-rh / 2);
+    if (nn === 2 && ll === 1) return (1 / Math.sqrt(24)) * a ** -1.5 * rh * Math.exp(-rh / 2);
+    if (nn === 3 && ll === 0) {
+      return (2 / (3 * Math.sqrt(3))) * a ** -1.5 * (1 - (2 * rh) / 3 + (2 * rh * rh) / 27) * Math.exp(-rh / 3);
+    }
+    if (nn === 3 && ll === 1) {
+      return (8 / (27 * Math.sqrt(6))) * a ** -1.5 * rh * (1 - rh / 6) * Math.exp(-rh / 3);
+    }
+    if (nn === 3 && ll === 2) {
+      return (4 / (81 * Math.sqrt(30))) * a ** -1.5 * (rh * rh) * Math.exp(-rh / 3);
+    }
+    // n = 4 classroom radial forms (ρ = r/a0)
+    if (nn === 4 && ll === 0) {
+      return (1 / 4) * a ** -1.5 * (1 - (3 * rh) / 4 + (rh * rh) / 8 - (rh ** 3) / 192) * Math.exp(-rh / 4);
+    }
+    if (nn === 4 && ll === 1) {
+      return (Math.sqrt(5) / (16 * Math.sqrt(3))) * a ** -1.5 * rh * (1 - rh / 4 + (rh * rh) / 80) * Math.exp(-rh / 4);
+    }
+    if (nn === 4 && ll === 2) {
+      return (1 / 64) * Math.sqrt(1 / 5) * a ** -1.5 * (rh * rh) * (1 - rh / 12) * Math.exp(-rh / 4);
+    }
+    // n=4,l=3
+    return (1 / 768) * Math.sqrt(1 / 35) * a ** -1.5 * (rh ** 3) * Math.exp(-rh / 4);
+  };
+  const R = Rof(n, l, r);
   const dens = r * r * R * R;
-  return { n, l, r, a, R, dens, rho };
+  const rMax = a * 20 * n * n;
+  const N = 240;
+  let integ = 0;
+  for (let i = 0; i < N; i += 1) {
+    const r1 = (rMax * i) / N;
+    const r2 = (rMax * (i + 1)) / N;
+    const d1 = r1 * r1 * Rof(n, l, r1) ** 2;
+    const d2 = r2 * r2 * Rof(n, l, r2) ** 2;
+    integ += 0.5 * (d1 + d2) * (r2 - r1);
+  }
+  return { n, l, r, a, R, dens, rho, integ, rMax };
+}
+
+/** |M|(T) Metropolis sweep for Onsager comparison. */
+export function isingTempSweep(p) {
+  const Tmin = Math.max(p.Tmin ?? 0.5, 0.2);
+  const Tmax = Math.max(p.Tmax ?? 4, Tmin + 0.5);
+  const steps = Math.max(8, Math.min(40, Math.round(p.steps ?? 24)));
+  const Tc = 2 / Math.log(1 + Math.SQRT2);
+  const curve = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const T = Tmin + ((Tmax - Tmin) * i) / steps;
+    const d = isingMetropolis({ ...p, T });
+    curve.push({ T, absM: d.absM, M: d.M });
+  }
+  return { Tmin, Tmax, steps, Tc, curve };
 }
 
 /**

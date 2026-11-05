@@ -3,7 +3,7 @@ import {
   pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle,
   doubleSlit, doubleSlitIntensity, malus, telescope, singleSlit,
 } from '../physics/optics.js';
-import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) {
   return { id, en, zh, options, answer };
@@ -558,28 +558,30 @@ export const vision = {
 export const doubleSlitSim = {
   id: 'double-slit',
   timed: false,
-  authority: 'Young double-slit: fringe spacing Δy = λ D / d and intensity envelope I ∝ cos²(π d y /(λ D)).',
-  params: { lambda: 6e-7, D: 1.2, d: 2e-4, y: 0 },
+  authority: 'Young double-slit: Δy = λ D / d and I ∝ cos²(π d y /(λ D)). Optional single-slit envelope multiplies by sinc²(π a y /(λ D)).',
+  params: { lambda: 6e-7, D: 1.2, d: 2e-4, y: 0, a: 4e-5, envelope: true },
   schema: [
     num('lambda', 'Wavelength λ', '波长 λ', 'm', 4e-7, 7e-7, 1e-8),
     num('D', 'Screen distance D', '屏距 D', 'm', 0.4, 3, 0.1),
     num('d', 'Slit spacing d', '缝距 d', 'm', 5e-5, 5e-4, 1e-5),
+    num('a', 'Slit width a', '缝宽 a', 'm', 1e-5, 2e-4, 5e-6),
     num('y', 'Screen y', '屏上 y', 'm', -0.01, 0.01, 0.0005),
+    tog('envelope', 'sinc² envelope', 'sinc² 包络'),
   ],
   compute: (p) => doubleSlitIntensity(p),
   readouts: (d) => [
     ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
     ro('I', 'I/I0', fmt(d.I, 3)),
-    ro('λ', 'λ', `${(d.lambda * 1e9).toFixed(0)} nm`),
+    ro('2λD/a', '中央极大宽', d.centralWidth.toExponential(3) + ' m'),
   ],
   checks: (d) => [
     q('dy', 'Fringe spacing is', '条纹间距是', [
       opt(`${d.dy.toExponential(3)} m = λ D / d`, `${d.dy.toExponential(3)} m = λ D / d`),
       opt(`${(d.lambda * d.d / d.D).toExponential(3)} m`, `${(d.lambda * d.d / d.D).toExponential(3)} m`),
     ], 0),
-    q('I', 'Intensity at the probe follows', '探针处强度满足', [
-      opt('I ∝ cos²(π d y /(λ D))', 'I ∝ cos²(π d y /(λ D))'),
-      opt('I ∝ sin(π d y /(λ D))', 'I ∝ sin(π d y /(λ D))'),
+    q('width', 'Central-maximum full width is about', '中央极大全宽约为', [
+      opt(`${d.centralWidth.toExponential(3)} m = 2 λ D / a`, `${d.centralWidth.toExponential(3)} m = 2 λ D / a`),
+      opt(`${d.dy.toExponential(3)} m = Δy`, `${d.dy.toExponential(3)} m = Δy`),
     ], 0),
   ],
   debug: {
@@ -597,11 +599,36 @@ export const doubleSlitSim = {
     const gy = h * 0.82;
     const gw = w * 0.35;
     const gh = h * 0.6;
-    const ySpan = 4 * d.dy;
+    const ySpan = Math.max(2.2 * d.centralWidth, 4 * d.dy);
+    if (d.useEnv) {
+      ctx.beginPath();
+      for (let i = 0; i <= 120; i += 1) {
+        const y = -ySpan + (2 * ySpan * i) / 120;
+        const alpha = (Math.PI * d.a * y) / (d.lambda * d.D);
+        const env = Math.abs(alpha) < 1e-12 ? 1 : (Math.sin(alpha) / alpha) ** 2;
+        const Y = gy - ((y + ySpan) / (2 * ySpan)) * gh;
+        const X = gx + env * gw;
+        if (i === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = MUTED;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const half = d.centralWidth / 2;
+      const yLo = gy - ((-half + ySpan) / (2 * ySpan)) * gh;
+      const yHi = gy - ((half + ySpan) / (2 * ySpan)) * gh;
+      line(ctx, gx - 6, yLo, gx - 6, yHi, RAY, 2);
+      text(ctx, '2λD/a', gx - 10, (yLo + yHi) / 2, RAY, 10, 'right');
+    }
     ctx.beginPath();
     for (let i = 0; i <= 120; i += 1) {
       const y = -ySpan + (2 * ySpan * i) / 120;
-      const I = Math.cos((Math.PI * d.d * y) / (d.lambda * d.D)) ** 2;
+      const cos2 = Math.cos((Math.PI * d.d * y) / (d.lambda * d.D)) ** 2;
+      const alpha = (Math.PI * d.a * y) / (d.lambda * d.D);
+      const env = Math.abs(alpha) < 1e-12 ? 1 : (Math.sin(alpha) / alpha) ** 2;
+      const I = cos2 * (d.useEnv ? env : 1);
       const Y = gy - ((y + ySpan) / (2 * ySpan)) * gh;
       const X = gx + I * gw;
       if (i === 0) ctx.moveTo(X, Y);
@@ -613,8 +640,8 @@ export const doubleSlitSim = {
     const dyShow = ui.wrong ? (d.lambda * d.d) / d.D : d.dy;
     const probeY = gy - ((d.y + ySpan) / (2 * ySpan)) * gh;
     line(ctx, gx, probeY, gx + gw, probeY, RAY, 1, [3, 3]);
-    text(ctx, `Δy=${dyShow.toExponential(2)} m  I/I0=${fmt(d.I, 2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 13, 'center');
-    text(ctx, 'I∝cos²', gx + gw * 0.5, h * 0.92, MUTED, 11, 'center');
+    text(ctx, `Δy=${dyShow.toExponential(2)}  width=${d.centralWidth.toExponential(2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 12, 'center');
+    text(ctx, d.useEnv ? 'I∝cos²·sinc²' : 'I∝cos²', gx + gw * 0.5, h * 0.92, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

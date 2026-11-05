@@ -87,9 +87,25 @@ export function coupledPendula(p, t) {
   const E2 = 0.5 * (L * w2) ** 2 + 0.5 * g * L * th2 * th2;
   const Ecoup = 0.5 * kappa * L * L * (th1 - th2) ** 2;
   const E = E1 + E2 + Ecoup;
+  // Instantaneous power into pendulum 1 from finite difference (teaching readout).
+  const eps = 1e-4;
+  const back = coupledPendulaEnergyOnly(g, L, kappa, w0, ws, wa, As, Aa, Math.max(0, tt - eps));
+  const fwd = coupledPendulaEnergyOnly(g, L, kappa, w0, ws, wa, As, Aa, tt + eps);
+  const P1 = (fwd.E1 - back.E1) / (2 * eps);
+  const Pflow = -P1; // positive ⇒ energy flowing 1 → 2
   return {
-    g, L, kappa, t: tt, w0, ws, wa, th1, th2, w1, w2, E1, E2, Ecoup, E, A1, A2,
+    g, L, kappa, t: tt, w0, ws, wa, th1, th2, w1, w2, E1, E2, Ecoup, E, A1, A2, P1, Pflow,
   };
+}
+
+function coupledPendulaEnergyOnly(g, L, kappa, w0, ws, wa, As, Aa, tt) {
+  const th1 = As * Math.cos(ws * tt) + Aa * Math.cos(wa * tt);
+  const th2 = As * Math.cos(ws * tt) - Aa * Math.cos(wa * tt);
+  const w1 = -As * ws * Math.sin(ws * tt) - Aa * wa * Math.sin(wa * tt);
+  const w2 = -As * ws * Math.sin(ws * tt) + Aa * wa * Math.sin(wa * tt);
+  const E1 = 0.5 * (L * w1) ** 2 + 0.5 * g * L * th1 * th1;
+  const E2 = 0.5 * (L * w2) ** 2 + 0.5 * g * L * th2 * th2;
+  return { E1, E2 };
 }
 
 /** Inverse-square orbit. Launch is perpendicular to the radius. GM is the model parameter. */
@@ -134,5 +150,15 @@ export function normalModes(p, t) {
   const w2 = Math.sqrt((3 * k) / m);
   const s = p.A1 * Math.cos(w1 * tt);
   const a = p.A2 * Math.cos(w2 * tt);
-  return { m, k, A1: p.A1, A2: p.A2, w1, w2, t: tt, x1: s + a, x2: s - a };
+  const x1 = s + a;
+  const x2 = s - a;
+  const v1 = -p.A1 * w1 * Math.sin(w1 * tt) - p.A2 * w2 * Math.sin(w2 * tt);
+  const v2 = -p.A1 * w1 * Math.sin(w1 * tt) + p.A2 * w2 * Math.sin(w2 * tt);
+  const Tkin = 0.5 * m * (v1 * v1 + v2 * v2);
+  const V = 0.5 * k * x1 * x1 + 0.5 * k * (x1 - x2) ** 2 + 0.5 * k * x2 * x2;
+  const E = Tkin + V;
+  const E0 = k * p.A1 * p.A1 + 3 * k * p.A2 * p.A2;
+  return {
+    m, k, A1: p.A1, A2: p.A2, w1, w2, t: tt, x1, x2, v1, v2, T: Tkin, V, E, E0,
+  };
 }

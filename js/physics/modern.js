@@ -132,6 +132,8 @@ export function timeDilation(p) {
  * Relativity of simultaneity teaching ruler.
  * Two ends of a rod of proper length L0 flash at the same time in the rod frame.
  * In a frame where the rod moves at v, the end events differ by Δt = γ v L0 / c².
+ * Minkowski teaching line: in the lab, t = (v/c²) x on the simultaneous-in-rod slice
+ * (geometric ruler, no apparatus).
  */
 export function simultaneity(p) {
   const L0 = Math.max(p.L0, 0);
@@ -140,5 +142,6 @@ export function simultaneity(p) {
   const gamma = 1 / Math.sqrt(1 - beta * beta);
   const dt = (gamma * v * L0) / (C_LIGHT * C_LIGHT);
   const L = L0 / gamma;
-  return { L0, v, beta, gamma, dt, L, c: C_LIGHT };
+  const slope = v / (C_LIGHT * C_LIGHT); // dt/dx of the rod-simultaneous line
+  return { L0, v, beta, gamma, dt, L, c: C_LIGHT, slope };
 }

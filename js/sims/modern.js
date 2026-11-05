@@ -564,20 +564,41 @@ export const simultaneitySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.55;
-    const Lpix = Math.min(w * 0.7, 40 + d.L0 / 1e9 * 200);
-    const x0 = (w - Lpix) / 2;
-    line(ctx, x0, y, x0 + Lpix, y, INK, 6);
+    // Minkowski sketch: x horizontal, ct upward; flashes at A,B on a t=const line in the rod frame.
+    const ox = w * 0.12;
+    const oy = h * 0.78;
+    const sx = w * 0.76;
+    const sy = h * 0.58;
+    line(ctx, ox, oy, ox + sx, oy, MUTED, 1);
+    line(ctx, ox, oy, ox, oy - sy, MUTED, 1);
+    text(ctx, 'x', ox + sx + 8, oy, MUTED, 11, 'left');
+    text(ctx, 'ct', ox - 4, oy - sy - 6, MUTED, 11, 'right');
+    const Lpix = Math.min(sx * 0.7, 40 + d.L0 / 1e9 * 180);
+    const xA = ox + (sx - Lpix) / 2;
+    const xB = xA + Lpix;
+    const tRod = oy - sy * 0.35;
+    line(ctx, xA, tRod, xB, tRod, INK, 2);
+    // Light cones (±45°) from A and B.
+    const cone = sy * 0.45;
+    line(ctx, xA, tRod, xA + cone, tRod - cone, RAY2, 1, [3, 3]);
+    line(ctx, xA, tRod, xA - cone * 0.4, tRod - cone * 0.4, RAY2, 1, [3, 3]);
+    line(ctx, xB, tRod, xB - cone, tRod - cone, RAY2, 1, [3, 3]);
+    line(ctx, xB, tRod, xB + cone * 0.4, tRod - cone * 0.4, RAY2, 1, [3, 3]);
+    // Worldlines of the ends (vertical in the rod frame).
+    line(ctx, xA, oy, xA, oy - sy * 0.85, MUTED, 1);
+    line(ctx, xB, oy, xB, oy - sy * 0.85, MUTED, 1);
+    const dtShow = ui.wrong ? 0 : d.dt;
+    // In the lab frame the B event is shifted in t by Δt (teaching offset on the sketch).
+    const tShift = Math.min(sy * 0.25, 8 + Math.abs(dtShow) * 1e8);
     ctx.fillStyle = RAY;
     ctx.beginPath();
-    ctx.arc(x0, y, 8, 0, Math.PI * 2);
-    ctx.arc(x0 + Lpix, y, 8, 0, Math.PI * 2);
+    ctx.arc(xA, tRod, 5, 0, Math.PI * 2);
+    ctx.arc(xB, ui.wrong ? tRod : tRod - tShift, 5, 0, Math.PI * 2);
     ctx.fill();
-    const dtShow = ui.wrong ? 0 : d.dt;
-    text(ctx, 'A', x0, y - 18, MUTED, 12, 'center');
-    text(ctx, 'B', x0 + Lpix, y - 18, MUTED, 12, 'center');
-    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s`, w * 0.5, h * 0.28, ui.wrong ? '#a33' : INK, 16, 'center');
-    text(ctx, `γ=${fmt(d.gamma, 3)}  L=${d.L.toExponential(2)} m`, w * 0.5, h * 0.78, MUTED, 12, 'center');
+    text(ctx, 'A', xA, tRod + 14, MUTED, 11, 'center');
+    text(ctx, 'B', xB, (ui.wrong ? tRod : tRod - tShift) + 14, MUTED, 11, 'center');
+    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `γ=${fmt(d.gamma, 3)}  light cones 45°`, w * 0.5, h * 0.92, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };
