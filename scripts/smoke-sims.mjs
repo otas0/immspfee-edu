@@ -5,7 +5,7 @@ const need = [
   'boiling', 'atom-levels', 'lorentz',
   'double-slit', 'transformer', 'time-dilation',
   'ising', 'barrier-tunnel', 'wave-packet',
-  'hydrogen-radial', 'coupled-pendula', 'simultaneity',
+  'hydrogen-radial', 'coupled-pendula', 'simultaneity', 'finite-well',
 ];
 let failed = 0;
 for (const id of need) {

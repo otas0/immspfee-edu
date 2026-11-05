@@ -63,6 +63,69 @@ export function infiniteWell(p, x = null) {
   return { n, m, L, En, x: xx, psi, hbar: HBAR };
 }
 
+/**
+ * Finite square well of width L and depth V0 (classroom form).
+ * Bound levels from even/odd matching: ξ tan ξ = η (even), −ξ cot ξ = η (odd),
+ * with η = √(z0² − ξ²) and z0 = (L/2) √(2 m V0) / ℏ. Continuum probe uses the
+ * rectangular-barrier transmission T(E) of height V0 and width L.
+ */
+export function finiteWell(p) {
+  const m = Math.max(p.m, 1e-40);
+  const L = Math.max(p.L, 1e-15);
+  const V0 = Math.max(p.V0, 1e-40);
+  const Eprobe = Math.max(p.E ?? V0 * 1.2, 1e-40);
+  const a = L / 2;
+  const z0 = (a * Math.sqrt(2 * m * V0)) / HBAR;
+  const levels = [];
+  const samples = 400;
+  let prevEven = null;
+  let prevOdd = null;
+  for (let i = 1; i < samples; i += 1) {
+    const xi = (z0 * i) / samples;
+    if (xi >= z0 - 1e-9) break;
+    const eta = Math.sqrt(Math.max(0, z0 * z0 - xi * xi));
+    const fe = xi * Math.tan(xi) - eta;
+    const fo = -xi / Math.tan(xi) - eta;
+    if (prevEven != null && fe * prevEven.f < 0 && Math.abs(Math.tan(xi)) < 50) {
+      const xiR = prevEven.xi + ((xi - prevEven.xi) * (-prevEven.f)) / (fe - prevEven.f);
+      const E = (HBAR * HBAR * xiR * xiR) / (2 * m * a * a);
+      levels.push({ parity: 'even', xi: xiR, E });
+    }
+    if (prevOdd != null && fo * prevOdd.f < 0 && Math.abs(Math.tan(xi)) > 0.02) {
+      const xiR = prevOdd.xi + ((xi - prevOdd.xi) * (-prevOdd.f)) / (fo - prevOdd.f);
+      const E = (HBAR * HBAR * xiR * xiR) / (2 * m * a * a);
+      if (E < V0) levels.push({ parity: 'odd', xi: xiR, E });
+    }
+    prevEven = { xi, f: fe };
+    prevOdd = { xi, f: fo };
+  }
+  levels.sort((u, v) => u.E - v.E);
+  const bound = levels.slice(0, 4);
+  const Einf = [];
+  for (let n = 1; n <= Math.max(1, bound.length); n += 1) {
+    Einf.push(infiniteWell({ n, m, L }).En);
+  }
+  let Tcoef;
+  let regime;
+  if (Eprobe < V0) {
+    regime = 'tunnel';
+    const kappa = Math.sqrt(2 * m * (V0 - Eprobe)) / HBAR;
+    const sh = Math.sinh(kappa * L);
+    Tcoef = 1 / (1 + ((V0 * V0 * sh * sh) / (4 * Eprobe * (V0 - Eprobe))));
+  } else {
+    regime = 'over';
+    const k2 = Math.sqrt(2 * m * (Eprobe - V0)) / HBAR;
+    const sn = Math.sin(k2 * L);
+    Tcoef = 1 / (1 + ((V0 * V0 * sn * sn) / (4 * Eprobe * (Eprobe - V0))));
+    Tcoef = Math.min(1, Math.max(0, Tcoef));
+  }
+  return {
+    m, L, V0, E: Eprobe, z0, bound, Einf, T: Tcoef, regime, hbar: HBAR,
+    E1f: bound[0]?.E ?? null,
+    E1inf: infiniteWell({ n: 1, m, L }).En,
+  };
+}
+
 /** Ideal TEM transmission line: Z0 = √(L′/C′), v = 1/√(L′ C′). */
 export function transmissionLine(p) {
   const Lp = Math.max(p.L, 1e-12);

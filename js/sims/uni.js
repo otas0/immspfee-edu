@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js';
 import {
-  vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell,
+  vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell, finiteWell,
   transmissionLine, imageCharge, waveguideCutoff, dipolePattern,
 } from '../physics/uni.js';
 import { num, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
@@ -235,6 +235,67 @@ export const wellSim = {
     ctx.lineWidth = 2;
     ctx.stroke();
     text(ctx, `n=${d.n}`, w * 0.5, h * 0.12, INK, 14, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const finiteWellSim = {
+  id: 'finite-well',
+  timed: false,
+  authority: 'Finite square well of width L and depth V0: bound levels from even/odd matching. Continuum probe uses rectangular-barrier T(E) of the same height and width for对照 with infinite-well E_n.',
+  params: { m: 9.1e-31, L: 1e-9, V0: 1.6e-18, E: 2e-18 },
+  schema: [
+    num('L', 'Width L', '阱宽 L', 'm', 5e-10, 3e-9, 1e-10),
+    num('V0', 'Depth V0', '阱深 V0', 'J', 4e-19, 4e-18, 1e-19),
+    num('E', 'Probe E', '探针 E', 'J', 2e-19, 5e-18, 1e-19),
+  ],
+  compute: (p) => finiteWell(p),
+  readouts: (d) => [
+    ro('E1f', 'E₁ finite', d.E1f == null ? '—' : d.E1f.toExponential(3) + ' J'),
+    ro('E1∞', 'E₁ infinite', d.E1inf.toExponential(3) + ' J'),
+    ro('T', 'T(E)', fmt(d.T, 4)),
+    ro('Nbound', '束缚态数', String(d.bound.length)),
+  ],
+  checks: (d) => [
+    q('lower', 'Relative to the infinite well of the same L, the finite-well ground energy is', '相对同宽无限深阱，有限阱基态能量', [
+      opt('lower (E1f < E1∞)', '更低（E1f < E1∞）'),
+      opt('always higher', '总是更高'),
+    ], 0),
+    q('T', 'Continuum transmission at the probe is', '探针处连续谱透射是', [
+      opt(fmt(d.T, 4), fmt(d.T, 4)),
+      opt('exactly 0', '恰好为 0'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Claiming the finite well has the same E_n as the infinite well ignores wavefunction leakage.',
+    zh: '说有限阱能级与无限深阱相同，就忽略了波函数渗出。',
+    toggleEn: 'Draw only infinite-well levels',
+    toggleZh: '只画无限深能级',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const gx = w * 0.12;
+    const gy = h * 0.78;
+    const gw = w * 0.76;
+    const gh = h * 0.5;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
+    const Emax = Math.max(d.V0, d.E1inf * 4, d.E);
+    const yOf = (E) => gy - (E / Emax) * gh;
+    line(ctx, gx, yOf(d.V0), gx + gw, yOf(d.V0), MUTED, 1, [3, 3]);
+    text(ctx, 'V0', gx + gw + 4, yOf(d.V0), MUTED, 11);
+    const levels = ui.wrong ? d.Einf.map((E, i) => ({ E, tag: `∞${i + 1}` }))
+      : d.bound.map((b, i) => ({ E: b.E, tag: `${i + 1}` }));
+    levels.forEach((lv, i) => {
+      const y = yOf(lv.E);
+      line(ctx, gx + gw * 0.15, y, gx + gw * 0.55, y, RAY2, 2);
+      text(ctx, lv.tag, gx + gw * 0.58, y, INK, 11);
+      if (!ui.wrong && d.Einf[i] != null) {
+        line(ctx, gx + gw * 0.7, yOf(d.Einf[i]), gx + gw * 0.95, yOf(d.Einf[i]), MUTED, 1, [2, 2]);
+      }
+    });
+    line(ctx, gx, yOf(d.E), gx + gw, yOf(d.E), RAY, 1, [4, 2]);
+    text(ctx, `T=${fmt(d.T, 3)}`, w * 0.5, h * 0.1, INK, 14, 'center');
   },
   pointer() { return null; },
 };

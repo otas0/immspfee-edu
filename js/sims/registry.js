@@ -107,6 +107,7 @@ const MAP = {
   carnot: ['uni', 'carnotSim'],
   'kinetic-gas': ['uni', 'kineticSim'],
   'infinite-well': ['uni', 'wellSim'],
+  'finite-well': ['uni', 'finiteWellSim'],
   'transmission-line': ['uni', 'lineSim'],
   'image-charge': ['uni', 'imageSim'],
   waveguide: ['uni', 'guideSim'],
