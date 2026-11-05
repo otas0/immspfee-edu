@@ -181,3 +181,30 @@ export function electricalEnergy(p) {
   const Q = I * I * R * t;
   return { ...d, t, U, Iload: I, P, W, Q };
 }
+
+/** Sinusoidal AC: I_rms = Im/√2, V_rms = Vm/√2, instantaneous i = Im sin(ωt). */
+export function acPeakRms(p, t = 0) {
+  const Im = Math.max(p.Im, 0);
+  const Vm = Math.max(p.Vm, 0);
+  const f = Math.max(p.f, 1e-6);
+  const time = Math.max(0, t);
+  const omega = 2 * Math.PI * f;
+  const Irms = Im / Math.SQRT2;
+  const Vrms = Vm / Math.SQRT2;
+  const i = Im * Math.sin(omega * time);
+  const v = Vm * Math.sin(omega * time);
+  return { Im, Vm, f, t: time, omega, Irms, Vrms, i, v };
+}
+
+/** Ideal transformer: U1/U2 = n1/n2 and I1/I2 = n2/n1 (power conserved). */
+export function transformer(p) {
+  const n1 = Math.max(p.n1, 1);
+  const n2 = Math.max(p.n2, 1);
+  const U1 = Math.max(p.U1, 0);
+  const U2 = U1 * (n2 / n1);
+  const I2 = Math.max(p.I2, 0);
+  const I1 = I2 * (n2 / n1);
+  const Pin = U1 * I1;
+  const Pout = U2 * I2;
+  return { n1, n2, U1, U2, I1, I2, Pin, Pout, ratio: n2 / n1 };
+}

@@ -1,7 +1,7 @@
 import { fmt } from '../fmt.js';
 import {
   bohrLevels, internalEnergy, energyShare, efficiency, scaleLength,
-  massEnergy, halfLife, photoelectric, capacitance, resistivity,
+  massEnergy, halfLife, photoelectric, capacitance, resistivity, timeDilation,
 } from '../physics/modern.js';
 import { num, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
@@ -491,6 +491,45 @@ export const resistivitySim = {
     const Rshow = ui.wrong ? d.rho * d.L * d.A : d.R;
     text(ctx, `R=${fmt(Rshow, 4)} Ω`, w * 0.5, h * 0.22, ui.wrong ? '#a33' : INK, 16, 'center');
     text(ctx, `L=${fmt(d.L, 1)} m`, w * 0.5, h * 0.78, MUTED, 12, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const dilationSim = {
+  id: 'time-dilation',
+  timed: false,
+  authority: 'Special-relativistic time dilation: Δt = γ Δτ with γ = 1/√(1 − v²/c²). Teaching relation only.',
+  params: { v: 1.5e8, dtau: 1 },
+  schema: [
+    num('v', 'Speed v', '速率 v', 'm/s', 1e7, 2.9e8, 1e7),
+    num('dtau', 'Proper time Δτ', '固有时 Δτ', 's', 0.2, 5, 0.1),
+  ],
+  compute: (p) => timeDilation(p),
+  readouts: (d) => [
+    ro('γ', 'γ', fmt(d.gamma, 4)),
+    ro('Δt', 'Δt', `${fmt(d.dt, 3)} s`),
+    ro('β', 'β', fmt(d.beta, 4)),
+  ],
+  checks: (d) => [
+    q('dt', 'Laboratory time is', '实验室时间是', [
+      opt(`${fmt(d.dt, 3)} s = γ Δτ`, `${fmt(d.dt, 3)} s = γ Δτ`),
+      opt(`${fmt(d.dtau, 3)} s`, `${fmt(d.dtau, 3)} s`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using Δt = Δτ / γ shrinks laboratory time instead of stretching it.',
+    zh: '写成 Δt = Δτ / γ 会把实验室时间缩短而不是拉长。',
+    toggleEn: 'Use Δt = Δτ / γ',
+    toggleZh: '改用 Δt = Δτ / γ',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const dtShow = ui.wrong ? d.dtau / d.gamma : d.dt;
+    line(ctx, w * 0.2, h * 0.55, w * 0.45, h * 0.55, RAY, 8);
+    line(ctx, w * 0.55, h * 0.55, w * 0.55 + Math.min(w * 0.35, d.gamma * w * 0.12), h * 0.55, RAY2, 8);
+    text(ctx, `Δτ=${fmt(d.dtau, 2)} s`, w * 0.32, h * 0.45, MUTED, 12, 'center');
+    text(ctx, `Δt=${fmt(dtShow, 2)} s`, w * 0.75, h * 0.45, ui.wrong ? '#a33' : INK, 12, 'center');
+    text(ctx, `γ=${fmt(d.gamma, 3)}`, w * 0.5, h * 0.25, INK, 16, 'center');
   },
   pointer() { return null; },
 };

@@ -1,6 +1,9 @@
 import { getSim, listSimIds } from '../js/sims/registry.js';
 
-const need = ['circuit', 'bar-magnet', 'ruler', 'balance', 'charges', 'current', 'thermometer'];
+const need = [
+  'circuit', 'bar-magnet', 'ruler', 'balance', 'charges', 'current', 'thermometer',
+  'boiling', 'atom-levels', 'lorentz',
+];
 let failed = 0;
 for (const id of need) {
   const sim = await getSim(id);

@@ -43,7 +43,14 @@ jobs:
         run: |
           BASE="${{ steps.deployment.outputs.page_url }}"
           BASE="${BASE%/}"
-          for path in js/sims/circuits.js js/sims/em.js js/sims/measure.js; do
+          for path in \
+            js/sims/circuits.js \
+            js/sims/em.js \
+            js/sims/measure.js \
+            js/sims/motion.js \
+            js/sims/modern.js \
+            js/sims/uni.js
+          do
             code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/$path")
             echo "$path -> $code"
             test "$code" = "200"

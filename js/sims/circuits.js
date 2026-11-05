@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { circuit, electricalEnergy, toggleLink, CIRCUIT_LINKS } from '../physics/circuits.js';
+import { circuit, electricalEnergy, toggleLink, CIRCUIT_LINKS, acPeakRms, transformer } from '../physics/circuits.js';
 import { num, sel, tog, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -235,4 +235,102 @@ export const circuitSim = {
     }
     return null;
   },
+};
+
+export const acSim = {
+  id: 'ac-rms',
+  timed: true,
+  tMax: (p) => Math.max(0.08, 4 / Math.max(p.f, 1)),
+  authority: 'Sinusoidal AC: i = Im sin(ωt), and the rms values are I_rms = Im/√2 and V_rms = Vm/√2.',
+  params: { Im: 2, Vm: 10, f: 50 },
+  schema: [
+    num('Im', 'Peak current Im', '峰值电流 Im', 'A', 0.2, 10, 0.1),
+    num('Vm', 'Peak voltage Vm', '峰值电压 Vm', 'V', 1, 50, 1),
+    num('f', 'Frequency f', '频率 f', 'Hz', 10, 100, 1),
+  ],
+  compute: (p, t) => acPeakRms(p, t),
+  readouts: (d) => [
+    ro('Irms', 'Irms', `${fmt(d.Irms, 3)} A`),
+    ro('Vrms', 'Vrms', `${fmt(d.Vrms, 3)} V`),
+    ro('i', 'i', `${fmt(d.i, 3)} A`),
+  ],
+  checks: (d) => [
+    q('rms', 'The rms current is', '有效值电流是', [
+      opt(`${fmt(d.Irms, 3)} A = Im/√2`, `${fmt(d.Irms, 3)} A = Im/√2`),
+      opt(`${fmt(d.Im, 3)} A`, `${fmt(d.Im, 3)} A`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using I_rms = Im invents an rms equal to the peak.',
+    zh: '写成 I_rms = Im，有效值就等于峰值了。',
+    toggleEn: 'Use Irms = Im',
+    toggleZh: '改用 Irms = Im',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const gx = w * 0.1;
+    const gy = h * 0.55;
+    const gw = w * 0.8;
+    const gh = h * 0.3;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    ctx.beginPath();
+    for (let i = 0; i <= 120; i += 1) {
+      const tt = (i / 120) * (2 / d.f);
+      const ii = d.Im * Math.sin(d.omega * tt);
+      const x = gx + (i / 120) * gw;
+      const y = gy - (ii / Math.max(d.Im, 1e-6)) * gh;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = RAY;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const Ishow = ui.wrong ? d.Im : d.Irms;
+    text(ctx, `Irms=${fmt(Ishow, 3)} A`, w * 0.5, h * 0.15, ui.wrong ? '#a33' : INK, 16, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const transformerSim = {
+  id: 'transformer',
+  timed: false,
+  authority: 'Ideal transformer: U1/U2 = n1/n2 and I1/I2 = n2/n1, so input and output power match.',
+  params: { n1: 100, n2: 20, U1: 220, I2: 5 },
+  schema: [
+    num('n1', 'Primary turns n1', '原边匝数 n1', '', 20, 400, 10),
+    num('n2', 'Secondary turns n2', '副边匝数 n2', '', 10, 400, 10),
+    num('U1', 'Primary U1', '原边电压 U1', 'V', 50, 400, 10),
+    num('I2', 'Secondary I2', '副边电流 I2', 'A', 0.5, 20, 0.5),
+  ],
+  compute: (p) => transformer(p),
+  readouts: (d) => [
+    ro('U2', 'U2', `${fmt(d.U2, 2)} V`),
+    ro('I1', 'I1', `${fmt(d.I1, 3)} A`),
+    ro('P', 'P', `${fmt(d.Pin, 1)} W`),
+  ],
+  checks: (d) => [
+    q('U', 'Secondary voltage is', '副边电压是', [
+      opt(`${fmt(d.U2, 2)} V = U1 (n2/n1)`, `${fmt(d.U2, 2)} V = U1 (n2/n1)`),
+      opt(`${fmt(d.U1 * (d.n1 / d.n2), 2)} V`, `${fmt(d.U1 * (d.n1 / d.n2), 2)} V`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using U2 = U1 (n1/n2) inverts the turns ratio.',
+    zh: '写成 U2 = U1 (n1/n2) 会把匝数比颠倒。',
+    toggleEn: 'Invert the turns ratio',
+    toggleZh: '颠倒匝数比',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    ctx.strokeStyle = INK;
+    ctx.strokeRect(w * 0.2, h * 0.3, w * 0.2, h * 0.35);
+    ctx.strokeRect(w * 0.6, h * 0.3, w * 0.2, h * 0.35);
+    line(ctx, w * 0.4, h * 0.35, w * 0.6, h * 0.35, MUTED, 2);
+    line(ctx, w * 0.4, h * 0.6, w * 0.6, h * 0.6, MUTED, 2);
+    const U2 = ui.wrong ? d.U1 * (d.n1 / d.n2) : d.U2;
+    text(ctx, `U1=${fmt(d.U1, 0)} V`, w * 0.3, h * 0.22, MUTED, 12, 'center');
+    text(ctx, `U2=${fmt(U2, 1)} V`, w * 0.7, h * 0.22, ui.wrong ? '#a33' : INK, 12, 'center');
+    text(ctx, `n1:${fmt(d.n1, 0)}  n2:${fmt(d.n2, 0)}`, w * 0.5, h * 0.8, MUTED, 12, 'center');
+  },
+  pointer() { return null; },
 };

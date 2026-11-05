@@ -93,13 +93,21 @@ button { cursor: pointer; }
   .layout { min-width: 960px; }
   body { overflow-x: auto; }
 }
-.book-select-wrap select {
+.book-select-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.book-select-wrap select,
+.book-select {
   width: 100%;
   max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 6px 12px;
   background: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .edu-update, .sw-update {
   display: flex;
@@ -132,14 +140,6 @@ button { cursor: pointer; }
   font-size: 13px;
 }
 .edu-toast[hidden], .toast[hidden] { display: none; }
-.book-select {
-  width: 100%;
-  max-width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 8px 12px;
-  background: white;
-}
 aside, .teach, .stage-wrap, .readouts {
   background: var(--panel);
   border: 1px solid var(--line);

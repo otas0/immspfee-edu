@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js';
-import { tuningFork, emWave, soundAbsorb, echoRange } from '../physics/waves.js';
-import { num, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { tuningFork, emWave, soundAbsorb, echoRange, doppler, beats, dispersion } from '../physics/waves.js';
+import { num, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -260,6 +260,146 @@ export const echoSim = {
     text(ctx, lab(ui, 'wall', '墙'), x1 + 7, y + 70, MUTED, 12, 'center');
     const sShow = ui.wrong ? d.v * d.t : d.s;
     text(ctx, `s=${fmt(sShow, 2)} m`, w * 0.5, h * 0.2, ui.wrong ? '#a33' : INK, 18, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const dopplerSim = {
+  id: 'doppler',
+  timed: false,
+  authority: 'Sound Doppler: f′ = f (v ± vo) / (v ± vs). Toward the other body uses the classroom +/− signs on the toggles.',
+  params: { f: 440, v: 340, vo: 0, vs: 20, observerToward: true, sourceToward: true },
+  schema: [
+    num('f', 'Source f', '声源频率 f', 'Hz', 100, 1000, 10),
+    num('v', 'Sound speed v', '声速 v', 'm/s', 300, 360, 1),
+    num('vo', 'Observer speed', '观察者速率', 'm/s', 0, 40, 1),
+    num('vs', 'Source speed', '声源速率', 'm/s', 0, 40, 1),
+    tog('observerToward', 'Observer toward source', '观察者靠近声源'),
+    tog('sourceToward', 'Source toward observer', '声源靠近观察者'),
+  ],
+  compute: (p) => doppler(p),
+  readouts: (d) => [
+    ro('f′', 'f′', `${fmt(d.fp, 1)} Hz`),
+    ro('f', 'f', `${fmt(d.f, 0)} Hz`),
+  ],
+  checks: (d) => [
+    q('fp', 'Heard frequency is', '听到的频率是', [
+      opt(`${fmt(d.fp, 1)} Hz`, `${fmt(d.fp, 1)} Hz`),
+      opt(`${fmt(d.f, 1)} Hz`, `${fmt(d.f, 1)} Hz`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Swapping numerator and denominator invents the wrong shift direction.',
+    zh: '把分子分母对调，频移方向就反了。',
+    toggleEn: 'Swap num and den',
+    toggleZh: '对调分子分母',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(w * 0.3, h * 0.5, 18, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, lab(ui, 'S', '声源'), w * 0.3, h * 0.5 + 40, MUTED, 12, 'center');
+    ctx.fillStyle = RAY2;
+    ctx.beginPath();
+    ctx.arc(w * 0.7, h * 0.5, 18, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, lab(ui, 'O', '观察者'), w * 0.7, h * 0.5 + 40, MUTED, 12, 'center');
+    const fpShow = ui.wrong ? d.f * (d.v + (d.sourceToward ? -d.vs : d.vs)) / Math.max(d.v + (d.observerToward ? d.vo : -d.vo), 1e-9) : d.fp;
+    text(ctx, `f′=${fmt(fpShow, 1)} Hz`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const beatsSim = {
+  id: 'beats',
+  timed: true,
+  tMax: (p) => Math.max(2, 4 / Math.max(Math.abs(p.f1 - p.f2), 0.5)),
+  authority: 'Two close tones: beat frequency Δf = |f1 − f2|, and the envelope is 2 A cos(π Δf t).',
+  params: { f1: 256, f2: 260, A: 0.8 },
+  schema: [
+    num('f1', 'Frequency f1', '频率 f1', 'Hz', 100, 500, 1),
+    num('f2', 'Frequency f2', '频率 f2', 'Hz', 100, 500, 1),
+    num('A', 'Amplitude A', '振幅 A', '', 0.2, 1.5, 0.05),
+  ],
+  compute: (p, t) => beats(p, t),
+  readouts: (d) => [
+    ro('Δf', 'Δf', `${fmt(d.df, 2)} Hz`),
+    ro('y', 'y', fmt(d.y, 3)),
+  ],
+  checks: (d) => [
+    q('df', 'Beat frequency is', '拍频是', [
+      opt(`${fmt(d.df, 2)} Hz = |f1 − f2|`, `${fmt(d.df, 2)} Hz = |f1 − f2|`),
+      opt(`${fmt(d.favg, 2)} Hz`, `${fmt(d.favg, 2)} Hz`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using Δf = f1 + f2 invents a beat that is not the slow envelope.',
+    zh: '写成 Δf = f1 + f2 就不是慢包络了。',
+    toggleEn: 'Use Δf = f1 + f2',
+    toggleZh: '改用 Δf = f1 + f2',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const gx = w * 0.08;
+    const gy = h * 0.5;
+    const gw = w * 0.84;
+    const gh = h * 0.28;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    const dfShow = ui.wrong ? d.f1 + d.f2 : d.df;
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i += 1) {
+      const tt = d.t - (1 - i / 200) * Math.min(1, 4 / Math.max(dfShow, 0.5));
+      const sample = beats({ ...p }, Math.max(0, tt));
+      const env = ui.wrong ? 2 * d.A : sample.env;
+      const y = ui.wrong ? env * Math.sin(2 * Math.PI * sample.favg * Math.max(0, tt)) : sample.y;
+      const x = gx + (i / 200) * gw;
+      const Y = gy - (y / (2.2 * d.A)) * gh;
+      if (i === 0) ctx.moveTo(x, Y);
+      else ctx.lineTo(x, Y);
+    }
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    text(ctx, `Δf=${fmt(dfShow, 2)} Hz`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const dispersionSim = {
+  id: 'dispersion',
+  timed: false,
+  authority: 'Dispersion relation ω² = ω0² + c² k² gives phase velocity vp = ω/k and group velocity vg = c² k / ω.',
+  params: { omega0: 2, c: 1, k: 1.5 },
+  schema: [
+    num('omega0', 'ω0', 'ω0', '', 0, 5, 0.1),
+    num('c', 'c', 'c', '', 0.2, 3, 0.1),
+    num('k', 'Wave number k', '波数 k', '', 0.2, 4, 0.1),
+  ],
+  compute: (p) => dispersion(p),
+  readouts: (d) => [
+    ro('ω', 'ω', fmt(d.omega, 3)),
+    ro('vp', 'vp', fmt(d.vp, 3)),
+    ro('vg', 'vg', fmt(d.vg, 3)),
+  ],
+  checks: (d) => [
+    q('vg', 'Group velocity is', '群速度是', [
+      opt(`${fmt(d.vg, 3)} = c² k / ω`, `${fmt(d.vg, 3)} = c² k / ω`),
+      opt(`${fmt(d.vp, 3)}`, `${fmt(d.vp, 3)}`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Calling vp the group velocity confuses the two speeds.',
+    zh: '把相速度当成群速度，两个速度就混了。',
+    toggleEn: 'Label vp as vg',
+    toggleZh: '把 vp 标成 vg',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    text(ctx, `vp=${fmt(d.vp, 2)}`, w * 0.35, h * 0.4, RAY, 16, 'center');
+    text(ctx, ui.wrong ? `vg?=${fmt(d.vp, 2)}` : `vg=${fmt(d.vg, 2)}`, w * 0.65, h * 0.4, ui.wrong ? '#a33' : RAY2, 16, 'center');
+    text(ctx, `ω=${fmt(d.omega, 2)}`, w * 0.5, h * 0.7, MUTED, 13, 'center');
   },
   pointer() { return null; },
 };

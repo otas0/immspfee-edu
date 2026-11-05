@@ -171,10 +171,10 @@ export const pepJunior = {
           { mode: 'myopia', farCm: 50, objectCm: 800, readingCm: 25, nearCm: 100 }),
       ]),
       S('pep-5-5', '跨学科实践：制作望远镜', 'Practical: a telescope', [
-        R('pep-5-5a', 'convex-lens', '望远镜', 'A telescope',
-          '物镜长焦距成像。本课用同一薄透镜方程 1/u + 1/v = 1/f 读物像关系。',
-          'A long-focus objective forms the image. This lesson uses the same thin-lens equation 1/u + 1/v = 1/f.',
-          { u: 50, f: 20, h: 6, screen: 33.3, aperture: 2 }),
+        R('pep-5-5a', 'telescope', '望远镜', 'A telescope',
+          '天文望远镜（无焦）：角放大率 M ≈ −f_obj / f_eye，镜筒约 f_obj + f_eye。',
+          'Astronomical telescope (afocal): angular magnification M ≈ −f_obj / f_eye, tube ≈ f_obj + f_eye.',
+          { fObj: 50, fEye: 5 }),
       ]),
     ], true),
     chapter('pep-6', 'g8a', '质量与密度', 'Mass and density', [

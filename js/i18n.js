@@ -29,6 +29,9 @@ export const STR = {
     empty: 'No section matches.',
     phaseOf: 'Step',
     sources: 'This edition is separate from the standard lab.',
+    swUpdate: 'Site updated',
+    swReload: 'Reload',
+    importFail: 'A simulation module failed to load. Try Reload, or open with ?dev=1 for details.',
   },
   zh: {
     kicker: '教育版',
@@ -60,6 +63,9 @@ export const STR = {
     empty: '没有匹配的节。',
     phaseOf: '步骤',
     sources: '这一版和标准实验室不是同一个地址。',
+    swUpdate: '站点已更新',
+    swReload: '刷新',
+    importFail: '仿真模块加载失败。可点刷新，或加 ?dev=1 查看详情。',
   },
 };
 

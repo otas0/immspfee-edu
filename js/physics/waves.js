@@ -41,6 +41,47 @@ export function echoRange(p) {
 }
 
 /**
+ * Doppler for sound: f' = f (v ± vo) / (v ± vs).
+ * Signs: toward the other is +, away is − (classroom convention with separate toggles).
+ */
+export function doppler(p) {
+  const f = Math.max(p.f, 1e-6);
+  const v = Math.max(p.v, 1e-6);
+  const vo = Math.max(0, p.vo);
+  const vs = Math.max(0, p.vs);
+  const observerToward = !!p.observerToward;
+  const sourceToward = !!p.sourceToward;
+  const num = v + (observerToward ? vo : -vo);
+  const den = v + (sourceToward ? -vs : vs);
+  const fp = f * (num / Math.max(den, 1e-9));
+  return { f, v, vo, vs, observerToward, sourceToward, fp };
+}
+
+/** Beats: Δf = |f1 − f2|, y = 2 A cos(π Δf t) sin(2π f_avg t). */
+export function beats(p, t = 0) {
+  const f1 = Math.max(p.f1, 1e-6);
+  const f2 = Math.max(p.f2, 1e-6);
+  const A = Math.max(p.A, 0);
+  const time = Math.max(0, t);
+  const df = Math.abs(f1 - f2);
+  const favg = 0.5 * (f1 + f2);
+  const env = 2 * A * Math.cos(Math.PI * df * time);
+  const y = env * Math.sin(2 * Math.PI * favg * time);
+  return { f1, f2, A, t: time, df, favg, env, y };
+}
+
+/** Weak dispersion ω² = ω0² + c² k²: vp = ω/k, vg = c² k / ω. */
+export function dispersion(p) {
+  const omega0 = Math.max(p.omega0, 0);
+  const c = Math.max(p.c, 1e-9);
+  const k = Math.max(p.k, 1e-9);
+  const omega = Math.sqrt(omega0 * omega0 + c * c * k * k);
+  const vp = omega / k;
+  const vg = (c * c * k) / omega;
+  return { omega0, c, k, omega, vp, vg };
+}
+
+/**
  * Electromagnetic plane wave in vacuum: c = f λ.
  * At a fixed time the E and B envelopes share the same phase and stay perpendicular.
  */

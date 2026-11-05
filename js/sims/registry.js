@@ -14,6 +14,7 @@ const PATHS = {
   collide: './collide.js',
   charge: './charge.js',
   modern: './modern.js',
+  uni: './uni.js',
 };
 
 const MAP = {
@@ -23,6 +24,10 @@ const MAP = {
   refraction: ['optics', 'refraction'],
   'convex-lens': ['optics', 'convexLens'],
   vision: ['optics', 'vision'],
+  'double-slit': ['optics', 'doubleSlitSim'],
+  malus: ['optics', 'malusSim'],
+  telescope: ['optics', 'telescopeSim'],
+  'single-slit': ['optics', 'singleSlitSim'],
   'force-elements': ['mech', 'forceSim'],
   'spring-scale': ['mech', 'springScale'],
   gravity: ['mech', 'gravitySim'],
@@ -44,6 +49,8 @@ const MAP = {
   pulley: ['machines', 'pulleySim'],
   work: ['machines', 'workSim'],
   circuit: ['circuits', 'circuitSim'],
+  'ac-rms': ['circuits', 'acSim'],
+  transformer: ['circuits', 'transformerSim'],
   frames: ['motion', 'frameSim'],
   'st-graph': ['motion', 'stSim'],
   'vt-area': ['motion', 'vtSim'],
@@ -67,6 +74,9 @@ const MAP = {
   'em-wave': ['waves', 'emWaveSim'],
   'sound-absorb': ['waves', 'absorbSim'],
   'echo-range': ['waves', 'echoSim'],
+  doppler: ['waves', 'dopplerSim'],
+  beats: ['waves', 'beatsSim'],
+  dispersion: ['waves', 'dispersionSim'],
   circular: ['motion', 'circularSim'],
   'bar-magnet': ['em', 'magnetSim'],
   solenoid: ['em', 'solenoidSim'],
@@ -89,6 +99,16 @@ const MAP = {
   photoelectric: ['modern', 'photoSim'],
   capacitance: ['modern', 'capSim'],
   resistivity: ['modern', 'resistivitySim'],
+  'time-dilation': ['modern', 'dilationSim'],
+  'maxwell-wave': ['uni', 'maxwellSim'],
+  'ideal-gas': ['uni', 'gasSim'],
+  carnot: ['uni', 'carnotSim'],
+  'kinetic-gas': ['uni', 'kineticSim'],
+  'infinite-well': ['uni', 'wellSim'],
+  'transmission-line': ['uni', 'lineSim'],
+  'image-charge': ['uni', 'imageSim'],
+  waveguide: ['uni', 'guideSim'],
+  'dipole-radiation': ['uni', 'dipoleSim'],
 };
 
 const cache = new Map();

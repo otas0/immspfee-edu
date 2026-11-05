@@ -117,3 +117,13 @@ export function resistivity(p) {
   const R = (rho * L) / A;
   return { rho, L, A, R };
 }
+
+/** Time dilation: Δt = γ Δτ with γ = 1/√(1 − β²), β = v/c. */
+export function timeDilation(p) {
+  const v = Math.min(Math.max(p.v, 0), C_LIGHT * (1 - 1e-12));
+  const dtau = Math.max(p.dtau, 0);
+  const beta = v / C_LIGHT;
+  const gamma = 1 / Math.sqrt(1 - beta * beta);
+  const dt = gamma * dtau;
+  return { v, dtau, beta, gamma, dt, c: C_LIGHT };
+}

@@ -15,6 +15,8 @@ import {
   bohrLevels, internalEnergy, energyShare, efficiency, scaleLength,
   massEnergy, halfLife, photoelectric, capacitance, resistivity,
   lorentzForce, cyclotronRadius, pointField, fieldPotential,
+  vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell,
+  doubleSlit, malus, telescope, acPeakRms, transformer, doppler, beats, dispersion, timeDilation,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -249,6 +251,24 @@ near(lorentzForce({ q: 1.6e-19, v: 2e6, B: 0.05 }).F, 1.6e-19 * 2e6 * 0.05, 1e-3
 near(cyclotronRadius({ m: 9.1e-31, q: -1.6e-19, v: 2e6, B: 0.05 }).r, (9.1e-31 * 2e6) / (1.6e-19 * 0.05), 1e-12, 'cyclotron r');
 near(pointField({ q: 2e-6, r: 0.2 }).E, (9e9 * 2e-6) / 0.04, 1e-6, 'point field');
 near(fieldPotential({ E: 200, d: 0.05, q: 2e-6 }).U, 10, 1e-9, 'U=Ed');
+
+const maxwell = vacuumPlaneWave({ f: 1e8, E0: 1 }, 0);
+near(maxwell.lambda, 2.99792458, 1e-6, 'maxwell λ');
+near(maxwell.Jd, maxwell.eps0 * maxwell.dEdt, 1e-12, 'Jd=ε0 dE/dt');
+near(idealGas({ n: 1, T: 300, V: 0.024 }).pV, 1 * 8.314462618 * 300, 1e-6, 'pV=nRT');
+near(carnotEta({ Th: 600, Tc: 300 }).eta, 0.5, 1e-9, 'Carnot η');
+near(kineticGas({ rho: 1.2, vrms: 500 }).p, 1e5, 1e-6, 'kinetic p');
+assert(infiniteWell({ n: 1, m: 9.1e-31, L: 1e-9 }).En > 0, 'well energy');
+near(doubleSlit({ lambda: 6e-7, D: 1.2, d: 2e-4 }).dy, (6e-7 * 1.2) / 2e-4, 1e-15, 'Δy');
+near(malus({ I0: 1, theta: 60 }).I, 0.25, 1e-9, 'Malus');
+near(telescope({ fObj: 50, fEye: 5 }).M, -10, 1e-9, 'telescope M');
+near(acPeakRms({ Im: 2, Vm: 10, f: 50 }, 0).Irms, 2 / Math.SQRT2, 1e-9, 'Irms');
+near(transformer({ n1: 100, n2: 20, U1: 220, I2: 5 }).U2, 44, 1e-9, 'transformer U2');
+near(doppler({ f: 440, v: 340, vo: 0, vs: 20, observerToward: true, sourceToward: true }).fp, 440 * 340 / 320, 1e-9, 'doppler');
+near(beats({ f1: 256, f2: 260, A: 1 }, 0).df, 4, 1e-9, 'beats');
+near(dispersion({ omega0: 0, c: 2, k: 1 }).vg, 2, 1e-9, 'vg=c when ω0=0');
+assert(timeDilation({ v: 0, dtau: 1 }).dt === 1, 'no dilation at rest');
+assert(timeDilation({ v: 1.5e8, dtau: 1 }).gamma > 1, 'gamma>1');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

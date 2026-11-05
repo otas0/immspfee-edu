@@ -1,5 +1,8 @@
 import { fmt } from '../fmt.js';
-import { pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle } from '../physics/optics.js';
+import {
+  pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle,
+  doubleSlit, malus, telescope, singleSlit,
+} from '../physics/optics.js';
 import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) {
@@ -548,6 +551,175 @@ export const vision = {
     }
     text(ctx, lab(ui, d.kind, { diverging: '发散', converging: '会聚' }[d.kind] || d.kind), lensX, y + 68, INK, 13, 'center');
     ui._geo = { lensX, y };
+  },
+  pointer() { return null; },
+};
+
+export const doubleSlitSim = {
+  id: 'double-slit',
+  timed: false,
+  authority: 'Young double-slit fringe spacing on a distant screen: Δy = λ D / d.',
+  params: { lambda: 6e-7, D: 1.2, d: 2e-4 },
+  schema: [
+    num('lambda', 'Wavelength λ', '波长 λ', 'm', 4e-7, 7e-7, 1e-8),
+    num('D', 'Screen distance D', '屏距 D', 'm', 0.4, 3, 0.1),
+    num('d', 'Slit spacing d', '缝距 d', 'm', 5e-5, 5e-4, 1e-5),
+  ],
+  compute: (p) => doubleSlit(p),
+  readouts: (d) => [
+    ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
+    ro('λ', 'λ', `${(d.lambda * 1e9).toFixed(0)} nm`),
+  ],
+  checks: (d) => [
+    q('dy', 'Fringe spacing is', '条纹间距是', [
+      opt(`${d.dy.toExponential(3)} m = λ D / d`, `${d.dy.toExponential(3)} m = λ D / d`),
+      opt(`${(d.lambda * d.d / d.D).toExponential(3)} m`, `${(d.lambda * d.d / d.D).toExponential(3)} m`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using Δy = λ d / D inverts the dependence on d and D.',
+    zh: '写成 Δy = λ d / D 会把 d、D 的依赖颠倒。',
+    toggleEn: 'Use Δy = λ d / D',
+    toggleZh: '改用 Δy = λ d / D',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    line(ctx, w * 0.2, h * 0.25, w * 0.2, h * 0.75, INK, 2);
+    line(ctx, w * 0.2, h * 0.42, w * 0.2, h * 0.45, '#f3efe6', 4);
+    line(ctx, w * 0.2, h * 0.55, w * 0.2, h * 0.58, '#f3efe6', 4);
+    line(ctx, w * 0.8, h * 0.2, w * 0.8, h * 0.8, MUTED, 2);
+    const dyShow = ui.wrong ? (d.lambda * d.d) / d.D : d.dy;
+    const scale = Math.min(h * 0.15, dyShow * 1e5);
+    for (let i = -3; i <= 3; i += 1) {
+      const y = h * 0.5 + i * scale;
+      line(ctx, w * 0.78, y, w * 0.82, y, RAY, 2);
+    }
+    text(ctx, `Δy=${dyShow.toExponential(2)} m`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const malusSim = {
+  id: 'malus',
+  timed: false,
+  authority: 'Malus’s law: I = I0 cos²θ where θ is the angle between polariser transmission axes.',
+  params: { I0: 1, theta: 45 },
+  schema: [
+    num('I0', 'Incident I0', '入射强度 I0', '', 0.2, 2, 0.1),
+    num('theta', 'Angle θ', '夹角 θ', '°', 0, 90, 5),
+  ],
+  compute: (p) => malus(p),
+  readouts: (d) => [
+    ro('I', 'I', fmt(d.I, 3)),
+    ro('θ', 'θ', `${fmt(d.theta, 0)}°`),
+  ],
+  checks: (d) => [
+    q('I', 'Transmitted intensity is', '透射强度是', [
+      opt(`${fmt(d.I, 3)} = I0 cos²θ`, `${fmt(d.I, 3)} = I0 cos²θ`),
+      opt(`${fmt(d.I0 * Math.cos((d.theta * Math.PI) / 180), 3)}`, `${fmt(d.I0 * Math.cos((d.theta * Math.PI) / 180), 3)}`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using I = I0 cosθ drops a power of cosine.',
+    zh: '写成 I = I0 cosθ 会少一个余弦幂。',
+    toggleEn: 'Use I = I0 cosθ',
+    toggleZh: '改用 I = I0 cosθ',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const Ishow = ui.wrong ? d.I0 * Math.cos((d.theta * Math.PI) / 180) : d.I;
+    ctx.save();
+    ctx.translate(w * 0.35, h * 0.5);
+    ctx.rotate((-20 * Math.PI) / 180);
+    line(ctx, -40, 0, 40, 0, RAY, 4);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(w * 0.65, h * 0.5);
+    ctx.rotate(((-20 + d.theta) * Math.PI) / 180);
+    line(ctx, -40, 0, 40, 0, RAY2, 4);
+    ctx.restore();
+    text(ctx, `I=${fmt(Ishow, 3)}`, w * 0.5, h * 0.2, ui.wrong ? '#a33' : INK, 16, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const telescopeSim = {
+  id: 'telescope',
+  timed: false,
+  authority: 'Astronomical telescope (afocal): angular magnification M ≈ −f_obj / f_eye and tube length ≈ f_obj + f_eye for an object at infinity.',
+  params: { fObj: 50, fEye: 5 },
+  schema: [
+    num('fObj', 'Objective f_obj', '物镜焦距', 'cm', 20, 120, 5),
+    num('fEye', 'Eyepiece f_eye', '目镜焦距', 'cm', 2, 15, 0.5),
+  ],
+  compute: (p) => telescope(p),
+  readouts: (d) => [
+    ro('M', 'M', fmt(d.M, 2)),
+    ro('Tube', '镜筒', `${fmt(d.tube, 1)} cm`),
+  ],
+  checks: (d) => [
+    q('M', 'Angular magnification is', '角放大率是', [
+      opt(`${fmt(d.M, 2)} ≈ −f_obj / f_eye`, `${fmt(d.M, 2)} ≈ −f_obj / f_eye`),
+      opt(`${fmt(d.fObj * d.fEye, 2)}`, `${fmt(d.fObj * d.fEye, 2)}`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using M = −f_eye / f_obj inverts the ratio.',
+    zh: '写成 M = −f_eye / f_obj 会把比值颠倒。',
+    toggleEn: 'Swap the focal lengths',
+    toggleZh: '对调两个焦距',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const y = h * 0.5;
+    const x1 = w * 0.28;
+    const x2 = w * 0.72;
+    line(ctx, x1, y - 50, x1, y + 50, RAY, 3);
+    line(ctx, x2, y - 22, x2, y + 22, RAY2, 3);
+    line(ctx, x1, y, x2, y, MUTED, 1, [4, 4]);
+    text(ctx, lab(ui, 'objective', '物镜'), x1, y + 70, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'eyepiece', '目镜'), x2, y + 70, MUTED, 12, 'center');
+    const Mshow = ui.wrong ? -d.fEye / d.fObj : d.M;
+    text(ctx, `M=${fmt(Mshow, 2)}`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const singleSlitSim = {
+  id: 'single-slit',
+  timed: false,
+  authority: 'Single-slit diffraction minima (small angle): y_m ≈ m λ L / a.',
+  params: { a: 1e-4, lambda: 6e-7, L: 1.5, m: 1 },
+  schema: [
+    num('a', 'Slit width a', '缝宽 a', 'm', 2e-5, 5e-4, 1e-5),
+    num('lambda', 'Wavelength λ', '波长 λ', 'm', 4e-7, 7e-7, 1e-8),
+    num('L', 'Screen distance L', '屏距 L', 'm', 0.5, 3, 0.1),
+    num('m', 'Order m', '级次 m', '', 1, 4, 1),
+  ],
+  compute: (p) => singleSlit(p),
+  readouts: (d) => [
+    ro('y_m', 'yₘ', `${d.y.toExponential(3)} m`),
+  ],
+  checks: (d) => [
+    q('y', 'First-order minimum distance scales as', '极小位置正比于', [
+      opt('λ L / a', 'λ L / a'),
+      opt('a / (λ L)', 'a / (λ L)'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Putting a in the numerator invents wider fringes for a wider slit.',
+    zh: '把 a 放到分子上，缝越宽条纹反而越宽。',
+    toggleEn: 'Use y ∝ a',
+    toggleZh: '改成 y 正比于 a',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    line(ctx, w * 0.2, h * 0.3, w * 0.2, h * 0.7, INK, 2);
+    line(ctx, w * 0.2, h * 0.48, w * 0.2, h * 0.52, '#f3efe6', 5);
+    line(ctx, w * 0.8, h * 0.2, w * 0.8, h * 0.8, MUTED, 2);
+    const yShow = ui.wrong ? (d.a * d.L) / d.lambda * 1e-6 : d.y;
+    text(ctx, `y=${(ui.wrong ? (d.m * d.a * d.L) / d.lambda : d.y).toExponential(2)} m`, w * 0.5, h * 0.15, ui.wrong ? '#a33' : INK, 14, 'center');
+    line(ctx, w * 0.78, h * 0.5 - 30, w * 0.82, h * 0.5 - 30, RAY, 2);
   },
   pointer() { return null; },
 };
