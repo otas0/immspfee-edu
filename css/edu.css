@@ -14,26 +14,55 @@
 }
 
 * { box-sizing: border-box; }
+html { scrollbar-gutter: stable; }
 html, body { margin: 0; background: var(--paper); color: var(--ink); }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
 .top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "brand nav lang";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 8px;
+  height: 104px;
+  padding: 8px 12px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  overflow: visible;
+}
+.brand {
+  grid-area: brand;
+  justify-self: start;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 10px 18px;
-  background: white;
-  border-bottom: 1px solid var(--line);
+  margin: 0;
+  padding: 4px 6px;
+  background: #fff;
+  line-height: 0;
+  color-scheme: light;
+  overflow: visible;
 }
 .brand img {
   display: block;
-  width: 280px;
-  height: 64px;
-  object-fit: cover;
-  object-position: center 46%;
+  width: 252px;
+  height: 57px;
+  min-width: 252px;
+  object-fit: contain;
+  object-position: left center;
+  overflow: visible;
 }
-.top-nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.top-nav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button, .lang button, .ghost, .primary, .phases button, .transport button {
   border: 1px solid var(--line);
@@ -46,7 +75,8 @@ button { cursor: pointer; }
   color: white;
   border-color: var(--dark);
 }
-.lang { display: flex; gap: 6px; }
+.lang { grid-area: lang; display: flex; gap: 6px; flex: 0 0 auto; }
+.lang button { width: 52px; height: 32px; padding: 0; flex: 0 0 52px; }
 .edition { margin: 0; padding: 8px 18px 0; color: var(--muted); font-size: 13px; }
 
 .layout {
@@ -139,6 +169,34 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 1fr; }
   aside, .teach { max-height: none; }
-  .brand img { width: 210px; height: 48px; }
-  .top { flex-wrap: wrap; }
+}
+@media (max-width: 768px) {
+  .top {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "brand lang"
+      "nav nav";
+    height: 176px;
+  }
+  .lang { justify-self: end; }
+}
+@media (max-width: 420px) {
+  .top {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "lang"
+      "nav";
+    height: 248px;
+    justify-items: start;
+  }
+  .lang { justify-self: start; }
+}
+@media (prefers-color-scheme: dark) {
+  .brand { background: #fff; color-scheme: light; }
+}
+@media print {
+  .top { position: static; height: auto; overflow: visible; }
+  .brand, .brand img { overflow: visible; object-fit: contain; }
+  .brand img { width: 252px; height: 57px; min-width: 0; }
 }

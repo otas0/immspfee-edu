@@ -2,7 +2,7 @@
 
 Classroom edition of IMMSPFEE. Lessons follow a textbook, one section at a time. The standard lab stays in its own repository ([otas0/immspfee](https://github.com/otas0/immspfee)) and is not this site.
 
-This edition: [github.com/otas0/immspfee-education](https://github.com/otas0/immspfee-education) · [otas0.github.io/immspfee-education](https://otas0.github.io/immspfee-education/)
+This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)
 
 Shanghai junior physics is the first complete slice: every section in chapters 4–7 (light, force, density and pressure, buoyancy) runs a simulation whose readouts, checks, and mistake overlay come from the governing equations. Later chapters, the senior 沪科 map, the PEP grade-8 order, and the university entrances are on the same tree and do not draw a stand-in animation.
 
