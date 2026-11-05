@@ -25,7 +25,12 @@ export const pepJunior = {
   ],
   chapters: [
     chapter('pep-1', 'g8a', '机械运动', 'Mechanical motion', [
-      S('pep-1-1', '长度和时间的测量', 'Length and time', [Q('pep-1-1a', '刻度尺与停表', 'Ruler and stopwatch', '读数。', 'Readings.')]),
+      S('pep-1-1', '长度和时间的测量', 'Length and time', [
+        R('pep-1-1a', 'ruler', '刻度尺与停表', 'Ruler and stopwatch',
+          '刻度尺读数估到分度值下一位。同一测量方程挂在沪科第 1 章。',
+          'Estimate one digit past the division. The same reading equation as Shanghai junior chapter 1.',
+          { trueCm: 3.64, division: 0.1 }),
+      ]),
       S('pep-1-2', '运动的描述', 'Describing motion', [
         R('pep-1-2a', 'frames', '参照物', 'Reference frame',
           '换参照物时，减去参照物相对地面的速度。',
@@ -46,8 +51,18 @@ export const pepJunior = {
       ]),
     ]),
     chapter('pep-2', 'g8a', '声现象', 'Sound', [
-      S('pep-2-1', '声音的产生与传播', 'Making sound', [Q('pep-2-1a', '振动', 'Vibration', '介质中的波。', 'A wave in a medium.')]),
-      S('pep-2-2', '声音的特性', 'Qualities of sound', [Q('pep-2-2a', '音调响度音色', 'Pitch and loudness', '频率与振幅。', 'Frequency and amplitude.')]),
+      S('pep-2-1', '声音的产生与传播', 'Making sound', [
+        R('pep-2-1a', 'sound-wave', '振动', 'Vibration',
+          '音叉与波形都服从 y = A sin(2π f t)。',
+          'The fork and the wave both follow y = A sin(2π f t).',
+          { f: 256, A: 0.8 }),
+      ]),
+      S('pep-2-2', '声音的特性', 'Qualities of sound', [
+        R('pep-2-2a', 'sound-wave', '音调响度音色', 'Pitch and loudness',
+          '只改 f 改音调，只改 A 改响度。',
+          'Change only f for pitch, only A for loudness.',
+          { f: 440, A: 0.6 }),
+      ]),
       S('pep-2-3', '声的利用', 'Using sound', [Q('pep-2-3a', '超声', 'Ultrasound', '反射测距。', 'Ranging by reflection.')]),
       S('pep-2-4', '噪声的危害和控制', 'Noise', [Q('pep-2-4a', '控制噪声', 'Controlling noise', '声源、传播、人耳三处。', 'Source, path, and ear.')]),
       S('pep-2-5', '跨学科实践：制作隔音房间模型', 'Practical: a model room', [Q('pep-2-5a', '隔音', 'A quieter room', '反射与吸收，不另造分贝曲线。', 'Reflection and absorption, no invented decibel curve.')]),
