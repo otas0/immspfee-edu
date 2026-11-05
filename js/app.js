@@ -314,12 +314,59 @@ function renderChrome() {
   if (swBtn) swBtn.textContent = t(lang, 'swReload');
 }
 
+const UNI_FOLD_KEY = 'immspfee-edu-uni-folds';
+
+function readUniFolds() {
+  try { return JSON.parse(sessionStorage.getItem(UNI_FOLD_KEY) || '{}'); }
+  catch (_) { return {}; }
+}
+
+function writeUniFolds(map) {
+  try { sessionStorage.setItem(UNI_FOLD_KEY, JSON.stringify(map)); }
+  catch (_) { /* ignore */ }
+}
+
+function pruneUniFolds(validIds) {
+  const map = readUniFolds();
+  let changed = false;
+  for (const id of Object.keys(map)) {
+    if (!validIds.has(id)) { delete map[id]; changed = true; }
+  }
+  if (changed) writeUniFolds(map);
+  return map;
+}
+
+function setAllUniFolds(open) {
+  const book = getBook('university');
+  const map = {};
+  for (const ch of book.chapters) map[ch.id] = open;
+  writeUniFolds(map);
+  if (bookId === 'university') renderTree();
+}
+
 function renderTree() {
   const host = document.getElementById('tree');
   host.replaceChildren();
   const book = getBook(bookId);
   const q = query.trim().toLowerCase();
   let shown = 0;
+  const foldBook = bookId === 'university';
+  const validIds = new Set(book.chapters.map((ch) => ch.id));
+  const foldMap = foldBook ? pruneUniFolds(validIds) : {};
+  if (foldBook) {
+    const tools = document.createElement('div');
+    tools.className = 'fold-tools';
+    const exp = document.createElement('button');
+    exp.type = 'button';
+    exp.textContent = t(lang, 'foldExpand');
+    exp.addEventListener('click', () => setAllUniFolds(true));
+    const col = document.createElement('button');
+    col.type = 'button';
+    col.textContent = t(lang, 'foldCollapse');
+    col.addEventListener('click', () => setAllUniFolds(false));
+    tools.append(exp, col);
+    host.appendChild(tools);
+  }
   for (const volume of book.volumes) {
     const chapters = book.chapters.filter((ch) => ch.volume === volume.id);
     const vol = document.createElement('section');
@@ -328,7 +375,7 @@ function renderTree() {
     vol.appendChild(h);
     let volCount = 0;
     for (const ch of chapters) {
-      const fold = bookId === 'university';
+      const fold = foldBook;
       const block = document.createElement(fold ? 'details' : 'div');
       block.className = 'chapter';
       let chCount = 0;
@@ -363,22 +410,16 @@ function renderTree() {
         sum.textContent = tx(lang, ch.title);
         block.append(sum, body);
         const current = findLesson(bookId, lessonId);
-        let saved = null;
-        try {
-          const map = JSON.parse(sessionStorage.getItem('immspfee-edu-uni-folds') || '{}');
-          if (Object.prototype.hasOwnProperty.call(map, ch.id)) saved = !!map[ch.id];
-        } catch (_) { /* ignore */ }
+        const saved = Object.prototype.hasOwnProperty.call(foldMap, ch.id) ? !!foldMap[ch.id] : null;
         // First visit (no saved map entry): only the current subject is open.
         if (q) block.open = true;
         else if (saved === true) block.open = true;
         else if (saved === false) block.open = false;
         else block.open = current?.chapter?.id === ch.id;
         block.addEventListener('toggle', () => {
-          try {
-            const map = JSON.parse(sessionStorage.getItem('immspfee-edu-uni-folds') || '{}');
-            map[ch.id] = block.open;
-            sessionStorage.setItem('immspfee-edu-uni-folds', JSON.stringify(map));
-          } catch (_) { /* ignore */ }
+          const map = readUniFolds();
+          map[ch.id] = block.open;
+          writeUniFolds(map);
         });
       } else {
         const chTitle = document.createElement('h3');

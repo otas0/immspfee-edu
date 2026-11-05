@@ -182,6 +182,19 @@ aside, .teach, .stage-wrap, .readouts {
   border-radius: 16px;
 }
 aside { padding: 12px; overflow: auto; max-height: calc(100vh - 124px); }
+.fold-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.fold-tools button {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
 .search input {
   width: 100%;
   border: 1px solid var(--line);

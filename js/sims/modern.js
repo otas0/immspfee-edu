@@ -567,9 +567,9 @@ export const simultaneitySim = {
     clear(ctx, w, h);
     // Minkowski sketch: x horizontal, ct upward; flashes at A,B on a t=const line in the rod frame.
     const ox = w * 0.12;
-    const oy = h * 0.78;
+    const oy = h * 0.7;
     const sx = w * 0.76;
-    const sy = h * 0.58;
+    const sy = h * 0.48;
     line(ctx, ox, oy, ox + sx, oy, MUTED, 1);
     line(ctx, ox, oy, ox, oy - sy, MUTED, 1);
     text(ctx, 'x', ox + sx + 8, oy, MUTED, 11, 'left');
@@ -596,15 +596,40 @@ export const simultaneitySim = {
     const dtShow = ui.wrong ? 0 : d.dt;
     // In the lab frame the B event is shifted in t by Δt (teaching offset on the sketch).
     const tShift = Math.min(sy * 0.25, 8 + Math.abs(dtShow) * 1e8);
+    const yB = ui.wrong ? tRod : tRod - tShift;
     ctx.fillStyle = RAY;
     ctx.beginPath();
     ctx.arc(xA, tRod, 5, 0, Math.PI * 2);
-    ctx.arc(xB, ui.wrong ? tRod : tRod - tShift, 5, 0, Math.PI * 2);
+    ctx.arc(xB, yB, 5, 0, Math.PI * 2);
     ctx.fill();
+    line(ctx, xB - 8, yB, xB + 8, yB, RAY, 1);
     text(ctx, 'A', xA, tRod + 14, MUTED, 11, 'center');
-    text(ctx, 'B', xB, (ui.wrong ? tRod : tRod - tShift) + 14, MUTED, 11, 'center');
-    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s  β=${fmt(d.beta, 2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 14, 'center');
-    text(ctx, `slope v/c²  light cones 45°`, w * 0.5, h * 0.92, MUTED, 11, 'center');
+    text(ctx, 'B', xB, yB + 14, MUTED, 11, 'center');
+    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s`, w * 0.5, h * 0.08, ui.wrong ? '#a33' : INK, 14, 'center');
+    // Draggable v handle — live β / Δt / cone offset.
+    const trackX0 = w * 0.18;
+    const trackX1 = w * 0.82;
+    const trackY = h * 0.9;
+    line(ctx, trackX0, trackY, trackX1, trackY, MUTED, 2);
+    const b = Math.min(0.97, Math.max(0.03, d.beta));
+    const hx = trackX0 + ((b - 0.03) / 0.94) * (trackX1 - trackX0);
+    handle(ctx, hx, trackY, ui.drag === 'v');
+    text(ctx, `v (drag)  β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY - 14, MUTED, 11, 'center');
+    ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
-  pointer() { return null; },
+  pointer(ev, p, d, ui) {
+    const tr = ui._vTrack;
+    if (!tr) return null;
+    if (ev.type === 'down') {
+      const hx = tr.trackX0 + ((Math.min(0.97, Math.max(0.03, d.beta)) - 0.03) / 0.94) * (tr.trackX1 - tr.trackX0);
+      if (hit(ev.x, ev.y, hx, tr.trackY, 18)
+        || (Math.abs(ev.y - tr.trackY) < 16 && ev.x >= tr.trackX0 && ev.x <= tr.trackX1)) {
+        ui.drag = 'v';
+      } else return null;
+    }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    if (ev.type !== 'move' || ui.drag !== 'v') return null;
+    const u = Math.max(0, Math.min(1, (ev.x - tr.trackX0) / (tr.trackX1 - tr.trackX0)));
+    return { v: (0.03 + u * 0.94) * tr.c };
+  },
 };

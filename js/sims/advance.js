@@ -380,10 +380,10 @@ export const coupledPendulaSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const pivotY = h * 0.18;
-    const scale = Math.min(h * 0.45, d.L * 120);
-    const x1p = w * 0.35;
-    const x2p = w * 0.65;
+    const pivotY = h * 0.14;
+    const scale = Math.min(h * 0.32, d.L * 100);
+    const x1p = w * 0.28;
+    const x2p = w * 0.52;
     const kappa = ui.wrong ? 0 : d.kappa;
     const state = ui.wrong ? coupledPendula({ ...p, kappa: 0 }, d.t) : d;
     const bob = (xp, th) => [xp + scale * Math.sin(th), pivotY + scale * Math.cos(th)];
@@ -394,25 +394,45 @@ export const coupledPendulaSim = {
     line(ctx, bx1, by1, bx2, by2, kappa > 0 ? RAY2 : MUTED, 1.5, kappa > 0 ? [] : [4, 4]);
     ctx.fillStyle = RAY;
     ctx.beginPath();
-    ctx.arc(bx1, by1, 10, 0, Math.PI * 2);
-    ctx.arc(bx2, by2, 10, 0, Math.PI * 2);
+    ctx.arc(bx1, by1, 9, 0, Math.PI * 2);
+    ctx.arc(bx2, by2, 9, 0, Math.PI * 2);
     ctx.fill();
     const eMax = Math.max(state.E1 + state.E2, 1e-9);
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.12, h * 0.88, (state.E1 / eMax) * w * 0.3, 8);
+    ctx.fillRect(w * 0.08, h * 0.58, (state.E1 / eMax) * w * 0.28, 7);
     ctx.fillStyle = RAY2;
-    ctx.fillRect(w * 0.58, h * 0.88, (state.E2 / eMax) * w * 0.3, 8);
-    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.27, h * 0.82, INK, 12, 'center');
-    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.73, h * 0.82, INK, 12, 'center');
-    const flow = ui.wrong ? 0 : state.Pflow;
-    const midY = h * 0.72;
-    if (Math.abs(flow) > 1e-6) {
-      const dir = flow > 0 ? 1 : -1;
-      arrow(ctx, w * 0.42, midY, w * 0.42 + dir * w * 0.16, midY, RAY, 2);
-      text(ctx, `P₁→₂=${fmt(flow, 2)}`, w * 0.5, midY - 12, MUTED, 11, 'center');
-    } else {
-      text(ctx, 'P₁→₂≈0', w * 0.5, midY - 12, MUTED, 11, 'center');
+    ctx.fillRect(w * 0.4, h * 0.58, (state.E2 / eMax) * w * 0.28, 7);
+    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.22, h * 0.52, INK, 11, 'center');
+    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.54, h * 0.52, INK, 11, 'center');
+    // Power-flow time series P₁→₂(t) over one beat window.
+    const tMax = this.tMax(p);
+    const gx = w * 0.08;
+    const gy = h * 0.92;
+    const gw = w * 0.84;
+    const gh = h * 0.22;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    line(ctx, gx, gy - gh / 2, gx + gw, gy - gh / 2, MUTED, 1, [2, 2]);
+    let pMax = 1e-9;
+    const pts = [];
+    for (let i = 0; i <= 80; i += 1) {
+      const tt = (tMax * i) / 80;
+      const s = coupledPendula({ ...p, kappa }, tt);
+      pts.push(s.Pflow);
+      pMax = Math.max(pMax, Math.abs(s.Pflow));
     }
+    ctx.beginPath();
+    pts.forEach((pf, i) => {
+      const X = gx + (i / 80) * gw;
+      const Y = gy - gh / 2 - (pf / pMax) * (gh * 0.45);
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+    ctx.strokeStyle = RAY;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    const nowX = gx + (Math.min(1, d.t / tMax)) * gw;
+    line(ctx, nowX, gy - gh, nowX, gy, MUTED, 1, [2, 2]);
+    text(ctx, `P₁→₂(t)  now=${fmt(ui.wrong ? 0 : state.Pflow, 2)}`, w * 0.5, gy - gh - 6, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

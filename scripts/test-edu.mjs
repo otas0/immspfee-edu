@@ -415,7 +415,7 @@ assert(i18nJs.includes("queuedTitle: 'Mapped, not simulated yet'"), 'empty-state
 assert(!/ready:\s*'Ready'/.test(i18nJs), 'i18n has no Ready chip string');
 assert(!/exam:\s*'Exam'/.test(i18nJs), 'i18n has no Exam chip string');
 const curriculaIndex = readFileSync(new URL('../js/curricula/index.js', import.meta.url), 'utf8');
-assert(curriculaIndex.includes('?v=testdev'), 'curricula entry imports use stamped bust');
+assert(curriculaIndex.includes('?v=__BUILD__'), 'curricula entry imports use stamped bust');
 const swJs = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 assert(swJs.includes('./js/curricula/index.js'), 'SW precache includes curricula entry');
 assert(swJs.includes('./js/sims/registry.js'), 'SW precache includes registry');
