@@ -326,10 +326,16 @@ export const shanghaiJunior = {
       ]),
 
       S('shj-12-3', '电阻的测量', 'Measuring resistance', [
-        Q('shj-12-3a', '伏安法', 'Voltmeter–ammeter', 'R = U/I。', 'R = U/I.'),
+        R('shj-12-3a', 'circuit', '伏安法', 'Voltmeter–ammeter',
+          '闭合欧姆电路上 R = U / I。读 R1 两端的 U1 和 I1，它们的比就是电阻。',
+          'On the closed Ohm circuit R = U / I. Read U1 and I1 across R1; their ratio is the resistance.',
+          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }, true),
       ]),
       S('shj-12-4', '电阻的串联和并联', 'Combining resistors', [
-        Q('shj-12-4a', '串并联电阻', 'Series and parallel resistors', '串联相加，并联倒数相加。', 'Series adds; parallel adds reciprocals.'),
+        R('shj-12-4a', 'circuit', '串并联电阻', 'Series and parallel resistors',
+          '串联时电流相同、电阻相加；并联时电压相同、电导相加。用初始接法切换串并联，看 I 和 U 怎么分。',
+          'In series the current is shared and resistances add; in parallel the voltage is shared and conductances add. Switch the starter wiring and watch how I and U split.',
+          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 4, R2: 12, Rs: 10 }),
       ]),
     ]),
     C('shj-13', 'g9v1', '电功率', 'Electric power', [
