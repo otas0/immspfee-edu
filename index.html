@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IMMSPFEE Education</title>
+  <link rel="icon" href="./assets/immspfee-education-logo.png">
+  <link rel="stylesheet" href="./css/edu.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#/sh-junior/shj-4-4a/introduce">
+      <img src="./assets/immspfee-education-logo.png" alt="IMMSPFEE Education">
+    </a>
+    <div class="top-nav">
+      <div id="regions" class="seg" role="group" aria-label="Region"></div>
+      <div id="books" class="seg" role="group" aria-label="Textbook"></div>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="lang-en">EN</button>
+      <button type="button" id="lang-zh">中文</button>
+    </div>
+  </header>
+  <p id="edition" class="edition"></p>
+  <div class="layout">
+    <aside>
+      <label class="search">
+        <input id="search" type="search" autocomplete="off">
+      </label>
+      <nav id="tree"></nav>
+    </aside>
+    <main>
+      <div class="stage-wrap">
+        <canvas id="stage" width="800" height="480"></canvas>
+      </div>
+      <div id="readouts" class="readouts"></div>
+    </main>
+    <section id="teach" class="teach"></section>
+  </div>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
