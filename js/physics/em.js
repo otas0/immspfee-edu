@@ -53,3 +53,24 @@ export function inductionRod(p) {
   const I = emf / R;
   return { B, ell, x, v, R, flux, emf, I };
 }
+
+/** Lorentz force magnitude when v ⟂ B: F = |q| v B. */
+export function lorentzForce(p) {
+  const q = p.q;
+  const v = Math.max(p.v, 0);
+  const B = Math.max(p.B, 0);
+  const F = Math.abs(q) * v * B;
+  return { q, v, B, F };
+}
+
+/** Uniform B, v ⟂ B: cyclotron radius r = m v / (|q| B). */
+export function cyclotronRadius(p) {
+  const m = Math.max(p.m, 1e-40);
+  const v = Math.max(p.v, 0);
+  const q = p.q;
+  const B = Math.max(p.B, 1e-12);
+  const r = (m * v) / (Math.abs(q) * B);
+  const omega = (Math.abs(q) * B) / m;
+  const T = (2 * Math.PI) / omega;
+  return { m, v, q, B, r, omega, T };
+}

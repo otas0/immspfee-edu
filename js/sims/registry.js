@@ -13,6 +13,7 @@ const PATHS = {
   em: './em.js',
   collide: './collide.js',
   charge: './charge.js',
+  modern: './modern.js',
 };
 
 const MAP = {
@@ -49,6 +50,8 @@ const MAP = {
   projectile: ['motion', 'projectileSim'],
   energy: ['motion', 'energySim'],
   melting: ['motion', 'meltSim'],
+  boiling: ['motion', 'boilSim'],
+  sublimation: ['motion', 'sublimeSim'],
   oscillator: ['advance', 'oscillatorSim'],
   'rigid-disk': ['advance', 'rotorSim'],
   'pendulum-pair': ['advance', 'pendulumSim'],
@@ -62,14 +65,30 @@ const MAP = {
   thermometer: ['measure', 'thermometerSim'],
   'sound-wave': ['waves', 'soundSim'],
   'em-wave': ['waves', 'emWaveSim'],
+  'sound-absorb': ['waves', 'absorbSim'],
+  'echo-range': ['waves', 'echoSim'],
   circular: ['motion', 'circularSim'],
   'bar-magnet': ['em', 'magnetSim'],
   solenoid: ['em', 'solenoidSim'],
   'ampere-force': ['em', 'ampereSim'],
   induction: ['em', 'inductionSim'],
+  lorentz: ['em', 'lorentzSim'],
+  cyclotron: ['em', 'cyclotronSim'],
   collide: ['collide', 'collideSim'],
   charges: ['charge', 'chargeSim'],
   current: ['charge', 'currentSim'],
+  'point-field': ['charge', 'fieldSim'],
+  'field-potential': ['charge', 'potentialSim'],
+  'atom-levels': ['modern', 'atomSim'],
+  'internal-energy': ['modern', 'internalSim'],
+  'energy-share': ['modern', 'convertSim'],
+  efficiency: ['modern', 'efficiencySim'],
+  scales: ['modern', 'scalesSim'],
+  'mass-energy': ['modern', 'massEnergySim'],
+  'half-life': ['modern', 'halfLifeSim'],
+  photoelectric: ['modern', 'photoSim'],
+  capacitance: ['modern', 'capSim'],
+  resistivity: ['modern', 'resistivitySim'],
 };
 
 const cache = new Map();

@@ -11,6 +11,10 @@ import {
   specificHeat, ottoCycle, rulerReading, stopwatchReading, balanceReading, tuningFork, emWave,
   barMagnet, solenoidField, ampereForce, inductionRod, circularMotion, collide1d,
   twoCharges, currentFromCharge, thermometerReading,
+  boiling, sublimation, soundAbsorb, echoRange,
+  bohrLevels, internalEnergy, energyShare, efficiency, scaleLength,
+  massEnergy, halfLife, photoelectric, capacitance, resistivity,
+  lorentzForce, cyclotronRadius, pointField, fieldPotential,
 } from '../js/physics/index.js';
 
 await loadAllSims();
@@ -223,6 +227,28 @@ const amps = currentFromCharge({ Q: 12, t: 4 });
 near(amps.I, 3, 1e-9, 'I = Q/t');
 const thermo = thermometerReading({ T: 40, Tmin: -20, Tmax: 100 });
 near(thermo.frac, 0.5, 1e-9, 'thermometer mid-scale');
+
+const boil = boiling({ m: 0.1, P: 400, cL: 4200, cV: 2000, Lv: 2.26e6, T0: 20, Tb: 100 }, 100);
+assert(boil.phase === 'boiling' && boil.T === 100, 'boiling plateau');
+const subl = sublimation({ m: 0.05, P: 200, cS: 1500, cG: 1000, Ls: 5.9e5, T0: -40, Ts: -20 }, 10);
+assert(subl.phase === 'sublimating' && subl.T === -20, 'sublimation plateau');
+const absorb = soundAbsorb({ I0: 1, R: 0.3, alpha: 2, d: 0.4 });
+near(absorb.I, 0.7 * Math.exp(-0.8), 1e-9, 'sound absorb');
+near(echoRange({ t: 0.02, v: 340 }).s, 3.4, 1e-9, 'echo range');
+near(bohrLevels({ n: 2, n2: 1 }).E, -3.4, 1e-9, 'Bohr n=2');
+near(internalEnergy({ W: 40, Q: -15 }).dU, 25, 1e-9, 'ΔU = W+Q');
+near(energyShare({ E0: 100, f: 0.4 }).total, 100, 1e-9, 'energy share conserved');
+near(efficiency({ Ein: 100, Eu: 35 }).eta, 0.35, 1e-9, 'efficiency');
+assert(scaleLength({ L: 1e-10 }).nearest.id === 'atom', 'scale nearest atom');
+near(massEnergy({ m: 1e-9 }).E, 1e-9 * 2.99792458e8 ** 2, 1e3, 'E=mc²');
+near(halfLife({ N0: 1000, T: 10, t: 10 }).N, 500, 1e-6, 'one half-life');
+assert(photoelectric({ W: 2.3, f: 1e14 }).emits === false, 'below cutoff');
+near(capacitance({ Q: 2e-6, U: 5 }).C, 4e-7, 1e-15, 'C=Q/U');
+near(resistivity({ rho: 1.7e-8, L: 2, A: 1e-6 }).R, 0.034, 1e-12, 'R=ρL/A');
+near(lorentzForce({ q: 1.6e-19, v: 2e6, B: 0.05 }).F, 1.6e-19 * 2e6 * 0.05, 1e-30, 'F=qvB');
+near(cyclotronRadius({ m: 9.1e-31, q: -1.6e-19, v: 2e6, B: 0.05 }).r, (9.1e-31 * 2e6) / (1.6e-19 * 0.05), 1e-12, 'cyclotron r');
+near(pointField({ q: 2e-6, r: 0.2 }).E, (9e9 * 2e-6) / 0.04, 1e-6, 'point field');
+near(fieldPotential({ E: 200, d: 0.05, q: 2e-6 }).U, 10, 1e-9, 'U=Ed');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

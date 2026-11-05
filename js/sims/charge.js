@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { twoCharges, currentFromCharge } from '../physics/charge.js';
+import { twoCharges, currentFromCharge, pointField, fieldPotential } from '../physics/charge.js';
 import { num, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -129,6 +129,104 @@ export const currentSim = {
     const Ishow = ui.wrong ? d.Q * d.t : d.I;
     text(ctx, `I = Q/t = ${fmt(Ishow, 3)} A`, w * 0.5, h * 0.7, ui.wrong ? '#a33' : INK, 18, 'center');
     text(ctx, `Q=${fmt(d.Q, 1)} C, t=${fmt(d.t, 1)} s`, w * 0.5, h * 0.82, MUTED, 13, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const fieldSim = {
+  id: 'point-field',
+  timed: false,
+  authority: 'Field of a point charge on the radial line: E = k |q| / r². Direction is away if q > 0 and toward if q < 0.',
+  params: { q: 2, r: 0.2 },
+  schema: [
+    num('q', 'Charge q', '电荷 q', 'µC', -5, 5, 0.1),
+    num('r', 'Distance r', '距离 r', 'm', 0.05, 1, 0.01),
+  ],
+  compute: (p) => pointField({ q: p.q * 1e-6, r: p.r }),
+  readouts: (d) => [
+    ro('E', 'E', `${fmt(d.E, 3)} N/C`),
+    ro('Sense', '方向', d.sense === 'away' ? { en: 'away', zh: '向外' } : { en: 'toward', zh: '向内' }),
+  ],
+  checks: (d) => [
+    q('E', 'The field magnitude is', '场强大小是', [
+      opt(`${fmt(d.E, 3)} N/C = k |q| / r²`, `${fmt(d.E, 3)} N/C = k |q| / r²`),
+      opt(`${fmt(d.k * Math.abs(d.q) * d.r, 3)} N/C`, `${fmt(d.k * Math.abs(d.q) * d.r, 3)} N/C`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using E ∝ r invents a field that grows with distance.',
+    zh: '写成 E 正比于 r，场强会随距离变大。',
+    toggleEn: 'Use E ∝ r',
+    toggleZh: '改成 E 正比于 r',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const cx = w * 0.35;
+    const cy = h * 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+    ctx.fillStyle = p.q >= 0 ? RAY : RAY2;
+    ctx.fill();
+    text(ctx, p.q >= 0 ? '+' : '−', cx, cy, '#fff', 18, 'center');
+    const px = cx + Math.min(w * 0.45, d.r * w * 0.6);
+    handle(ctx, px, cy, false);
+    const Eshow = ui.wrong ? d.k * Math.abs(d.q) * d.r : d.E;
+    if (d.sense === 'away') arrow(ctx, px - 10, cy - 40, px + 40, cy - 40, RAY, 2);
+    else arrow(ctx, px + 40, cy - 40, px - 10, cy - 40, RAY, 2);
+    text(ctx, `E=${fmt(Eshow, 3)} N/C`, w * 0.65, h * 0.22, ui.wrong ? '#a33' : INK, 14, 'center');
+    ui._geo = { cx, cy, scale: w * 0.6 };
+  },
+  pointer(ev, _p, _d, ui) {
+    const g = ui._geo;
+    if (!g) return null;
+    if (ev.type === 'down') { ui.drag = 'r'; return {}; }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    if (ev.type === 'move' && ui.drag === 'r') {
+      const r = Math.min(1, Math.max(0.05, (ev.x - g.cx) / g.scale));
+      return { r: Math.round(r * 100) / 100 };
+    }
+    return null;
+  },
+};
+
+export const potentialSim = {
+  id: 'field-potential',
+  timed: false,
+  authority: 'In a uniform field, U = E d between plates separated by d, and the work on charge q along the field is W = q U.',
+  params: { E: 200, d: 0.05, q: 2e-6 },
+  schema: [
+    num('E', 'Field E', '电场 E', 'N/C', 50, 1000, 10),
+    num('d', 'Separation d', '间距 d', 'm', 0.01, 0.2, 0.01),
+    num('q', 'Charge q', '电荷 q', 'C', 1e-7, 5e-6, 1e-7),
+  ],
+  compute: (p) => fieldPotential(p),
+  readouts: (d) => [
+    ro('U', 'U', `${fmt(d.U, 2)} V`),
+    ro('W', 'W', `${d.W.toExponential(3)} J`),
+  ],
+  checks: (d) => [
+    q('U', 'The potential difference is', '电势差是', [
+      opt(`${fmt(d.U, 2)} V = E d`, `${fmt(d.U, 2)} V = E d`),
+      opt(`${fmt(d.E / d.d, 2)} V`, `${fmt(d.E / d.d, 2)} V`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using U = E / d invents the wrong dependence on separation.',
+    zh: '写成 U = E / d，对间距的依赖就反了。',
+    toggleEn: 'Use U = E / d',
+    toggleZh: '改用 U = E / d',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const y0 = h * 0.3;
+    const y1 = y0 + Math.min(h * 0.4, d.d * h * 4);
+    line(ctx, w * 0.25, y0, w * 0.75, y0, RAY, 4);
+    line(ctx, w * 0.25, y1, w * 0.75, y1, RAY2, 4);
+    text(ctx, '+', w * 0.2, y0, RAY, 16, 'center');
+    text(ctx, '−', w * 0.2, y1, RAY2, 16, 'center');
+    arrow(ctx, w * 0.5, y0 + 10, w * 0.5, y1 - 10, INK, 2);
+    const Ushow = ui.wrong ? d.E / d.d : d.U;
+    text(ctx, `U=${fmt(Ushow, 2)} V`, w * 0.5, h * 0.85, ui.wrong ? '#a33' : INK, 16, 'center');
   },
   pointer() { return null; },
 };

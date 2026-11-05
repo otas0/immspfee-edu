@@ -130,45 +130,88 @@ export function energyTrack(p, t) {
 }
 
 /**
+ * Constant heating power with an optional latent-heat plateau at Tstar.
+ * before / plateau / after label the three intervals.
+ */
+function latentPlateau(p, t, labels) {
+  const m = Math.max(p.m, 1e-6);
+  const P = Math.max(0, p.P);
+  const cBefore = Math.max(p.cBefore, 1e-6);
+  const cAfter = Math.max(p.cAfter, 1e-6);
+  const useLatent = !!p.useLatent;
+  const L = useLatent ? Math.max(0, p.L) : 0;
+  const T0 = p.T0;
+  const Tstar = p.Tstar;
+  const Q = P * Math.max(0, t);
+  const Q1 = m * cBefore * Math.max(0, Tstar - T0);
+  const Q2 = Q1 + m * L;
+  let T;
+  let phase;
+  let fraction;
+  if (!useLatent) {
+    T = T0 + Q / (m * cBefore);
+    phase = labels.none;
+    fraction = 0;
+  } else if (Q < Q1) {
+    T = T0 + Q / (m * cBefore);
+    phase = labels.before;
+    fraction = 0;
+  } else if (Q < Q2 - 1e-6) {
+    T = Tstar;
+    phase = labels.plateau;
+    fraction = m * L > 0 ? (Q - Q1) / (m * L) : 1;
+  } else {
+    T = Tstar + (Q - Q2) / (m * cAfter);
+    phase = labels.after;
+    fraction = 1;
+  }
+  return {
+    Q, Q1, Q2, T, T0, Tstar, phase, fraction, useLatent, P, m, L,
+    t: Math.max(0, t),
+    t1: P > 0 ? Q1 / P : Infinity,
+    t2: P > 0 ? Q2 / P : Infinity,
+  };
+}
+
+/**
  * Constant heating power. A crystal stays at Tm while the latent heat is absorbed.
  * With crystal off, the same heat raises temperature and there is no plateau.
  */
 export function melting(p, t) {
-  const m = Math.max(p.m, 1e-6);
-  const P = Math.max(0, p.P);
-  const cS = Math.max(p.cS, 1e-6);
-  const cL = Math.max(p.cL, 1e-6);
   const crystal = !!p.crystal;
-  const Lf = crystal ? Math.max(0, p.Lf) : 0;
-  const T0 = p.T0;
-  const Tm = p.Tm;
-  const Q = P * Math.max(0, t);
-  const Q1 = m * cS * Math.max(0, Tm - T0);
-  const Q2 = Q1 + m * Lf;
-  let T;
-  let phase;
-  let fraction;
-  if (!crystal) {
-    T = T0 + Q / (m * cS);
-    phase = 'warming';
-    fraction = 0;
-  } else if (Q < Q1) {
-    T = T0 + Q / (m * cS);
-    phase = 'solid';
-    fraction = 0;
-  } else if (Q < Q2 - 1e-6) {
-    T = Tm;
-    phase = 'melting';
-    fraction = m * Lf > 0 ? (Q - Q1) / (m * Lf) : 1;
-  } else {
-    T = Tm + (Q - Q2) / (m * cL);
-    phase = 'liquid';
-    fraction = 1;
-  }
+  const d = latentPlateau({
+    m: p.m, P: p.P, cBefore: p.cS, cAfter: p.cL, L: p.Lf,
+    T0: p.T0, Tstar: p.Tm, useLatent: crystal,
+  }, t, { before: 'solid', plateau: 'melting', after: 'liquid', none: 'warming' });
   return {
-    Q, Q1, Q2, T, T0, Tm, phase, fraction, crystal, P, m, Lf,
-    t: Math.max(0, t),
-    t1: P > 0 ? Q1 / P : Infinity,
-    t2: P > 0 ? Q2 / P : Infinity,
+    Q: d.Q, Q1: d.Q1, Q2: d.Q2, T: d.T, T0: d.T0, Tm: d.Tstar,
+    phase: d.phase, fraction: d.fraction, crystal, P: d.P, m: d.m, Lf: d.L,
+    t: d.t, t1: d.t1, t2: d.t2,
+  };
+}
+
+/** Liquid heating to the boiling point: plateau at Tb while Lv is absorbed. */
+export function boiling(p, t) {
+  const d = latentPlateau({
+    m: p.m, P: p.P, cBefore: p.cL, cAfter: p.cV, L: p.Lv,
+    T0: p.T0, Tstar: p.Tb, useLatent: true,
+  }, t, { before: 'liquid', plateau: 'boiling', after: 'vapour', none: 'warming' });
+  return {
+    Q: d.Q, Q1: d.Q1, Q2: d.Q2, T: d.T, T0: d.T0, Tb: d.Tstar,
+    phase: d.phase, fraction: d.fraction, P: d.P, m: d.m, Lv: d.L,
+    t: d.t, t1: d.t1, t2: d.t2,
+  };
+}
+
+/** Solid–gas change: plateau at Ts while Ls is absorbed. */
+export function sublimation(p, t) {
+  const d = latentPlateau({
+    m: p.m, P: p.P, cBefore: p.cS, cAfter: p.cG, L: p.Ls,
+    T0: p.T0, Tstar: p.Ts, useLatent: true,
+  }, t, { before: 'solid', plateau: 'sublimating', after: 'gas', none: 'warming' });
+  return {
+    Q: d.Q, Q1: d.Q1, Q2: d.Q2, T: d.T, T0: d.T0, Ts: d.Tstar,
+    phase: d.phase, fraction: d.fraction, P: d.P, m: d.m, Ls: d.L,
+    t: d.t, t1: d.t1, t2: d.t2,
   };
 }

@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { barMagnet, solenoidField, ampereForce, inductionRod } from '../physics/em.js';
+import { barMagnet, solenoidField, ampereForce, inductionRod, lorentzForce, cyclotronRadius } from '../physics/em.js';
 import { num, tog, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -289,4 +289,107 @@ export const inductionSim = {
     }
     return null;
   },
+};
+
+export const lorentzSim = {
+  id: 'lorentz',
+  timed: false,
+  authority: 'When velocity is perpendicular to B, the Lorentz force magnitude is F = |q| v B. Sense follows the right-hand rule for a positive charge.',
+  params: { q: 1.6e-19, v: 2e6, B: 0.05 },
+  schema: [
+    num('q', 'Charge q', '电荷 q', 'C', 1e-20, 5e-19, 1e-20),
+    num('v', 'Speed v', '速率 v', 'm/s', 1e5, 5e6, 1e5),
+    num('B', 'Field B', '磁场 B', 'T', 0.01, 0.2, 0.01),
+  ],
+  compute: (p) => lorentzForce(p),
+  readouts: (d) => [
+    ro('F', 'F', `${d.F.toExponential(3)} N`),
+    ro('v', 'v', d.v.toExponential(2) + ' m/s'),
+    ro('B', 'B', `${fmt(d.B, 2)} T`),
+  ],
+  checks: (d) => [
+    q('F', 'The force magnitude is', '力的大小是', [
+      opt(`${d.F.toExponential(3)} N = |q| v B`, `${d.F.toExponential(3)} N = |q| v B`),
+      opt(`${(Math.abs(d.q) * d.v / d.B).toExponential(3)} N`, `${(Math.abs(d.q) * d.v / d.B).toExponential(3)} N`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using F = |q| v / B invents the wrong dependence on B.',
+    zh: '写成 F = |q| v / B，对 B 的依赖就反了。',
+    toggleEn: 'Use F = |q| v / B',
+    toggleZh: '改用 F = |q| v / B',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    for (let i = 0; i < 5; i += 1) {
+      for (let j = 0; j < 4; j += 1) {
+        text(ctx, '×', w * 0.2 + i * w * 0.12, h * 0.25 + j * h * 0.12, MUTED, 14, 'center');
+      }
+    }
+    const cx = w * 0.5;
+    const cy = h * 0.5;
+    arrow(ctx, cx - 50, cy, cx + 50, cy, RAY, 2);
+    text(ctx, 'v', cx + 60, cy, RAY, 12);
+    arrow(ctx, cx, cy, cx, cy - 55, RAY2, 2);
+    text(ctx, 'F', cx + 8, cy - 60, RAY2, 12);
+    const Fshow = ui.wrong ? Math.abs(d.q) * d.v / d.B : d.F;
+    text(ctx, `F=${Fshow.toExponential(3)} N`, w * 0.5, h * 0.88, ui.wrong ? '#a33' : INK, 14, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const cyclotronSim = {
+  id: 'cyclotron',
+  timed: true,
+  tMax: (p) => {
+    const d = cyclotronRadius(p);
+    return Math.min(20, 2 * d.T);
+  },
+  authority: 'In a uniform B with v perpendicular to B, r = m v / (|q| B) and the angular speed is ω = |q| B / m.',
+  params: { m: 9.1e-31, q: -1.6e-19, v: 2e6, B: 0.05 },
+  schema: [
+    num('m', 'Mass m', '质量 m', 'kg', 1e-31, 5e-27, 1e-31),
+    num('q', 'Charge q', '电荷 q', 'C', -5e-19, -1e-20, 1e-20),
+    num('v', 'Speed v', '速率 v', 'm/s', 1e5, 5e6, 1e5),
+    num('B', 'Field B', '磁场 B', 'T', 0.01, 0.2, 0.01),
+  ],
+  compute: (p, t) => {
+    const d = cyclotronRadius(p);
+    const ang = d.omega * Math.max(0, t);
+    return { ...d, t: Math.max(0, t), x: d.r * Math.cos(ang), y: d.r * Math.sin(ang) };
+  },
+  readouts: (d) => [
+    ro('r', 'r', d.r.toExponential(3) + ' m'),
+    ro('T', 'T', `${fmt(d.T * 1e9, 2)} ns`),
+    ro('ω', 'ω', d.omega.toExponential(3) + ' rad/s'),
+  ],
+  checks: (d) => [
+    q('r', 'The orbit radius is', '轨道半径是', [
+      opt(`${d.r.toExponential(3)} m = m v / (|q| B)`, `${d.r.toExponential(3)} m = m v / (|q| B)`),
+      opt(`${(d.m * d.v * d.B / Math.abs(d.q)).toExponential(3)} m`, `${(d.m * d.v * d.B / Math.abs(d.q)).toExponential(3)} m`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Putting B in the numerator invents a radius that grows with field strength.',
+    zh: '把 B 放到分子上，半径会随磁场变大。',
+    toggleEn: 'Use r ∝ B',
+    toggleZh: '改成 r 正比于 B',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const cx = w * 0.5;
+    const cy = h * 0.52;
+    const rShow = ui.wrong ? (d.m * d.v * d.B) / Math.abs(d.q) : d.r;
+    const scale = Math.min(w, h) * 0.28 / Math.max(rShow, 1e-6);
+    ctx.beginPath();
+    ctx.arc(cx, cy, rShow * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = '#cfc6b8';
+    ctx.stroke();
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(cx + d.x * scale * (rShow / d.r), cy - d.y * scale * (rShow / d.r), 5, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, `r=${rShow.toExponential(2)} m`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+  },
+  pointer() { return null; },
 };

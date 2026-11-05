@@ -24,3 +24,22 @@ export function currentFromCharge(p) {
   const I = Q / t;
   return { Q, t, I };
 }
+
+/** Field of a point charge on the axis: E = k |q| / r², sense away if q > 0. */
+export function pointField(p) {
+  const q = p.q;
+  const r = Math.max(p.r, 1e-6);
+  const E = (K_COULOMB * Math.abs(q)) / (r * r);
+  const sense = q >= 0 ? 'away' : 'toward';
+  return { q, r, E, k: K_COULOMB, sense };
+}
+
+/** Uniform-field potential difference: U = E d, and W = q U for a charge moved along the field. */
+export function fieldPotential(p) {
+  const E = Math.max(p.E, 0);
+  const d = Math.max(p.d, 0);
+  const q = p.q;
+  const U = E * d;
+  const W = q * U;
+  return { E, d, q, U, W };
+}

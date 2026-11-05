@@ -1,7 +1,6 @@
-import { chapter, queued, ready, section } from './helpers.js';
+import { chapter, ready, section } from './helpers.js';
 
 const R = ready;
-const Q = queued;
 const S = section;
 
 /**
@@ -63,21 +62,56 @@ export const pepJunior = {
           'Change only f for pitch, only A for loudness.',
           { f: 440, A: 0.6 }),
       ]),
-      S('pep-2-3', '声的利用', 'Using sound', [Q('pep-2-3a', '超声', 'Ultrasound', '反射测距。', 'Ranging by reflection.')]),
-      S('pep-2-4', '噪声的危害和控制', 'Noise', [Q('pep-2-4a', '控制噪声', 'Controlling noise', '声源、传播、人耳三处。', 'Source, path, and ear.')]),
-      S('pep-2-5', '跨学科实践：制作隔音房间模型', 'Practical: a model room', [Q('pep-2-5a', '隔音', 'A quieter room', '反射与吸收，不另造分贝曲线。', 'Reflection and absorption, no invented decibel curve.')]),
+      S('pep-2-3', '声的利用', 'Using sound', [
+        R('pep-2-3a', 'echo-range', '超声', 'Ultrasound',
+          '空气中声速取公开值 v = 340 m/s。往返时间 t 给出距离 s = v t / 2。',
+          'In air take the public speed v = 340 m/s. Round-trip time t gives s = v t / 2.',
+          { t: 0.02, v: 340 }),
+      ]),
+      S('pep-2-4', '噪声的危害和控制', 'Noise', [
+        R('pep-2-4a', 'sound-absorb', '控制噪声', 'Controlling noise',
+          '在传播路径上：I = I0 (1−R) e^{−α d}。',
+          'On the path: I = I0 (1−R) e^{−α d}.',
+          { I0: 1, R: 0.4, alpha: 3, d: 0.3 }),
+      ]),
+      S('pep-2-5', '跨学科实践：制作隔音房间模型', 'Practical: a model room', [
+        R('pep-2-5a', 'sound-absorb', '隔音', 'A quieter room',
+          '反射与吸收：I = I0 (1−R) e^{−α d}。不另造分贝曲线。',
+          'Reflection and absorption: I = I0 (1−R) e^{−α d}. No invented decibel curve.',
+          { I0: 1, R: 0.5, alpha: 2.5, d: 0.5 }),
+      ]),
     ]),
     chapter('pep-3', 'g8a', '物态变化', 'Changes of state', [
-      S('pep-3-1', '温度', 'Temperature', [Q('pep-3-1a', '温度计', 'Thermometer', '读数。', 'The reading.')]),
+      S('pep-3-1', '温度', 'Temperature', [
+        R('pep-3-1a', 'thermometer', '温度计', 'Thermometer',
+          '液柱高度随温度线性变化。读数就是温度。',
+          'Column height tracks temperature linearly. The reading is the temperature.',
+          { T: 37, Tmin: -20, Tmax: 100 }),
+      ]),
       S('pep-3-2', '熔化和凝固', 'Melting', [
         R('pep-3-2a', 'melting', '熔化图像', 'Melting curve',
           '晶体的平台段吸热但温度不变。',
           'On a crystal’s plateau, heat is absorbed and the temperature stays put.',
           { m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0, crystal: true }),
       ]),
-      S('pep-3-3', '汽化和液化', 'Boiling', [Q('pep-3-3a', '沸腾', 'Boiling', '沸点与沸腾条件。', 'The boiling point and the conditions.')]),
-      S('pep-3-4', '升华和凝华', 'Sublimation', [Q('pep-3-4a', '升华', 'Sublimation', '固气直接变化。', 'Solid and gas, directly.')]),
-      S('pep-3-5', '跨学科实践：探索厨房中的物态变化问题', 'Practical: the kitchen', [Q('pep-3-5a', '厨房', 'The kitchen', '熔化、汽化的条件，不另造食谱数据。', 'The conditions for melting and boiling, with no invented recipe data.')]),
+      S('pep-3-3', '汽化和液化', 'Boiling', [
+        R('pep-3-3a', 'boiling', '沸腾', 'Boiling',
+          '恒定功率。温度升到沸点后吸收汽化热，平台段温度不变。',
+          'Constant power. After the boiling point, latent heat is absorbed while temperature stays put.',
+          { m: 0.1, P: 400, cL: 4200, cV: 2000, Lv: 2.26e6, T0: 20, Tb: 100 }),
+      ]),
+      S('pep-3-4', '升华和凝华', 'Sublimation', [
+        R('pep-3-4a', 'sublimation', '升华', 'Sublimation',
+          '固体在升华点直接变为气体，模型里不经过液体。',
+          'A solid becomes gas at the sublimation point, with no liquid interval in this model.',
+          { m: 0.05, P: 200, cS: 1500, cG: 1000, Ls: 5.9e5, T0: -40, Ts: -20 }),
+      ]),
+      S('pep-3-5', '跨学科实践：探索厨房中的物态变化问题', 'Practical: the kitchen', [
+        R('pep-3-5a', 'boiling', '厨房', 'The kitchen',
+          '同一沸腾平台：水在 100 °C 吸热汽化。不另造食谱数据。',
+          'The same boiling plateau: water absorbs heat at 100 °C. No invented recipe data.',
+          { m: 0.2, P: 600, cL: 4200, cV: 2000, Lv: 2.26e6, T0: 20, Tb: 100 }),
+      ]),
     ]),
     chapter('pep-4', 'g8a', '光现象', 'Light', [
       S('pep-4-1', '光的直线传播', 'Rectilinear propagation', [
@@ -105,12 +139,25 @@ export const pepJunior = {
           { theta: 35, n1: 1, n2: 1.5 }),
       ]),
       S('pep-4-5', '光的色散', 'Dispersion', [
-        Q('pep-4-5a', '色散', 'Dispersion', '不同频率的折射率不同。', 'Index depends on frequency.'),
+        R('pep-4-5a', 'refraction', '色散', 'Dispersion',
+          '不同频率可对应不同 n。本课用折射定律对照：n1 sin θ1 = n2 sin θ2。',
+          'Different frequencies can mean different n. This lesson uses Snell: n1 sin θ1 = n2 sin θ2.',
+          { theta: 35, n1: 1, n2: 1.6 }),
       ]),
     ], true),
     chapter('pep-5', 'g8a', '透镜及其应用', 'Lenses', [
-      S('pep-5-1', '透镜', 'Lenses', [Q('pep-5-1a', '会聚与发散', 'Converging and diverging', '焦距的正负。', 'The sign of the focal length.')]),
-      S('pep-5-2', '生活中的透镜', 'Lenses in daily life', [Q('pep-5-2a', '放大镜与照相机', 'Magnifier and camera', 'u 与 f 的比较。', 'Comparing u with f.')]),
+      S('pep-5-1', '透镜', 'Lenses', [
+        R('pep-5-1a', 'convex-lens', '会聚与发散', 'Converging and diverging',
+          '凸透镜 f > 0。1/u + 1/v = 1/f。',
+          'A converging lens has f > 0. 1/u + 1/v = 1/f.',
+          { u: 40, f: 10, h: 6, screen: 13.3, aperture: 2 }),
+      ]),
+      S('pep-5-2', '生活中的透镜', 'Lenses in daily life', [
+        R('pep-5-2a', 'convex-lens', '放大镜与照相机', 'Magnifier and camera',
+          'u < f 成正立放大虚像（放大镜）；u > 2f 成倒立缩小实像（照相机）。',
+          'u < f gives an erect magnified virtual image (magnifier); u > 2f gives an inverted diminished real image (camera).',
+          { u: 8, f: 10, h: 4, screen: 20, aperture: 2 }),
+      ]),
       S('pep-5-3', '凸透镜成像的规律', 'Convex-lens rules', [
         R('pep-5-3a', 'convex-lens', '凸透镜成像', 'Convex lens',
           '1/u + 1/v = 1/f。拖动蜡烛和光屏。',
@@ -124,11 +171,19 @@ export const pepJunior = {
           { mode: 'myopia', farCm: 50, objectCm: 800, readingCm: 25, nearCm: 100 }),
       ]),
       S('pep-5-5', '跨学科实践：制作望远镜', 'Practical: a telescope', [
-        Q('pep-5-5a', '望远镜', 'A telescope', '物镜和目镜的焦距组合。', 'Objective and eyepiece focal lengths.'),
+        R('pep-5-5a', 'convex-lens', '望远镜', 'A telescope',
+          '物镜长焦距成像。本课用同一薄透镜方程 1/u + 1/v = 1/f 读物像关系。',
+          'A long-focus objective forms the image. This lesson uses the same thin-lens equation 1/u + 1/v = 1/f.',
+          { u: 50, f: 20, h: 6, screen: 33.3, aperture: 2 }),
       ]),
     ], true),
     chapter('pep-6', 'g8a', '质量与密度', 'Mass and density', [
-      S('pep-6-1', '质量', 'Mass', [Q('pep-6-1a', '天平', 'Balance', '质量是物体的属性。', 'Mass is a property of the object.')]),
+      S('pep-6-1', '质量', 'Mass', [
+        R('pep-6-1a', 'balance', '天平', 'Balance',
+          '天平平衡时 m_object = m_weights + m_rider。质量是物体的属性。',
+          'Balance when m_object = m_weights + m_rider. Mass is a property of the object.',
+          { object: 52.4, weights: 50, rider: 2.4 }),
+      ]),
       S('pep-6-2', '密度', 'Density', [
         R('pep-6-2a', 'density', '密度', 'Density',
           'ρ = m/V。',
@@ -141,7 +196,12 @@ export const pepJunior = {
           'ρ = m / (V2 − V1).',
           { material: 'aluminium', rho: 2700, V: 20, V1: 40 }, true),
       ]),
-      S('pep-6-4', '密度的应用', 'Using density', [Q('pep-6-4a', '密度的应用', 'Using density', '由 ρ 与 V 求 m。', 'Mass from ρ and V.')]),
+      S('pep-6-4', '密度的应用', 'Using density', [
+        R('pep-6-4a', 'density', '密度的应用', 'Using density',
+          '由 ρ 与 V 求 m = ρ V。',
+          'Mass from ρ and V: m = ρ V.',
+          { material: 'water', V: 0.002, rho: 1000 }),
+      ]),
     ]),
     chapter('pep-7', 'g8b', '力', 'Force', [
       S('pep-7-1', '力', 'Force', [
@@ -209,7 +269,10 @@ export const pepJunior = {
           { P: 1.013e5, g: 9.8, r: 0.1 }),
       ]),
       S('pep-9-4', '跨学科实践：制作简易活塞式抽水机', 'Practical: a lift pump', [
-        Q('pep-9-4a', '抽水机', 'A lift pump', '大气压把水托起。这里不另做一台机器。', 'Air pressure lifts the water. This section does not add a machine.'),
+        R('pep-9-4a', 'atmosphere', '抽水机', 'A lift pump',
+          '大气压把水托起。托里拆利高度 h = P / (ρ g)。这里不另做一台机器。',
+          'Air pressure lifts the water. Torricelli height h = P / (ρ g). This section does not add a machine.',
+          { P: 1.013e5, g: 9.8, r: 0.1 }),
       ]),
       S('pep-9-5', '流体压强与流速的关系', 'Flow and pressure', [
         R('pep-9-5a', 'bernoulli', '流速与压强', 'Speed and pressure',
@@ -242,7 +305,10 @@ export const pepJunior = {
           { mode: 'ship', rhoO: 600, rhoL: 1000, V: 1.2, g: 9.8, mass: 800, ballast: 200 }, true),
       ]),
       S('pep-10-4', '跨学科实践：制作微型密度计', 'Practical: a hydrometer', [
-        Q('pep-10-4a', '密度计', 'A hydrometer', '漂浮时排开的液体重等于自重。', 'A floating object displaces a weight equal to its own.'),
+        R('pep-10-4a', 'float-sink', '密度计', 'A hydrometer',
+          '漂浮时排开的液体重等于自重。改密度看浸入份额。',
+          'A floating object displaces a weight equal to its own. Change density to see the immersed fraction.',
+          { mode: 'solid', rhoO: 600, rhoL: 1000, V: 0.002, g: 9.8, mass: 0, ballast: 0 }),
       ]),
     ], true),
     chapter('pep-11', 'g8b', '功和机械能', 'Work and energy', [
@@ -279,7 +345,10 @@ export const pepJunior = {
           { F1: 4, L1: 0.3, F2: 6, L2: 0.2 }, true),
       ]),
       S('pep-12-2', '跨学科实践：制作简易杆秤', 'Practical: a steelyard', [
-        Q('pep-12-2a', '杆秤', 'A steelyard', '仍是杠杆平衡，不另做一把秤。', 'Still the lever rule. This section does not add a scale.'),
+        R('pep-12-2a', 'lever', '杆秤', 'A steelyard',
+          '仍是杠杆平衡 F1 L1 = F2 L2。不另做一把秤。',
+          'Still the lever rule F1 L1 = F2 L2. This section does not add a scale.',
+          { F1: 2, L1: 0.4, F2: 4, L2: 0.2 }),
       ]),
       S('pep-12-3', '滑轮', 'Pulleys', [
         R('pep-12-3a', 'pulley', '滑轮', 'Pulley',

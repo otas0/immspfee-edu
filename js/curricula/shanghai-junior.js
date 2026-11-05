@@ -1,7 +1,6 @@
-import { chapter, queued, ready, section } from './helpers.js';
+import { chapter, ready, section } from './helpers.js';
 
 const R = ready;
-const Q = queued;
 const S = section;
 const C = chapter;
 
@@ -76,7 +75,10 @@ export const shanghaiJunior = {
           { f: 440, A: 0.6 }),
       ]),
       S('shj-3-3', '声波的应用和控制', 'Using and controlling sound', [
-        Q('shj-3-3a', '隔声与吸声', 'Blocking and absorbing', '反射与吸收，不另造分贝曲线。', 'Reflection and absorption, no invented decibel curve.'),
+        R('shj-3-3a', 'sound-absorb', '隔声与吸声', 'Blocking and absorbing',
+          '屏障表面反射份额 R，厚度 d 上按 I = I0 (1−R) e^{−α d} 衰减。不另造分贝曲线。',
+          'Face reflection R, then I = I0 (1−R) e^{−α d} through thickness d. No invented decibel curve.',
+          { I0: 1, R: 0.3, alpha: 2, d: 0.4 }),
       ]),
     ]),
     C('shj-4', 'g8v1', '光现象', 'Light', [
@@ -259,7 +261,10 @@ export const shanghaiJunior = {
           { T: 36.5, Tmin: -20, Tmax: 100 }),
       ]),
       S('shj-9-2', '汽化和液化', 'Vaporisation and liquefaction', [
-        Q('shj-9-2a', '蒸发与沸腾', 'Evaporation and boiling', '沸点和饱和汽压的公开关系。', 'The public boiling-point and vapour-pressure relations.'),
+        R('shj-9-2a', 'boiling', '蒸发与沸腾', 'Evaporation and boiling',
+          '恒定功率加热液体。温度升到沸点 Tb 后，吸收汽化热 Lv 时温度不变，然后蒸汽再升温。',
+          'Constant power on a liquid. Temperature climbs to Tb, stays there while Lv is absorbed, then the vapour warms again.',
+          { m: 0.1, P: 400, cL: 4200, cV: 2000, Lv: 2.26e6, T0: 20, Tb: 100 }),
       ]),
       S('shj-9-3', '熔化和凝固', 'Melting and freezing', [
         R('shj-9-3a', 'melting', '熔化图像', 'Melting curve',
@@ -268,7 +273,10 @@ export const shanghaiJunior = {
           { m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0, crystal: true }),
       ]),
       S('shj-9-4', '升华和凝华', 'Sublimation', [
-        Q('shj-9-4a', '升华与凝华', 'Sublimation and deposition', '物态直接在固气之间变化。', 'The change is directly between solid and gas.'),
+        R('shj-9-4a', 'sublimation', '升华与凝华', 'Sublimation and deposition',
+          '恒定功率。固体在升华点 Ts 吸收升华热 Ls，直接变为气体，模型里不经过液体。',
+          'Constant power. A solid stays at Ts while Ls is absorbed and becomes gas, with no liquid interval in this model.',
+          { m: 0.05, P: 200, cS: 1500, cG: 1000, Ls: 5.9e5, T0: -40, Ts: -20 }),
       ]),
     ]),
     C('shj-10', 'g9v1', '内能', 'Internal energy', [
@@ -279,7 +287,10 @@ export const shanghaiJunior = {
           { m1: 0.2, c1: 4200, m2: 0.2, c2: 900, P: 500, T0: 20 }),
       ]),
       S('shj-10-2', '内能', 'Internal energy', [
-        Q('shj-10-2a', '改变内能', 'Changing internal energy', '做功和热传递。', 'Work and heating.'),
+        R('shj-10-2a', 'internal-energy', '改变内能', 'Changing internal energy',
+          '教学形式 ΔU = W + Q：做功和热传递都计入系统时取正。',
+          'Teaching form ΔU = W + Q: work and heat into the system are positive.',
+          { W: 40, Q: -15 }),
       ]),
       S('shj-10-3', '热机及其工作原理', 'Heat engines', [
         R('shj-10-3a', 'heat-engine', '四冲程', 'Four strokes',
@@ -421,24 +432,42 @@ export const shanghaiJunior = {
     ]),
     C('shj-16', 'g9v2', '从原子到星系', 'From atoms to galaxies', [
       S('shj-16-1', '原子 原子结构', 'Atoms', [
-        Q('shj-16-1a', '原子结构', 'Atomic structure', '核式结构的公开教学模型。', 'The public teaching model of the nuclear atom.'),
+        R('shj-16-1a', 'atom-levels', '原子结构', 'Atomic structure',
+          '课堂氢原子能级 E_n = −13.6 eV / n²。能级差对应光子能量。不做装置。',
+          'Classroom hydrogen levels E_n = −13.6 eV / n². A jump’s energy difference is the photon. No device.',
+          { n: 2, n2: 1 }),
       ]),
       S('shj-16-2', '地球 太阳系', 'Earth and the solar system', [
-        Q('shj-16-2a', '太阳系', 'Solar system', '公转周期与轨道。', 'Orbital period and radius.'),
+        R('shj-16-2a', 'central-orbit', '太阳系', 'Solar system',
+          '垂直发射。比能量 ½v² − GM/r 决定圆、椭圆等形态。调 v 看开普勒轨道怎么变。',
+          'Launch perpendicular to the radius. Specific energy ½v² − GM/r picks the conic. Change v to see the Kepler shape.',
+          { GM: 1, r: 1, v: 0.9 }),
       ]),
       S('shj-16-3', '银河系 宇宙', 'The Galaxy and the universe', [
-        Q('shj-16-3a', '尺度', 'Scales', '数量级，不另造观测数据。', 'Orders of magnitude, no invented observations.'),
+        R('shj-16-3a', 'scales', '尺度', 'Scales',
+          '用 log₁₀ L 把长度放到公开数量级梯子上（核、原子、人、地球、天文单位）。不另造观测数据。',
+          'log₁₀ L places a length on the public ladder (nucleus, atom, human, Earth, AU). No invented observations.',
+          { L: 1e-10 }),
       ]),
     ]),
     C('shj-17', 'g9v2', '能量的转移和转化 能源', 'Energy and sources', [
       S('shj-17-1', '能量的转移和转化', 'Transfer and conversion', [
-        Q('shj-17-1a', '能量转化', 'Conversion', '转化与转移，总量守恒。', 'Conversion and transfer, with the total conserved.'),
+        R('shj-17-1a', 'energy-share', '能量转化', 'Conversion',
+          '一个能量库按份额 f 转入另一个，总量守恒：E1 + E2 = E0。',
+          'One store converts into another with share f; the total stays E1 + E2 = E0.',
+          { E0: 100, f: 0.4 }),
       ]),
       S('shj-17-2', '能源的开发与利用', 'Using energy sources', [
-        Q('shj-17-2a', '能源', 'Sources', '一次能源与二次能源的分类。', 'Primary and secondary sources.'),
+        R('shj-17-2a', 'efficiency', '能源', 'Sources',
+          '有用能量与输入能量之比 η = Eu / Ein。分类只作读数旁注，不做装置设计。',
+          'η = Eu / Ein. Classification stays a readout note, not a device design.',
+          { Ein: 100, Eu: 35 }),
       ]),
       S('shj-17-3', '能源与可持续发展', 'Energy and sustainability', [
-        Q('shj-17-3a', '可持续', 'Sustainability', '效率与来源，不做装置设计。', 'Efficiency and source, not a device design.'),
+        R('shj-17-3a', 'efficiency', '可持续', 'Sustainability',
+          '同一效率定义 η = Eu / Ein；损耗是 Ein − Eu。不做装置设计。',
+          'Same efficiency η = Eu / Ein; waste is Ein − Eu. No device design.',
+          { Ein: 100, Eu: 55 }),
       ]),
     ]),
   ],

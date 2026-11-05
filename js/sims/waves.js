@@ -1,5 +1,5 @@
 import { fmt } from '../fmt.js';
-import { tuningFork, emWave } from '../physics/waves.js';
+import { tuningFork, emWave, soundAbsorb, echoRange } from '../physics/waves.js';
 import { num, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
@@ -153,6 +153,113 @@ export const emWaveSim = {
     text(ctx, `λ=${fmt(lambdaShow, ui.wrong ? 0 : 2)}${ui.wrong ? '' : ' m'}`, gx + span / 2, h * 0.08, ui.wrong ? '#a33' : INK, 13, 'center');
     text(ctx, `c=fλ → ${fmt(d.f / 1e6, 0)} MHz`, w * 0.7, h * 0.1, MUTED, 12, 'center');
     if (ui.wrong) text(ctx, lab(ui, 'λ = c f', 'λ = c f'), w * 0.5, h * 0.92, '#a33', 13, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const absorbSim = {
+  id: 'sound-absorb',
+  timed: false,
+  authority: 'A barrier reflects fraction R at the face and absorbs with coefficient α through thickness d. The intensity that gets through is I = I0 (1 − R) e^{−α d}. No invented decibel scale.',
+  params: { I0: 1, R: 0.3, alpha: 2, d: 0.4 },
+  schema: [
+    num('I0', 'Incident I0', '入射强度 I0', '', 0.2, 2, 0.1),
+    num('R', 'Reflection R', '反射系数 R', '', 0, 0.9, 0.05),
+    num('alpha', 'Absorption α', '吸收系数 α', '1/m', 0, 8, 0.1),
+    num('d', 'Thickness d', '厚度 d', 'm', 0.05, 1.5, 0.05),
+  ],
+  compute: (p) => soundAbsorb(p),
+  readouts: (d) => [
+    ro('I', 'I', fmt(d.I, 3)),
+    ro('Reflected', '反射', fmt(d.reflected, 3)),
+    ro('Absorbed', '吸收', fmt(d.absorbed, 3)),
+  ],
+  checks: (d) => [
+    q('I', 'The transmitted intensity is', '透射强度是', [
+      opt(`${fmt(d.I, 3)} = I0 (1−R) e^{−α d}`, `${fmt(d.I, 3)} = I0 (1−R) e^{−α d}`),
+      opt(`${fmt(d.I0 * (1 - d.R), 3)}`, `${fmt(d.I0 * (1 - d.R), 3)}`),
+      opt(`${fmt(d.I0, 3)}`, `${fmt(d.I0, 3)}`),
+    ], 0),
+    q('thicker', 'Raising d at fixed α and R', 'α、R 不变，加大 d', [
+      opt('lowers the transmitted intensity', '使透射强度减小'),
+      opt('raises the transmitted intensity', '使透射强度增大'),
+      opt('leaves I unchanged', '不改变 I'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Dropping the exponential leaves only the face reflection and invents too much transmission.',
+    zh: '丢掉指数项，只剩表面反射，透射就被算大了。',
+    toggleEn: 'Drop e^{−α d}',
+    toggleZh: '丢掉 e^{−α d}',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const y = h * 0.5;
+    const x0 = w * 0.12;
+    const x1 = w * 0.38;
+    const x2 = x1 + p.d * w * 0.28;
+    const x3 = w * 0.88;
+    line(ctx, x0, y, x1, y, RAY, 3);
+    ctx.fillStyle = 'rgba(120,140,160,0.35)';
+    ctx.fillRect(x1, y - 40, Math.max(8, x2 - x1), 80);
+    line(ctx, x1, y - 40, x1, y + 40, INK, 2);
+    line(ctx, x2, y - 40, x2, y + 40, INK, 2);
+    const Ishow = ui.wrong ? d.I0 * (1 - d.R) : d.I;
+    line(ctx, x2, y, x3, y, RAY2, 1 + 3 * (Ishow / Math.max(d.I0, 1e-6)));
+    text(ctx, lab(ui, 'incident', '入射'), (x0 + x1) / 2, y - 24, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'barrier', '屏障'), (x1 + x2) / 2, y - 52, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'transmitted', '透射'), (x2 + x3) / 2, y - 24, MUTED, 12, 'center');
+    text(ctx, `I=${fmt(Ishow, 3)}`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `R=${fmt(d.R, 2)}  α=${fmt(d.alpha, 1)}  d=${fmt(d.d, 2)} m`, w * 0.5, h * 0.82, MUTED, 12, 'center');
+  },
+  pointer() { return null; },
+};
+
+export const echoSim = {
+  id: 'echo-range',
+  timed: false,
+  authority: 'Ultrasound ranging in air uses the public speed v = 340 m/s. Round-trip time t gives distance s = v t / 2.',
+  params: { t: 0.02, v: 340 },
+  schema: [
+    num('t', 'Round-trip time t', '往返时间 t', 's', 0.002, 0.2, 0.002),
+    num('v', 'Speed of sound v', '声速 v', 'm/s', 300, 360, 1),
+  ],
+  compute: (p) => echoRange(p),
+  readouts: (d) => [
+    ro('s', 's', `${fmt(d.s, 2)} m`),
+    ro('v', 'v', `${fmt(d.v, 0)} m/s`),
+    ro('t', 't', `${fmt(d.t, 3)} s`),
+  ],
+  checks: (d) => [
+    q('s', 'The one-way distance is', '单程距离是', [
+      opt(`${fmt(d.s, 2)} m = v t / 2`, `${fmt(d.s, 2)} m = v t / 2`),
+      opt(`${fmt(d.v * d.t, 2)} m`, `${fmt(d.v * d.t, 2)} m`),
+      opt(`${fmt(d.t / 2, 3)} m`, `${fmt(d.t / 2, 3)} m`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using s = v t forgets the echo is a round trip and doubles the distance.',
+    zh: '写成 s = v t 忘了回波是往返，距离会翻倍。',
+    toggleEn: 'Use s = v t',
+    toggleZh: '改用 s = v t',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const y = h * 0.55;
+    const x0 = w * 0.18;
+    const span = Math.min(w * 0.55, d.s * w * 0.08);
+    const x1 = x0 + Math.max(40, span);
+    ctx.fillStyle = RAY;
+    ctx.fillRect(x0 - 18, y - 18, 36, 36);
+    text(ctx, lab(ui, 'source', '声源'), x0, y + 40, MUTED, 12, 'center');
+    line(ctx, x0 + 20, y, x1 - 10, y, INK, 1.5);
+    arrow(ctx, x0 + 20, y - 20, x1 - 10, y - 20, RAY2, 2);
+    arrow(ctx, x1 - 10, y + 20, x0 + 20, y + 20, RAY2, 2);
+    ctx.fillStyle = MUTED;
+    ctx.fillRect(x1, y - 50, 14, 100);
+    text(ctx, lab(ui, 'wall', '墙'), x1 + 7, y + 70, MUTED, 12, 'center');
+    const sShow = ui.wrong ? d.v * d.t : d.s;
+    text(ctx, `s=${fmt(sShow, 2)} m`, w * 0.5, h * 0.2, ui.wrong ? '#a33' : INK, 18, 'center');
   },
   pointer() { return null; },
 };
