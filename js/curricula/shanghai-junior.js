@@ -228,7 +228,10 @@ export const shanghaiJunior = {
     ]),
     C('shj-10', 'g9v1', '内能', 'Internal energy', [
       S('shj-10-1', '热量 比热容', 'Heat and specific heat', [
-        Q('shj-10-1a', '比热容', 'Specific heat', 'Q = cmΔT。', 'Q = cmΔT.'),
+        R('shj-10-1a', 'specific-heat', '比热容', 'Specific heat',
+          '两个样品接受同样的热量 Q = P t。各自升温 ΔT = Q / (c m)。质量相同的时候，比热容小的升得更高。',
+          'Both samples receive the same heat Q = P t. Each rise is ΔT = Q / (c m). At the same mass, the smaller specific heat climbs higher.',
+          { m1: 0.2, c1: 4200, m2: 0.2, c2: 900, P: 500, T0: 20 }),
       ]),
       S('shj-10-2', '内能', 'Internal energy', [
         Q('shj-10-2a', '改变内能', 'Changing internal energy', '做功和热传递。', 'Work and heating.'),

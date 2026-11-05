@@ -1,6 +1,7 @@
 export * from './optics.js';
 export * from './mech.js';
 export * from './fluids.js';
+export * from './thermal.js';
 
 export function fmt(n, digits = 3) {
   if (n == null || typeof n !== 'number' || !Number.isFinite(n)) return '—';

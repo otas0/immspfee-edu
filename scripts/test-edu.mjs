@@ -5,6 +5,7 @@ import {
   hooke, twoForce, friction, inertiaCart, weight,
   solidPressure, hydrostatics, torricelli, bernoulliPipe,
   buoyancyOrigin, densityLab, floatState, archimedes, weighingBuoyancy,
+  specificHeat,
 } from '../js/physics/index.js';
 
 let failed = 0;
@@ -84,6 +85,12 @@ assert(sub.state === 'sunk', 'ballast sinks the submarine');
 near(archimedes({ V: 0.0003, frac: 0.5, rho: 1000, g: 9.8 }).Fb, 1000 * 9.8 * 0.00015, 1e-9, 'archimedes');
 const hang = weighingBuoyancy({ V: 0.0002, g: 9.8, rhoL: 1000, rhoO: 2700 });
 near(hang.T, hang.G - hang.Fb, 1e-9, 'weighing');
+
+const heat = specificHeat({ m1: 0.2, c1: 4200, m2: 0.2, c2: 900, P: 420, T0: 20 }, 10);
+near(heat.Q, 4200, 1e-9, 'shared heat');
+near(heat.dT1, 5, 1e-9, 'water rise Q/(c m)');
+near(heat.dT2, 4200 / 180, 1e-9, 'sand rise');
+assert(heat.dT2 > heat.dT1, 'smaller c rises more');
 
 const junior = getBook('sh-junior');
 for (const id of ['shj-4', 'shj-5', 'shj-6', 'shj-7']) {

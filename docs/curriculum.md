@@ -22,6 +22,10 @@ These sections are the first complete pass. Each one has at least one ready less
 | 6 Density and pressure | ρ = m/V, cylinder lab, p = F/A, ρgh and a U-tube, Torricelli, continuity plus Bernoulli |
 | 7 Buoyancy | Pressure difference on a cube, weighing method, Archimedes, float / suspend / sink |
 
+## Shanghai junior chapter 10
+
+Specific heat is ready. Two samples share one heat input, and each temperature rise is ΔT = Q / (c m). The other sections of that chapter stay queued.
+
 ## Adding a section
 
 1. Add the section to the book module under `js/curricula/`.
