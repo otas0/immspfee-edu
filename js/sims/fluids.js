@@ -1,8 +1,9 @@
+import { fmt } from '../fmt.js';
 import {
-  fmt, DENSITIES, densityOf, densityLab, solidPressure, hydrostatics, torricelli,
+  DENSITIES, densityOf, densityLab, solidPressure, hydrostatics, torricelli,
   bernoulliPipe, wingLift, buoyancyOrigin, weighingBuoyancy, archimedes, floatState,
-} from '../physics/index.js';
-import { num, sel, clear, line, arrow, text, handle, hit, INK, MUTED, RAY, RAY2, WATER, WATER_EDGE } from './kit.js';
+} from '../physics/fluids.js';
+import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2, WATER, WATER_EDGE } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -129,7 +130,7 @@ export const densityLabSim = {
     text(ctx, `V1 ${fmt(d.V1, 0)}`, x + 78, y1, MUTED, 12);
     text(ctx, `V2 ${fmt(d.V2, 0)}`, x + 78, y2, INK, 12);
     text(ctx, `${fmt(d.m, 2)} g`, w * 0.28, h * 0.4, INK, 18, 'center');
-    text(ctx, 'balance', w * 0.28, h * 0.48, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'balance', '天平'), w * 0.28, h * 0.48, MUTED, 12, 'center');
     if (ui.wrong) text(ctx, `m/V2 → ${fmt(d.rhoIfForgot, 0)}`, w * 0.28, h * 0.62, '#a33', 13, 'center');
   },
   pointer() { return null; },
@@ -288,7 +289,7 @@ export const liquidPressureSim = {
     text(ctx, `${fmt(d.pGauge, 0)} Pa`, tank2.x + tank2.bw / 2, y - 12, INK, 12, 'center');
     arrow(ctx, tank.x + tank.bw / 2, tank.y + tank.bh, tank.x + tank.bw / 2, tank.y + tank.bh + Math.min(50, d.Fwide), RAY, 3);
     arrow(ctx, tank2.x + tank2.bw / 2, tank.y + tank.bh, tank2.x + tank2.bw / 2, tank.y + tank.bh + Math.min(50, d.Fnarrow * 2), RAY2, 3);
-    if (ui.wrong) text(ctx, 'wider ⇒ bigger p?', w * 0.5, h * 0.14, '#a33', 13, 'center');
+    if (ui.wrong) text(ctx, lab(ui, 'wider ⇒ bigger p?', '更宽就压强更大？'), w * 0.5, h * 0.14, '#a33', 13, 'center');
     handle(ctx, tank.x + tank.bw, y, ui.drag === 'depth');
     ui._geo = { tank, y };
   },
@@ -642,7 +643,7 @@ export const archimedesSim = {
     ctx.strokeRect(cupX, h * 0.7 - cupH, 40, cupH + 10);
     ctx.fillStyle = WATER;
     ctx.fillRect(cupX, h * 0.7 - cupH, 40, cupH);
-    text(ctx, 'overflow', cupX + 20, h * 0.78, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'overflow', '溢出'), cupX + 20, h * 0.78, MUTED, 12, 'center');
     text(ctx, `${fmt(d.Fb, 2)} N`, w * 0.36, h * 0.22, INK, 14, 'center');
     if (ui.wrong) text(ctx, `ρgV=${fmt(d.rho * d.g * d.V, 2)}`, w * 0.36, h * 0.3, '#a33', 12, 'center');
     handle(ctx, w * 0.32 + side, water - sunk + side * d.frac, ui.drag === 'frac');
@@ -745,7 +746,7 @@ export const floatSim = {
     ctx.stroke();
     text(ctx, ui.lang === 'zh' ? STATE_ZH[d.state] : STATE_EN[d.state], w * 0.5, h * 0.16, INK, 16, 'center');
     text(ctx, `ρ̄=${fmt(d.rhoAvg, 0)}`, w * 0.5, h * 0.24, MUTED, 12, 'center');
-    if (ui.wrong) text(ctx, 'solid steel 7900 sinks', w * 0.5, h * 0.9, '#a33', 13, 'center');
+    if (ui.wrong) text(ctx, lab(ui, 'solid steel 7900 sinks', '实心钢 7900 会下沉'), w * 0.5, h * 0.9, '#a33', 13, 'center');
   },
   pointer() { return null; },
 };

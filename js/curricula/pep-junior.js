@@ -5,19 +5,19 @@ const Q = queued;
 const S = section;
 
 /**
- * PEP junior, the long-used grade 8 chapter order (2011 curriculum edition).
- * The 2024 PEP reprint is not this tree. Shared simulations are the Shanghai
- * engines; only the chapter order changes.
+ * PEP junior grade 8, 2024 contents (People’s Education Press).
+ * 跨学科实践 stays on the tree and is not simulated.
+ * Grade 9 is not in this book.
  */
 export const pepJunior = {
   id: 'pep-junior',
   region: 'pep',
   stage: 'junior',
-  tocConfidence: 'grade8-2011-order',
+  tocConfidence: 'grade8-2024',
   title: { zh: '人教版初中物理', en: 'PEP junior physics' },
   edition: {
-    zh: '人教版八年级上下册常用目录（2011 课标版顺序）。2024 新版目录尚未映射。',
-    en: 'Common PEP grade 8 order (2011 standards). The 2024 reprint is not mapped yet.',
+    zh: '人教版八年级上下册（2024）。跨学科实践只挂在目录上。九年级尚未映射。',
+    en: 'PEP grade 8, both books (2024). Cross-subject practicals stay on the tree. Grade 9 is not mapped.',
   },
   volumes: [
     { id: 'g8a', zh: '八年级上册', en: 'Grade 8, book 1' },
@@ -26,21 +26,43 @@ export const pepJunior = {
   chapters: [
     chapter('pep-1', 'g8a', '机械运动', 'Mechanical motion', [
       S('pep-1-1', '长度和时间的测量', 'Length and time', [Q('pep-1-1a', '刻度尺与停表', 'Ruler and stopwatch', '读数。', 'Readings.')]),
-      S('pep-1-2', '运动的描述', 'Describing motion', [Q('pep-1-2a', '参照物', 'Reference frame', '同一运动，不同参照物。', 'One motion, two frames.')]),
-      S('pep-1-3', '运动的快慢', 'Speed', [Q('pep-1-3a', '速度', 'Speed', 'v = s/t。', 'v = s/t.')]),
-      S('pep-1-4', '测量平均速度', 'Average speed', [Q('pep-1-4a', '平均速度', 'Average speed', '路程除以时间。', 'Distance over time.')]),
+      S('pep-1-2', '运动的描述', 'Describing motion', [
+        R('pep-1-2a', 'frames', '参照物', 'Reference frame',
+          '换参照物时，减去参照物相对地面的速度。',
+          'Changing the reference subtracts that object’s ground velocity.',
+          { frame: 'cart', vCart: 2, vPerson: 0.5, xCart0: 0, xPerson0: 0 }),
+      ]),
+      S('pep-1-3', '运动的快慢', 'Speed', [
+        R('pep-1-3a', 'st-graph', '速度', 'Speed',
+          's–t 图上的点对应当前时刻。',
+          'The point on the s–t graph is the clock time.',
+          { v1: 0.4, v2: 1.2, split: 3 }),
+      ]),
+      S('pep-1-4', '速度的测量', 'Measuring speed', [
+        R('pep-1-4a', 'st-graph', '平均速度', 'Average speed',
+          '平均速度是全程位移除以全程时间。',
+          'Average speed is the whole displacement over the whole time.',
+          { v1: 0.4, v2: 1.2, split: 3 }),
+      ]),
     ]),
     chapter('pep-2', 'g8a', '声现象', 'Sound', [
       S('pep-2-1', '声音的产生与传播', 'Making sound', [Q('pep-2-1a', '振动', 'Vibration', '介质中的波。', 'A wave in a medium.')]),
       S('pep-2-2', '声音的特性', 'Qualities of sound', [Q('pep-2-2a', '音调响度音色', 'Pitch and loudness', '频率与振幅。', 'Frequency and amplitude.')]),
       S('pep-2-3', '声的利用', 'Using sound', [Q('pep-2-3a', '超声', 'Ultrasound', '反射测距。', 'Ranging by reflection.')]),
       S('pep-2-4', '噪声的危害和控制', 'Noise', [Q('pep-2-4a', '控制噪声', 'Controlling noise', '声源、传播、人耳三处。', 'Source, path, and ear.')]),
+      S('pep-2-5', '跨学科实践：制作隔音房间模型', 'Practical: a model room', [Q('pep-2-5a', '隔音', 'A quieter room', '反射与吸收，不另造分贝曲线。', 'Reflection and absorption, no invented decibel curve.')]),
     ]),
     chapter('pep-3', 'g8a', '物态变化', 'Changes of state', [
       S('pep-3-1', '温度', 'Temperature', [Q('pep-3-1a', '温度计', 'Thermometer', '读数。', 'The reading.')]),
-      S('pep-3-2', '熔化和凝固', 'Melting', [Q('pep-3-2a', '熔化图像', 'Melting curve', '晶体的平台。', 'The crystal plateau.')]),
+      S('pep-3-2', '熔化和凝固', 'Melting', [
+        R('pep-3-2a', 'melting', '熔化图像', 'Melting curve',
+          '晶体的平台段吸热但温度不变。',
+          'On a crystal’s plateau, heat is absorbed and the temperature stays put.',
+          { m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0, crystal: true }),
+      ]),
       S('pep-3-3', '汽化和液化', 'Boiling', [Q('pep-3-3a', '沸腾', 'Boiling', '沸点与沸腾条件。', 'The boiling point and the conditions.')]),
       S('pep-3-4', '升华和凝华', 'Sublimation', [Q('pep-3-4a', '升华', 'Sublimation', '固气直接变化。', 'Solid and gas, directly.')]),
+      S('pep-3-5', '跨学科实践：探索厨房中的物态变化问题', 'Practical: the kitchen', [Q('pep-3-5a', '厨房', 'The kitchen', '熔化、汽化的条件，不另造食谱数据。', 'The conditions for melting and boiling, with no invented recipe data.')]),
     ]),
     chapter('pep-4', 'g8a', '光现象', 'Light', [
       S('pep-4-1', '光的直线传播', 'Rectilinear propagation', [
@@ -86,11 +108,11 @@ export const pepJunior = {
           'Diverging for myopia, converging for hyperopia.',
           { mode: 'myopia', farCm: 50, objectCm: 800, readingCm: 25, nearCm: 100 }),
       ]),
-      S('pep-5-5', '显微镜和望远镜', 'Microscope and telescope', [
-        Q('pep-5-5a', '两个透镜', 'Two lenses', '物镜和目镜的焦距组合。', 'Objective and eyepiece focal lengths.'),
+      S('pep-5-5', '跨学科实践：制作望远镜', 'Practical: a telescope', [
+        Q('pep-5-5a', '望远镜', 'A telescope', '物镜和目镜的焦距组合。', 'Objective and eyepiece focal lengths.'),
       ]),
     ], true),
-    chapter('pep-6', 'g8b', '质量与密度', 'Mass and density', [
+    chapter('pep-6', 'g8a', '质量与密度', 'Mass and density', [
       S('pep-6-1', '质量', 'Mass', [Q('pep-6-1a', '天平', 'Balance', '质量是物体的属性。', 'Mass is a property of the object.')]),
       S('pep-6-2', '密度', 'Density', [
         R('pep-6-2a', 'density', '密度', 'Density',
@@ -98,13 +120,13 @@ export const pepJunior = {
           'ρ = m/V.',
           { material: 'iron', V: 0.001, rho: 7900 }),
       ]),
-      S('pep-6-3', '测量物质的密度', 'Measuring density', [
+      S('pep-6-3', '测量液体和固体的密度', 'Measuring density', [
         R('pep-6-3a', 'density-lab', '测量密度', 'Measuring density',
           'ρ = m / (V2 − V1)。',
           'ρ = m / (V2 − V1).',
           { material: 'aluminium', rho: 2700, V: 20, V1: 40 }, true),
       ]),
-      S('pep-6-4', '密度与社会生活', 'Density in daily life', [Q('pep-6-4a', '密度的应用', 'Using density', '由 ρ 与 V 求 m。', 'Mass from ρ and V.')]),
+      S('pep-6-4', '密度的应用', 'Using density', [Q('pep-6-4a', '密度的应用', 'Using density', '由 ρ 与 V 求 m。', 'Mass from ρ and V.')]),
     ]),
     chapter('pep-7', 'g8b', '力', 'Force', [
       S('pep-7-1', '力', 'Force', [
@@ -145,6 +167,12 @@ export const pepJunior = {
           'Static friction has a maximum; kinetic friction is μk N. Area is not in the formula.',
           { F: 4, m: 2, g: 9.8, muS: 0.4, muK: 0.3, area: 0.04 }),
       ]),
+      S('pep-8-4', '同一直线上二力的合成', 'Collinear resultant', [
+        R('pep-8-4a', 'force-compose', '二力合成', 'Resultant',
+          '向右为正。合力是 F1 + F2，不是两个绝对值相加。',
+          'Right is positive. The resultant is F1 + F2, not the sum of the absolute values.',
+          { F1: 6, F2: -4 }),
+      ]),
     ], true),
     chapter('pep-9', 'g8b', '压强', 'Pressure', [
       S('pep-9-1', '压强', 'Pressure', [
@@ -165,8 +193,11 @@ export const pepJunior = {
           'h = P / (ρ_Hg g).',
           { P: 1.013e5, g: 9.8, r: 0.1 }),
       ]),
-      S('pep-9-4', '流体压强与流速的关系', 'Flow and pressure', [
-        R('pep-9-4a', 'bernoulli', '流速与压强', 'Speed and pressure',
+      S('pep-9-4', '跨学科实践：制作简易活塞式抽水机', 'Practical: a lift pump', [
+        Q('pep-9-4a', '抽水机', 'A lift pump', '大气压把水托起。这里不另做一台机器。', 'Air pressure lifts the water. This section does not add a machine.'),
+      ]),
+      S('pep-9-5', '流体压强与流速的关系', 'Flow and pressure', [
+        R('pep-9-5a', 'bernoulli', '流速与压强', 'Speed and pressure',
           '窄处速度大，压强小。',
           'The narrow part is faster and at lower pressure.',
           { mode: 'pipe', A1: 0.02, A2: 0.008, v1: 2, rho: 1000, P1: 120000, vTop: 30, vBottom: 24, area: 0.4 }),
@@ -195,12 +226,59 @@ export const pepJunior = {
           'Compare the average density with the liquid.',
           { mode: 'ship', rhoO: 600, rhoL: 1000, V: 1.2, g: 9.8, mass: 800, ballast: 200 }, true),
       ]),
+      S('pep-10-4', '跨学科实践：制作微型密度计', 'Practical: a hydrometer', [
+        Q('pep-10-4a', '密度计', 'A hydrometer', '漂浮时排开的液体重等于自重。', 'A floating object displaces a weight equal to its own.'),
+      ]),
     ], true),
     chapter('pep-11', 'g8b', '功和机械能', 'Work and energy', [
-      S('pep-11-1', '功', 'Work', [Q('pep-11-1a', '功', 'Work', 'W = Fs。', 'W = Fs.')]),
-      S('pep-11-2', '功率', 'Power', [Q('pep-11-2a', '功率', 'Power', 'P = W/t。', 'P = W/t.')]),
-      S('pep-11-3', '动能和势能', 'Kinetic and potential', [Q('pep-11-3a', '两种能量', 'Two energies', '动能与重力势能。', 'Kinetic energy and gravitational potential energy.')]),
-      S('pep-11-4', '机械能及其转化', 'Mechanical energy', [Q('pep-11-4a', '转化', 'Conversion', '守恒时两者之和不变。', 'Their sum stays constant when the model conserves it.')]),
+      S('pep-11-1', '功', 'Work', [
+        R('pep-11-1a', 'work', '功', 'Work',
+          'W = F s cosθ。',
+          'W = F s cosθ.',
+          { F: 10, s: 2, theta: 60, t: 4 }),
+      ]),
+      S('pep-11-2', '功率', 'Power', [
+        R('pep-11-2a', 'work', '功率', 'Power',
+          'P = W / t。',
+          'P = W / t.',
+          { F: 10, s: 2, theta: 60, t: 4 }),
+      ]),
+      S('pep-11-3', '动能和势能', 'Kinetic and potential', [
+        R('pep-11-3a', 'energy', '两种能量', 'Two energies',
+          '动能与重力势能随位置交换。',
+          'Kinetic energy and gravitational potential trade places as the object moves.',
+          { m: 1, g: 9.8, H: 1.2, alpha: 30, mu: 0 }),
+      ]),
+      S('pep-11-4', '机械能及其转化', 'Mechanical energy', [
+        R('pep-11-4a', 'energy', '转化', 'Conversion',
+          'μ = 0 时两者之和等于 mgH。',
+          'With μ = 0 their sum stays at mgH.',
+          { m: 1, g: 9.8, H: 1.2, alpha: 30, mu: 0 }),
+      ]),
     ]),
+    chapter('pep-12', 'g8b', '简单机械', 'Simple machines', [
+      S('pep-12-1', '杠杆', 'Levers', [
+        R('pep-12-1a', 'lever', '杠杆', 'Lever',
+          'F1 L1 = F2 L2。',
+          'F1 L1 = F2 L2.',
+          { F1: 4, L1: 0.3, F2: 6, L2: 0.2 }, true),
+      ]),
+      S('pep-12-2', '跨学科实践：制作简易杆秤', 'Practical: a steelyard', [
+        Q('pep-12-2a', '杆秤', 'A steelyard', '仍是杠杆平衡，不另做一把秤。', 'Still the lever rule. This section does not add a scale.'),
+      ]),
+      S('pep-12-3', '滑轮', 'Pulleys', [
+        R('pep-12-3a', 'pulley', '滑轮', 'Pulley',
+          '绳端距离是重物上升距离的 n 倍。',
+          'The rope end moves n times as far as the load.',
+          { n: 3, G: 12, Gp: 3, s: 0.6 }),
+      ]),
+      S('pep-12-4', '机械效率', 'Efficiency', [
+        R('pep-12-4a', 'pulley', '机械效率', 'Efficiency',
+          'η = Gh / (F s)。',
+          'η = Gh / (F s).',
+          { n: 3, G: 12, Gp: 3, s: 0.6 }, true),
+      ]),
+    ], true),
   ],
 };
+

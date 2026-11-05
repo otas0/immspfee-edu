@@ -70,6 +70,10 @@ export function hit(x, y, px, py, r = 16) {
   return (x - px) ** 2 + (y - py) ** 2 <= r * r;
 }
 
+export function lab(ui, en, zh) {
+  return ui?.lang === 'zh' ? zh : en;
+}
+
 export const INK = '#1c1c1c';
 export const MUTED = '#5e584e';
 export const RAY = '#c4491d';

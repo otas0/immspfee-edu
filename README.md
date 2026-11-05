@@ -4,7 +4,7 @@ Classroom edition of IMMSPFEE. Lessons follow a textbook, one section at a time.
 
 This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)
 
-Shanghai junior physics is the first complete slice: every section in chapters 4–7 (light, force, density and pressure, buoyancy) runs a simulation whose readouts, checks, and mistake overlay come from the governing equations. Later chapters, the senior 沪科 map, the PEP grade-8 order, and the university entrances are on the same tree and do not draw a stand-in animation.
+Shanghai junior chapters 4–7 were the first complete slice. Chapters 2, 8, and the melting curve, plus the grade-9 circuit, now run from the same rule: readouts, checks, and the mistake overlay come from the governing equations. The 2021 沪科 compulsory books and elective 2 are sectioned from the published contents; the v–t area, horizontal projectile, and energy track are the first senior simulations. PEP grade 8 follows the 2024 contents. The university list is still entrances, and classical mechanics is the one with simulations. A section that is only mapped does not draw a stand-in animation.
 
 ## Run
 

@@ -1,14 +1,15 @@
-import { chapter, queued, section } from './helpers.js';
+import { chapter, queued, ready, section } from './helpers.js';
 
 const Q = queued;
+const R = ready;
 
 function door(id, zh, en, items) {
   return chapter(id, 'uni', zh, en, [
-    section(`${id}-s`, zh, en, items.map(([sid, sz, se, iz, ie]) => Q(sid, sz, se, iz, ie))),
+    section(`${id}-s`, zh, en, items.map((item) => Q(item[0], item[1], item[2], item[3], item[4]))),
   ]);
 }
 
-/** Subject entrances, not another textbook volume. Each slot is a core model to deepen later. */
+/** Subject entrances, not another textbook volume. Classical mechanics is the first entrance with simulations. */
 export const university = {
   id: 'university',
   region: 'university',
@@ -16,17 +17,34 @@ export const university = {
   tocConfidence: 'entrance-map',
   title: { zh: '大学物理 · 学科入口', en: 'University physics · entrances' },
   edition: {
-    zh: '不按“第四册”平铺。每个入口下列出以后要做深的核心模型，现在都还没有模拟。',
-    en: 'Not a fourth textbook. Each entrance lists core models to deepen later. None of them is simulated yet.',
+    zh: '不按“第四册”平铺。经典力学入口的五个模型已经可以上课，其余入口仍只列出关系。',
+    en: 'Not a fourth textbook. The five classical-mechanics models can be taught. The other entrances still list the relation only.',
   },
   volumes: [{ id: 'uni', zh: '学科入口', en: 'Entrances' }],
   chapters: [
-    door('uni-cm', '经典力学进阶', 'Classical mechanics', [
-      ['uni-cm-1', '拉格朗日与哈密顿', 'Lagrangian and Hamiltonian', '由拉格朗日量得到运动方程。', 'Equations of motion from a Lagrangian.'],
-      ['uni-cm-2', '刚体转动', 'Rigid rotation', '欧拉方程的公开形式。', 'Euler’s equations in their public form.'],
-      ['uni-cm-3', '混沌', 'Chaos', '双摆或非线性摆。', 'A double pendulum or a nonlinear pendulum.'],
-      ['uni-cm-4', '有心力', 'Central forces', '轨道由有心力得出。', 'Orbits from a central force.'],
-      ['uni-cm-5', '两体简正模', 'Normal modes', '耦合振子的简正模。', 'Normal modes of coupled oscillators.'],
+    chapter('uni-cm', 'uni', '经典力学进阶', 'Classical mechanics', [
+      section('uni-cm-s', '经典力学进阶', 'Classical mechanics', [
+        R('uni-cm-1', 'oscillator', '拉格朗日与哈密顿', 'Lagrangian and Hamiltonian',
+          '弹簧振子 L = T − V，H = T + V。x = A cos(ωt) 同时满足牛顿第二定律和欧拉–拉格朗日方程，H 保持 ½kA²。',
+          'For the spring, L = T − V and H = T + V. x = A cos(ωt) satisfies both Newton’s second law and the Euler–Lagrange equation, and H stays at ½kA².',
+          { m: 0.5, k: 8, A: 0.12 }),
+        R('uni-cm-2', 'rigid-disk', '刚体转动', 'Rigid rotation',
+          '均匀圆盘绕中心：τ = R F sinφ，I = ½ M R²，α = τ / I。φ 从半径量起。',
+          'A uniform disk about its centre: τ = R F sinφ, I = ½ M R², α = τ / I. φ is measured from the radius.',
+          { M: 2, R: 0.2, F: 4, phi: 90 }),
+        R('uni-cm-3', 'pendulum-pair', '非线性摆', 'A nonlinear pendulum',
+          'θ\'\' = −(g/L) sinθ。两个摆只差一个小的初始角度，角分离会随时间变化。能量按 ½(Lθ\')² + gL(1−cosθ) 计算。',
+          'θ\'\' = −(g/L) sinθ. Two pendulums start a small angle apart, and that separation changes with time. Energy is ½(Lθ\')² + gL(1−cosθ).',
+          { g: 9.8, L: 1, theta0: 2.5, delta: 0.02 }),
+        R('uni-cm-4', 'central-orbit', '有心力', 'Central forces',
+          '发射方向垂直于半径。比能量 ½v² − GM/r 决定圆、椭圆、抛物线或双曲线。GM 是这个模型的参数。',
+          'The launch is perpendicular to the radius. The specific energy ½v² − GM/r selects a circle, ellipse, parabola, or hyperbola. GM is this model’s parameter.',
+          { GM: 1, r: 1, v: 1 }),
+        R('uni-cm-5', 'normal-modes', '两体简正模', 'Normal modes',
+          '两堵墙、两个等质量物块、三根等劲度弹簧。对称模 ω = √(k/m)，反对称模 ω = √(3k/m)。',
+          'Two walls, two equal masses, three equal springs. The symmetric frequency is √(k/m) and the antisymmetric frequency is √(3k/m).',
+          { m: 1, k: 4, A1: 0.4, A2: 0.25 }),
+      ]),
     ]),
     door('uni-em', '电磁学进阶', 'Electromagnetism', [
       ['uni-em-1', '麦克斯韦方程组', 'Maxwell’s equations', '真空中的平面波由这组方程得出。', 'A plane wave in vacuum from the equations.'],
@@ -66,3 +84,4 @@ export const university = {
     ]),
   ],
 };
+

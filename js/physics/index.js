@@ -1,12 +1,9 @@
+export { fmt } from '../fmt.js';
 export * from './optics.js';
 export * from './mech.js';
 export * from './fluids.js';
+export * from './machines.js';
+export * from './motion.js';
+export * from './circuits.js';
+export * from './advance.js';
 export * from './thermal.js';
-
-export function fmt(n, digits = 3) {
-  if (n == null || typeof n !== 'number' || !Number.isFinite(n)) return '—';
-  const a = Math.abs(n);
-  if (a !== 0 && (a < 0.001 || a >= 1e5)) return n.toExponential(2);
-  const s = n.toFixed(digits);
-  return s.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
-}

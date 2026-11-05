@@ -1,4 +1,5 @@
-import { fmt, specificHeat } from '../physics/index.js';
+import { fmt } from '../fmt.js';
+import { specificHeat } from '../physics/thermal.js';
 import { num, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }

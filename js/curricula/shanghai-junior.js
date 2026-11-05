@@ -35,13 +35,22 @@ export const shanghaiJunior = {
     ]),
     C('shj-2', 'g8v1', '机械运动', 'Mechanical motion', [
       S('shj-2-1', '运动与静止', 'Motion and rest', [
-        Q('shj-2-1a', '参照物', 'Reference frames', '同一运动相对不同参照物。', 'One motion, two reference objects.'),
+        R('shj-2-1a', 'frames', '参照物', 'Reference frames',
+          '同一辆小车和同一个人，换参照物之后，速度要减去参照物相对地面的速度。',
+          'The same cart and the same person. After you change the reference object, subtract that object’s ground velocity.',
+          { frame: 'cart', vCart: 2, vPerson: 0.5, xCart0: 0, xPerson0: 0 }),
       ]),
       S('shj-2-2', '运动的快慢', 'How fast', [
-        Q('shj-2-2a', 's–t 图像', 's–t graph', '位移由运动方程给出，并在图上标出对应点。', 'Displacement from the motion equation, marked on the graph.'),
+        R('shj-2-2a', 'st-graph', 's–t 图像', 's–t graph',
+          '位置来自两段匀速。拖动图上的点，运动跳到对应时刻。',
+          'Position comes from two constant speeds. Drag the point on the graph and the motion jumps to that time.',
+          { v1: 0.4, v2: 1.2, split: 3 }),
       ]),
       S('shj-2-3', '速度的测量', 'Measuring speed', [
-        Q('shj-2-3a', '平均速度', 'Average speed', 'v = s/t。', 'v = s/t.'),
+        R('shj-2-3a', 'st-graph', '平均速度', 'Average speed',
+          '平均速度是整段位移除以整段时间，不是你正在看的那一段的速度。',
+          'Average speed is the whole displacement over the whole time, not the speed of the piece you are looking at.',
+          { v1: 0.4, v2: 1.2, split: 3 }),
       ]),
     ]),
     C('shj-3', 'g8v1', '声现象', 'Sound', [
@@ -197,19 +206,34 @@ export const shanghaiJunior = {
     ], true),
     C('shj-8', 'g8v2', '简单机械 功和能', 'Machines, work, and energy', [
       S('shj-8-1', '杠杆', 'Levers', [
-        Q('shj-8-1a', '杠杆平衡', 'Lever balance', 'F1 L1 = F2 L2。', 'F1 L1 = F2 L2.'),
+        R('shj-8-1a', 'lever', '杠杆平衡', 'Lever balance',
+          '力都垂直于杠杆时，F1 L1 = F2 L2。拖动力臂。',
+          'With both forces perpendicular to the bar, F1 L1 = F2 L2. Drag the arms.',
+          { F1: 4, L1: 0.3, F2: 6, L2: 0.2 }, true),
       ]),
       S('shj-8-2', '滑轮', 'Pulleys', [
-        Q('shj-8-2a', '滑轮组', 'Pulley system', '绳子段数、省力和距离。', 'Rope segments, force, and distance.'),
+        R('shj-8-2a', 'pulley', '滑轮组', 'Pulley system',
+          'n 段绳子承担重物和动滑轮。拉力 F = (G + Gp) / n，绳端移动距离是重物上升距离的 n 倍。拖动绳端。',
+          'n segments support the load and the movable pulley. F = (G + Gp) / n, and the rope end moves n times as far as the load. Drag the rope end.',
+          { n: 3, G: 12, Gp: 3, s: 0.6 }, true),
       ]),
       S('shj-8-3', '功与功率', 'Work and power', [
-        Q('shj-8-3a', '功和功率', 'Work and power', 'W = Fs cosθ，P = W/t。', 'W = Fs cosθ, P = W/t.'),
+        R('shj-8-3a', 'work', '功和功率', 'Work and power',
+          'W = F s cosθ，平均功率 P = W / t。θ 是力与位移的夹角。',
+          'W = F s cosθ, and the average power is P = W / t. θ is the angle between the force and the displacement.',
+          { F: 10, s: 2, theta: 60, t: 4 }),
       ]),
       S('shj-8-4', '机械能及其转化', 'Mechanical energy', [
-        Q('shj-8-4a', '动能与势能', 'Kinetic and potential', '守恒条件下动能与势能之和不变。', 'Kinetic plus potential stays constant when the model conserves it.'),
+        R('shj-8-4a', 'energy', '动能与势能', 'Kinetic and potential',
+          '从斜面顶端静止释放。μ = 0 时动能加势能始终等于 mgH。色条和守恒线跟着运动走。',
+          'Released from rest at the top of a slope. With μ = 0, kinetic plus potential stays equal to mgH. The bars and the conservation line follow the motion.',
+          { m: 1, g: 9.8, H: 1.2, alpha: 30, mu: 0 }),
       ]),
       S('shj-8-5', '机械效率', 'Efficiency', [
-        Q('shj-8-5a', '有用功与总功', 'Useful work and total work', 'η = W有用 / W总。', 'η = W_useful / W_total.'),
+        R('shj-8-5a', 'pulley', '有用功与总功', 'Useful work and total work',
+          '有用功是 Gh，总功是 F s，额外功来自动滑轮的重力。η = Gh / (F s)。',
+          'Useful work is Gh, total work is F s, and the extra work is the weight of the movable pulley. η = Gh / (F s).',
+          { n: 3, G: 12, Gp: 3, s: 0.6 }, true),
       ]),
     ]),
     C('shj-9', 'g8v2', '物态变化', 'Changes of state', [
@@ -220,7 +244,10 @@ export const shanghaiJunior = {
         Q('shj-9-2a', '蒸发与沸腾', 'Evaporation and boiling', '沸点和饱和汽压的公开关系。', 'The public boiling-point and vapour-pressure relations.'),
       ]),
       S('shj-9-3', '熔化和凝固', 'Melting and freezing', [
-        Q('shj-9-3a', '熔化图像', 'Melting curve', '晶体平台段温度不变。', 'A crystal’s plateau stays at one temperature.'),
+        R('shj-9-3a', 'melting', '熔化图像', 'Melting curve',
+          '加热功率可调。晶体在熔点处继续吸热，温度保持不变，图上是一段平台。关掉“晶体”就没有这段平台。',
+          'The heating power is adjustable. A crystal keeps absorbing heat at the melting point while the temperature stays put, which is the plateau. Turn the crystal off and the plateau goes away.',
+          { m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0, crystal: true }),
       ]),
       S('shj-9-4', '升华和凝华', 'Sublimation', [
         Q('shj-9-4a', '升华与凝华', 'Sublimation and deposition', '物态直接在固气之间变化。', 'The change is directly between solid and gas.'),
@@ -254,19 +281,32 @@ export const shanghaiJunior = {
         Q('shj-11-3a', '电压', 'Voltage', '电压表并联。', 'A voltmeter is in parallel.'),
       ]),
       S('shj-11-4', '串联电路和并联电路', 'Series and parallel', [
-        Q('shj-11-4a', '串并联', 'Series and parallel', '通路、断路、短路。', 'Closed, open, and short circuits.'),
+        R('shj-11-4a', 'circuit', '通路、断路、短路', 'Closed, open, short',
+          '从一个接线柱拖到另一个接线柱来连线。开关断开是断路。把电源正负极直接连上是短路，电流变为 E/r。',
+          'Drag from one terminal to another to connect them. An open switch is an open circuit. A wire across the battery is a short, and the current becomes E/r.',
+          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 }, true),
       ]),
       S('shj-11-5', '串联电路和并联电路中电流、电压的特点', 'Current and voltage rules', [
-        Q('shj-11-5a', '电流电压分配', 'How I and U split', '串联电流相等，并联电压相等。', 'Series current is shared; parallel voltage is shared.'),
+        R('shj-11-5a', 'circuit', '电流电压分配', 'How I and U split',
+          '串联时各电阻电流相同。改成并联后，各支路电压相同，电流按电阻分配。',
+          'In series the resistors carry the same current. Rewire them in parallel and they share the voltage, while the currents split by resistance.',
+          { layout: 'parallel', links: 'bp-s1,s2-a1,s2-b1,a2-bn,b2-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 }),
       ]),
     ]),
     C('shj-12', 'g9v1', '欧姆定律', 'Ohm’s law', [
       S('shj-12-1', '电阻 变阻器', 'Resistance', [
-        Q('shj-12-1a', '滑动变阻器', 'Rheostat', 'R = ρL/A，滑片改变接入长度。', 'R = ρL/A; the slider changes the length in the circuit.'),
+        R('shj-12-1a', 'circuit', '滑动变阻器', 'Rheostat',
+          '拖动变阻器的滑片改变 Rs。定值电阻上的点沿着 U = I R1 移动。',
+          'Drag the rheostat slider to change Rs. The point for the fixed resistor moves along U = I R1.',
+          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }),
       ]),
       S('shj-12-2', '电流与电压、电阻的关系', 'Current, voltage, resistance', [
-        Q('shj-12-2a', '欧姆定律', 'Ohm’s law', 'I = U/R，并画出 I–U 图。', 'I = U/R, with the I–U graph.'),
+        R('shj-12-2a', 'circuit', '欧姆定律', 'Ohm’s law',
+          'I = U / R。图上的直线是定值电阻的 U = I R，圆点是当前读数。',
+          'I = U / R. The line is U = I R for the fixed resistor, and the dot is the present reading.',
+          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }, true),
       ]),
+
       S('shj-12-3', '电阻的测量', 'Measuring resistance', [
         Q('shj-12-3a', '伏安法', 'Voltmeter–ammeter', 'R = U/I。', 'R = U/I.'),
       ]),

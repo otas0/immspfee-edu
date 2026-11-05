@@ -1,5 +1,6 @@
-import { fmt, forceElements, hooke, weight, collinearResultant, twoForce, friction, inertiaCart } from '../physics/index.js';
-import { num, tog, clear, line, arrow, text, handle, hit, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js';
+import { forceElements, hooke, weight, collinearResultant, twoForce, friction, inertiaCart } from '../physics/mech.js';
+import { num, tog, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -50,7 +51,7 @@ export const forceSim = {
     const y2 = midY - len * Math.sin(rad);
     arrow(ctx, sx, midY, x2, y2, RAY, 3);
     if (ui.wrong) arrow(ctx, midX, midY, midX + len * Math.cos(rad), midY - len * Math.sin(rad), '#a33', 2);
-    text(ctx, 'centre', midX, midY + 22, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'centre', '中心'), midX, midY + 22, MUTED, 12, 'center');
     handle(ctx, sx, midY, ui.drag === 'tail');
     handle(ctx, x2, y2, ui.drag === 'tip');
     ui._geo = { midX, midY, px, sx, x2, y2 };
@@ -309,9 +310,10 @@ export const balanceSim = {
     arrow(ctx, x + 40, y2, x + 40 + p.F2 * s, y2, RAY2, 3);
     if (!p.collinear && !split) {
       line(ctx, x - 70, y1 - 36, x + 70, y1 - 36, MUTED, 1, [4, 3]);
-      text(ctx, 'offset', x, y1 - 48, MUTED, 12, 'center');
+      text(ctx, lab(ui, 'offset', '错开'), x, y1 - 48, MUTED, 12, 'center');
     }
-    text(ctx, d.balanced ? 'equilibrium' : d.reason, w * 0.5, h * 0.16, INK, 14, 'center');
+    const reasonZh = { equilibrium: '平衡', unbalanced: '不平衡', 'two-bodies': '两个物体', 'not-collinear': '不共线' };
+    text(ctx, lab(ui, d.balanced ? 'equilibrium' : d.reason, d.balanced ? '平衡' : (reasonZh[d.reason] || d.reason)), w * 0.5, h * 0.16, INK, 14, 'center');
   },
   pointer() { return null; },
 };
@@ -372,7 +374,7 @@ export const frictionSim = {
     if (ui.wrong) {
       text(ctx, `f∝A → ${fmt(d.friction * (p.area / 0.04), 1)}`, x, ground - 52, '#a33', 12, 'center');
     }
-    text(ctx, d.regime, x, ground + 18, MUTED, 12, 'center');
+    text(ctx, lab(ui, d.regime, d.regime === 'static' ? '静止' : '滑动'), x, ground + 18, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -428,8 +430,9 @@ export const inertiaSim = {
     ctx.fillStyle = '#e7d2b8';
     ctx.fillRect(blockX - 14, ground - 40, 28, 22);
     ctx.strokeRect(blockX - 14, ground - 40, 28, 22);
-    text(ctx, 'stopper', stopX, ground - 58, RAY, 11, 'center');
-    text(ctx, d.phase, w * 0.5, h * 0.2, INK, 14, 'center');
+    text(ctx, lab(ui, 'stopper', '挡板'), stopX, ground - 58, RAY, 11, 'center');
+    const phaseZh = { rest: '静止', together: '一起运动', sliding: '滑行', stopped: '停下' };
+    text(ctx, lab(ui, d.phase, phaseZh[d.phase] || d.phase), w * 0.5, h * 0.2, INK, 14, 'center');
   },
   pointer() { return null; },
 };

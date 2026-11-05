@@ -1,12 +1,17 @@
 import { BOOKS, flatten, getBook } from '../js/curricula/index.js';
-import { SIMS } from '../js/sims/registry.js';
+import { SIMS, loadAllSims } from '../js/sims/registry.js';
 import {
   thinLens, lensScreen, snell, pinholeImage, reflectionLaw, spectacle,
   hooke, twoForce, friction, inertiaCart, weight,
   solidPressure, hydrostatics, torricelli, bernoulliPipe,
   buoyancyOrigin, densityLab, floatState, archimedes, weighingBuoyancy,
+  lever, pulley, workPower, circuit, CIRCUIT_LINKS,
+  frames, segmentMotion, vtArea, projectile, energyTrack, melting,
+  oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes,
   specificHeat,
 } from '../js/physics/index.js';
+
+await loadAllSims();
 
 let failed = 0;
 function assert(cond, msg) {
@@ -86,6 +91,62 @@ near(archimedes({ V: 0.0003, frac: 0.5, rho: 1000, g: 9.8 }).Fb, 1000 * 9.8 * 0.
 const hang = weighingBuoyancy({ V: 0.0002, g: 9.8, rhoL: 1000, rhoO: 2700 });
 near(hang.T, hang.G - hang.Fb, 1e-9, 'weighing');
 
+const balancedLever = lever({ F1: 4, L1: 0.3, F2: 6, L2: 0.2 });
+assert(balancedLever.balanced && Math.abs(balancedLever.tau) < 1e-9, 'lever balances');
+const block = pulley({ n: 3, G: 12, Gp: 3, s: 0.6 });
+near(block.F, 5, 1e-9, 'pulley force');
+near(block.h, 0.2, 1e-9, 'pulley height');
+near(block.eta, 0.8, 1e-9, 'pulley efficiency');
+near(workPower({ F: 10, s: 2, theta: 60, t: 4 }).W, 10, 1e-9, 'work at 60°');
+
+const series = circuit({ layout: 'series', links: CIRCUIT_LINKS.series, closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 });
+near(series.I, 3 / 10.5, 1e-9, 'series current');
+near(series.I1, series.I2, 1e-9, 'series currents match');
+const opened = circuit({ ...series, links: CIRCUIT_LINKS.series, closed: false, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 });
+assert(opened.fault === 'open' && Math.abs(opened.I) < 1e-8, 'open switch');
+const dead = circuit({ layout: 'series', links: 'bp-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 });
+assert(dead.fault === 'short', 'short across the battery');
+near(dead.I, 6, 1e-9, 'short current E/r');
+const ohm = circuit({ layout: 'ohm', links: CIRCUIT_LINKS.ohm, closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 });
+near(ohm.U1, ohm.I1 * 10, 1e-9, 'ohm U = IR');
+
+const seen = frames({ frame: 'cart', vCart: 2, vPerson: 0.5, xCart0: 0, xPerson0: 0 }, 2);
+near(seen.vPersonView, -1.5, 1e-9, 'person relative to the cart');
+near(seen.xPersonView, -3, 1e-9, 'person position in the cart frame');
+const piece = segmentMotion({ v1: 0.4, v2: 1.2, split: 3 }, 4);
+near(piece.x, 0.4 * 3 + 1.2, 1e-9, 'two-piece position');
+const area = vtArea({ v0: 2, a: 1, t1: 1, t2: 3 });
+near(area.area, 8, 1e-9, 'v–t area');
+near(area.area, area.displacement, 1e-9, 'area equals displacement');
+const shot = projectile({ v0: 4, H: 5, g: 10 }, 0.5);
+near(shot.x, 2, 1e-9, 'projectile x');
+near(shot.y, 3.75, 1e-9, 'projectile y');
+const coasting = energyTrack({ m: 1, g: 10, H: 2, alpha: 30, mu: 0 }, 0);
+near(coasting.E, coasting.E0, 1e-9, 'energy starts at mgH');
+const bottom = energyTrack({ m: 1, g: 10, H: 2, alpha: 30, mu: 0 }, 10);
+near(bottom.KE, bottom.E0, 1e-6, 'bottom kinetic energy');
+near(bottom.PE, 0, 1e-6, 'floor potential');
+const ice = melting({ m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0, crystal: true }, 100);
+assert(ice.phase === 'melting' && ice.T === 0, 'crystal plateau');
+const glass = melting({ ...ice, crystal: false, m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0 }, 100);
+assert(glass.phase === 'warming' && glass.T !== 0, 'no plateau without a crystal');
+
+const spring = oscillator({ m: 0.5, k: 8, A: 0.12 }, 0.3);
+near(spring.H, spring.H0, 1e-9, 'Hamiltonian conserved');
+near(spring.residual, 0, 1e-9, 'Euler–Lagrange residual');
+const disk = rigidDisk({ M: 2, R: 0.2, F: 4, phi: 90 }, 1);
+near(disk.I, 0.04, 1e-12, 'disk inertia');
+near(disk.alpha, 20, 1e-9, 'disk angular acceleration');
+const swing = pendulumPair({ g: 9.8, L: 1, theta0: 0.4, delta: 0.01 }, 1);
+assert(Math.abs(swing.E - swing.E0) < 1e-3, 'pendulum energy stays put');
+const circle = centralOrbit({ GM: 1, r: 1, v: 1 }, Math.PI / 2);
+assert(circle.kind === 'circle', 'circular orbit');
+near(circle.x, 0, 0.02, 'quarter orbit x');
+near(circle.y, 1, 0.02, 'quarter orbit y');
+const modes = normalModes({ m: 1, k: 4, A1: 0.4, A2: 0 }, 0);
+near(modes.w2, Math.sqrt(12), 1e-9, 'antisymmetric frequency');
+near(modes.x1, modes.x2, 1e-9, 'symmetric mode');
+
 const heat = specificHeat({ m1: 0.2, c1: 4200, m2: 0.2, c2: 900, P: 420, T0: 20 }, 10);
 near(heat.Q, 4200, 1e-9, 'shared heat');
 near(heat.dT1, 5, 1e-9, 'water rise Q/(c m)');
@@ -131,9 +192,27 @@ for (const book of BOOKS) {
     }
   }
 }
-for (const id of Object.keys(SIMS)) {
-  assert([...ids].some((lesson) => flatten(getBook('sh-junior')).concat(flatten(getBook('pep-junior'))).some((r) => r.lesson.sim === id)), `sim ${id} is mounted`);
+const mounted = new Set();
+for (const book of BOOKS) {
+  for (const row of flatten(book)) {
+    if (row.lesson.sim) mounted.add(row.lesson.sim);
+  }
 }
+for (const id of Object.keys(SIMS)) {
+  assert(mounted.has(id), `sim ${id} is mounted`);
+}
+const senior = getBook('sh-senior');
+assert(senior.tocConfidence === 'compulsory-1-3-and-elective-2-2021', 'senior contents note');
+assert(flatten(senior).some((row) => row.lesson.sim === 'vt-area'), 'v–t lesson');
+assert(flatten(senior).some((row) => row.lesson.sim === 'projectile'), 'projectile lesson');
+assert(flatten(senior).some((row) => row.section.title.zh === '平抛运动'), 'published projectile section');
+const pep = getBook('pep-junior');
+assert(pep.tocConfidence === 'grade8-2024', 'pep 2024 tree');
+assert(!pep.edition.zh.includes('2011'), 'pep edition no longer says 2011');
+assert(flatten(pep).some((row) => row.section.title.zh.includes('机械效率')), 'pep efficiency section');
+assert(flatten(pep).some((row) => row.section.title.zh.includes('同一直线上二力的合成')), 'pep collinear section');
+const uni = flatten(getBook('university')).filter((row) => row.chapter.id === 'uni-cm');
+assert(uni.length >= 5 && uni.every((row) => row.lesson.status === 'ready'), 'classical mechanics entrance');
 
 const pepLens = flatten(getBook('pep-junior')).find((r) => r.lesson.sim === 'convex-lens');
 const shLens = flatten(junior).find((r) => r.lesson.sim === 'convex-lens');

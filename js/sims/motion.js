@@ -1,0 +1,530 @@
+import { fmt } from '../fmt.js';
+import {
+  frames, segmentMotion, uniformAccel, vtArea, projectile, energyTrack, melting,
+} from '../physics/motion.js';
+import { num, sel, tog, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+
+function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
+function opt(en, zh) { return { en, zh }; }
+function ro(en, zh, value) { return { en, zh, value }; }
+
+const FRAMES = [
+  { value: 'ground', en: 'Ground', zh: '地面' },
+  { value: 'cart', en: 'Cart', zh: '小车' },
+  { value: 'person', en: 'Person', zh: '人' },
+];
+
+export const frameSim = {
+  id: 'frames',
+  timed: true,
+  tMax: () => 8,
+  authority: 'Velocities are stored in the ground frame. In another frame every velocity has that frame’s ground-velocity subtracted, and every position is measured from that object.',
+  params: { frame: 'cart', vCart: 2, vPerson: 0.5, xCart0: 0, xPerson0: 0 },
+  schema: [
+    sel('frame', 'Reference', '参照物', FRAMES),
+    num('vCart', 'Cart speed', '小车速度', 'm/s', -3, 4, 0.1),
+    num('vPerson', 'Person speed', '人的速度', 'm/s', -3, 4, 0.1),
+  ],
+  compute: (p, t) => frames(p, t),
+  readouts: (d) => [
+    ro('v cart', '小车速度', `${fmt(d.vCartView, 2)} m/s`),
+    ro('v person', '人的速度', `${fmt(d.vPersonView, 2)} m/s`),
+    ro('x person', '人的位置', `${fmt(d.xPersonView, 2)} m`),
+  ],
+  checks: (d) => [
+    q('v', 'In this frame the person’s velocity is', '在这个参照系里，人的速度是', [
+      opt(`${fmt(d.vPersonView, 2)} m/s`, `${fmt(d.vPersonView, 2)} m/s`),
+      opt(`${fmt(d.vPerson, 2)} m/s`, `${fmt(d.vPerson, 2)} m/s`),
+    ], 0),
+    q('rest', 'An object is at rest in a frame when', '一个物体在某参照系中静止，是因为', [
+      opt('its velocity in that frame is zero', '它在该参照系中的速度为零'),
+      opt('its ground speed is zero', '它相对地面的速度为零'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Keeping the ground velocities after the reference object changes describes a different frame from the one on the stage.',
+    zh: '换了参照物却仍用相对地面的速度，描述的就不是画面上这个参照系。',
+    toggleEn: 'Keep the ground velocities',
+    toggleZh: '仍用相对地面的速度',
+  },
+  draw(ctx, w, h, _p, d, ui) {
+    clear(ctx, w, h);
+    const y = h * 0.58;
+    const origin = w * 0.5;
+    const px = 28;
+    line(ctx, 20, y, w - 20, y, '#cfc6b8', 2);
+    const xc = origin + (ui.wrong ? d.xCart : d.xCartView) * px;
+    const xp = origin + (ui.wrong ? d.xPerson : d.xPersonView) * px;
+    ctx.fillStyle = RAY2;
+    ctx.fillRect(xc - 22, y - 26, 44, 22);
+    text(ctx, lab(ui, 'cart', '小车'), xc, y - 40, RAY2, 12, 'center');
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(xp, y - 16, 8, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, lab(ui, 'person', '人'), xp, y + 18, RAY, 12, 'center');
+    text(ctx, lab(ui, d.frame === 'ground' ? 'ground' : d.frame === 'cart' ? 'cart frame' : 'person frame', d.frame === 'ground' ? '地面' : d.frame === 'cart' ? '以小车为参照' : '以人为参照'), w * 0.5, h * 0.16, INK, 15, 'center');
+  },
+};
+
+export const stSim = {
+  id: 'st-graph',
+  timed: true,
+  tMax: () => 8,
+  authority: 'Two constant-velocity pieces. The highlighted point is the position at the clock time. Average speed from the start is x/t.',
+  params: { v1: 0.4, v2: 1.2, split: 3 },
+  schema: [
+    num('v1', 'First speed', '前段速度', 'm/s', -1, 3, 0.1),
+    num('v2', 'Second speed', '后段速度', 'm/s', -1, 3, 0.1),
+    num('split', 'Change at', '换速时刻', 's', 0.5, 7, 0.1),
+  ],
+  compute: (p, t) => segmentMotion(p, t),
+  readouts: (d) => [
+    ro('x', 'x', `${fmt(d.x, 2)} m`),
+    ro('v', 'v', `${fmt(d.v, 2)} m/s`),
+    ro('v average', '平均速度', `${fmt(d.vAvg, 2)} m/s`),
+  ],
+  checks: (d) => [
+    q('x', 'The position at this time is', '这个时刻的位置是', [
+      opt(`${fmt(d.x, 2)} m`, `${fmt(d.x, 2)} m`),
+      opt(`${fmt(d.v2 * d.t, 2)} m`, `${fmt(d.v2 * d.t, 2)} m`),
+    ], 0),
+    q('avg', 'Average speed from the start is', '从起点算起的平均速度是', [
+      opt(`${fmt(d.vAvg, 2)} m/s`, `${fmt(d.vAvg, 2)} m/s`),
+      opt(`${fmt((d.v1 + d.v2) / 2, 2)} m/s`, `${fmt((d.v1 + d.v2) / 2, 2)} m/s`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using the speed of the piece the object is in now, times the whole time, skips the other piece.',
+    zh: '用现在这一段的速度乘上全程时间，把另一段的路程漏掉了。',
+    toggleEn: 'Use only the current speed',
+    toggleZh: '只用当前这一段的速度',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const yRoad = h * 0.28;
+    const x0 = w * 0.12;
+    const px = 36;
+    line(ctx, x0, yRoad, w - 24, yRoad, '#cfc6b8', 2);
+    const x = x0 + d.x * px;
+    ctx.fillStyle = RAY;
+    ctx.fillRect(x - 10, yRoad - 18, 20, 16);
+    const gx = w * 0.12;
+    const gy = h * 0.78;
+    const gw = w * 0.76;
+    const gh = h * 0.36;
+    line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
+    line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
+    const tMax = 8;
+    const xs = [];
+    for (let i = 0; i <= 40; i += 1) {
+      const tt = (tMax * i) / 40;
+      xs.push(segmentMotion(p, tt).x);
+    }
+    const xMax = Math.max(1, ...xs.map((v) => Math.abs(v)));
+    ctx.beginPath();
+    xs.forEach((xv, i) => {
+      const X = gx + (gw * i) / 40;
+      const Y = gy - (xv / xMax) * (gh * 0.8);
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const X = gx + (d.t / tMax) * gw;
+    const Y = gy - ((ui.wrong ? d.v * d.t : d.x) / xMax) * (gh * 0.8);
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(X, Y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, lab(ui, 's–t', 's–t'), gx + gw, gy - gh, MUTED, 12, 'right');
+    handle(ctx, X, Y, ui.drag === 't');
+    ui._geo = { gx, gw, tMax };
+  },
+  pointer(ev, _p, _d, ui) {
+    const g = ui._geo;
+    if (!g) return null;
+    if (ev.type === 'down') { ui.drag = 't'; return {}; }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    const t = Math.min(g.tMax, Math.max(0, ((ev.x - g.gx) / g.gw) * g.tMax));
+    return { __clock: t };
+  },
+};
+
+export const vtSim = {
+  id: 'vt-area',
+  timed: true,
+  tMax: (p) => p.tEnd,
+  authority: 'Constant acceleration: v = v0 + a t and x = v0 t + ½ a t². The signed area under v–t from t1 to t2 equals x(t2) − x(t1).',
+  params: { v0: 2, a: 1, t1: 1, t2: 3, tEnd: 6 },
+  schema: [
+    num('v0', 'v0', 'v0', 'm/s', -4, 8, 0.1),
+    num('a', 'a', 'a', 'm/s²', -3, 3, 0.1),
+    num('t1', 'Interval start', '区间起点', 's', 0, 6, 0.05),
+    num('t2', 'Interval end', '区间终点', 's', 0, 6, 0.05),
+    num('tEnd', 'Graph length', '图的时长', 's', 2, 8, 0.1),
+  ],
+  compute(p, t) {
+    const motion = uniformAccel(p, Math.min(t, p.tEnd));
+    return { ...motion, ...vtArea(p), tEnd: p.tEnd };
+  },
+  readouts: (d) => [
+    ro('v', 'v', `${fmt(d.v, 2)} m/s`),
+    ro('x', 'x', `${fmt(d.x, 2)} m`),
+    ro('Area t1→t2', 't1 到 t2 的面积', `${fmt(d.area, 2)} m`),
+    ro('Δx', 'Δx', `${fmt(d.displacement, 2)} m`),
+  ],
+  checks: (d) => [
+    q('area', 'The signed area from t1 to t2 is', 't1 到 t2 的有向面积是', [
+      opt(`${fmt(d.area, 2)} m`, `${fmt(d.area, 2)} m`),
+      opt(`${fmt(d.v2 * (d.t2 - d.t1), 2)} m`, `${fmt(d.v2 * (d.t2 - d.t1), 2)} m`),
+      opt(`${fmt(d.v, 2)} m`, `${fmt(d.v, 2)} m`),
+    ], 0),
+    q('eq', 'That area equals', '这块面积等于', [
+      opt('the displacement over the same interval', '同一段时间里的位移'),
+      opt('the acceleration', '加速度'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Using only the final velocity times the duration drops the triangle (or the other end of the trapezium).',
+    zh: '只用末速度乘时间，会把梯形另一端的那一块漏掉。',
+    toggleEn: 'Use v(t2) × Δt',
+    toggleZh: '改用 v(t2)×Δt',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const roadY = h * 0.22;
+    const x0 = w * 0.08;
+    const span = Math.max(4, Math.abs(uniformAccel(p, d.tEnd).x));
+    const cart = x0 + ((d.x + span) / (2 * span)) * (w * 0.84);
+    line(ctx, x0, roadY, w - 16, roadY, '#cfc6b8', 2);
+    ctx.fillStyle = RAY;
+    ctx.fillRect(cart - 12, roadY - 18, 24, 16);
+    text(ctx, lab(ui, 'cart', '小车'), cart, roadY - 28, MUTED, 11, 'center');
+    const gx = w * 0.12;
+    const gy = h * 0.72;
+    const gw = w * 0.76;
+    const gh = h * 0.38;
+    const vPeak = Math.max(2, Math.abs(d.v0), Math.abs(d.v0 + d.a * d.tEnd));
+    const X = (t) => gx + (t / d.tEnd) * gw;
+    const Y = (v) => gy - (v / vPeak) * (gh * 0.42);
+    line(ctx, gx, gy, gx + gw, gy, INK, 1);
+    line(ctx, gx, Y(vPeak), gx, Y(-vPeak), INK, 1);
+    const t1 = d.t1;
+    const t2 = d.t2;
+    ctx.beginPath();
+    ctx.moveTo(X(t1), Y(0));
+    ctx.lineTo(X(t1), Y(d.v1));
+    ctx.lineTo(X(t2), Y(d.v2));
+    ctx.lineTo(X(t2), Y(0));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(196,73,29,0.28)';
+    ctx.fill();
+    line(ctx, X(0), Y(d.v0), X(d.tEnd), Y(d.v0 + d.a * d.tEnd), RAY2, 2);
+    line(ctx, X(d.t), Y(-vPeak), X(d.t), Y(vPeak), RAY, 1);
+    handle(ctx, X(t1), Y(d.v1), ui.drag === 't1');
+    handle(ctx, X(t2), Y(d.v2), ui.drag === 't2');
+    handle(ctx, X(d.t), Y(d.v), ui.drag === 't');
+    const wrong = d.v2 * (t2 - t1);
+    if (ui.wrong) text(ctx, `v2·Δt=${fmt(wrong, 2)}`, gx, gy + 16, '#a33', 12);
+    else text(ctx, `Δx=${fmt(d.displacement, 2)} m`, gx, gy + 16, INK, 12);
+    text(ctx, 'v–t', gx + gw, Y(vPeak), MUTED, 12, 'right');
+    ui._geo = { gx, gw, tEnd: d.tEnd };
+  },
+  pointer(ev, _p, d, ui) {
+    const g = ui._geo;
+    if (!g) return null;
+    const tOf = (x) => Math.min(g.tEnd, Math.max(0, ((x - g.gx) / g.gw) * g.tEnd));
+    if (ev.type === 'down') {
+      const xt = g.gx + (d.t / g.tEnd) * g.gw;
+      const x1 = g.gx + (d.t1 / g.tEnd) * g.gw;
+      const x2 = g.gx + (d.t2 / g.tEnd) * g.gw;
+      if (hit(ev.x, ev.y, xt, ev.y, 14)) ui.drag = 't';
+      else if (Math.abs(ev.x - x1) < Math.abs(ev.x - x2)) ui.drag = 't1';
+      else ui.drag = 't2';
+      return {};
+    }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    const t = tOf(ev.x);
+    if (ui.drag === 't') return { __clock: t };
+    if (ui.drag === 't1') return { t1: t };
+    if (ui.drag === 't2') return { t2: t };
+    return null;
+  },
+};
+
+export const projectileSim = {
+  id: 'projectile',
+  timed: true,
+  tMax: (p) => projectile(p, 0).tLand,
+  authority: 'Horizontal launch, no air resistance. x = v0 t and y = H − ½ g t², with y the height above the floor. Strobes are equal time steps of the same equations.',
+  params: { v0: 4, H: 5, g: 10 },
+  schema: [
+    num('v0', 'Horizontal v0', '水平初速', 'm/s', 0.5, 12, 0.1),
+    num('H', 'Release height', '抛出高度', 'm', 0.5, 12, 0.1),
+    num('g', 'g', 'g', 'm/s²', 1, 20, 0.1),
+  ],
+  compute: (p, t) => projectile(p, t),
+  readouts: (d) => [
+    ro('x', 'x', `${fmt(d.x, 2)} m`),
+    ro('y', 'y', `${fmt(d.y, 2)} m`),
+    ro('vx', 'vx', `${fmt(d.vx, 2)} m/s`),
+    ro('vy', 'vy', `${fmt(d.vy, 2)} m/s`),
+    ro('Range', '水平射程', `${fmt(d.range, 2)} m`),
+  ],
+  checks: (d) => [
+    q('x', 'The horizontal displacement at this time is', '这个时刻的水平位移是', [
+      opt(`${fmt(d.x, 2)} m`, `${fmt(d.x, 2)} m`),
+      opt(`${fmt(d.v0 * d.t - 0.5 * d.g * d.t * d.t, 2)} m`, `${fmt(d.v0 * d.t - 0.5 * d.g * d.t * d.t, 2)} m`),
+    ], 0),
+    q('y', 'The height is', '高度是', [
+      opt(`${fmt(d.y, 2)} m`, `${fmt(d.y, 2)} m`),
+      opt(`${fmt(d.H, 2)} m`, `${fmt(d.H, 2)} m`),
+    ], 0),
+  ],
+  debug: {
+    en: 'Giving the horizontal motion the same ½gt² as the fall makes x shrink as if gravity pulled sideways.',
+    zh: '让水平方向也减去 ½gt²，等于让重力去拉水平位移。',
+    toggleEn: 'Subtract ½gt² from x',
+    toggleZh: '水平位移也减 ½gt²',
+  },
+  draw(ctx, w, h, _p, d, ui) {
+    clear(ctx, w, h);
+    const ox = w * 0.08;
+    const floor = h * 0.62;
+    const px = Math.min((w * 0.48) / Math.max(d.range, 0.5), (floor - 24) / Math.max(d.H, 0.5));
+    line(ctx, ox, floor, ox + d.range * px + 16, floor, '#cfc6b8', 2);
+    ctx.beginPath();
+    for (let i = 0; i <= 40; i += 1) {
+      const tt = (d.tLand * i) / 40;
+      const x = ox + d.v0 * tt * px;
+      const y = floor - (d.H - 0.5 * d.g * tt * tt) * px;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#cfc6b8';
+    ctx.stroke();
+    const step = d.tLand / 8;
+    for (let tt = 0; tt <= d.tLand + 1e-9; tt += step) {
+      const x = ox + d.v0 * tt * px;
+      const y = floor - Math.max(0, d.H - 0.5 * d.g * tt * tt) * px;
+      ctx.fillStyle = tt <= d.t + 1e-6 ? RAY : '#cfc6b8';
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const xNow = ox + (ui.wrong ? d.v0 * d.t - 0.5 * d.g * d.t * d.t : d.x) * px;
+    const yNow = floor - d.y * px;
+    ctx.strokeStyle = RAY;
+    ctx.strokeRect(xNow - 5, yNow - 5, 10, 10);
+    const graph = (label, x, y, series, now, color) => {
+      const gw = w * 0.28;
+      const gh = h * 0.22;
+      line(ctx, x, y + gh, x + gw, y + gh, INK, 1);
+      line(ctx, x, y, x, y + gh, INK, 1);
+      const max = Math.max(0.5, ...series.map((v) => Math.abs(v)));
+      ctx.beginPath();
+      series.forEach((v, i) => {
+        const X = x + (gw * i) / (series.length - 1);
+        const Y = y + gh - ((v + max) / (2 * max)) * gh * 0.8 - gh * 0.05;
+        if (i === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+      });
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      text(ctx, label, x, y - 8, MUTED, 11);
+      const mark = x + (d.t / Math.max(d.tLand, 1e-6)) * gw;
+      line(ctx, mark, y, mark, y + gh, color, 1);
+    };
+    const xs = [];
+    const ys = [];
+    for (let i = 0; i <= 20; i += 1) {
+      const tt = (d.tLand * i) / 20;
+      xs.push(d.v0 * tt);
+      ys.push(d.H - 0.5 * d.g * tt * tt);
+    }
+    graph('x–t', w * 0.64, h * 0.16, xs, d.x, RAY);
+    graph('y–t', w * 0.64, h * 0.55, ys, d.y, RAY2);
+    text(ctx, lab(ui, 'strobe', '频闪'), ox, h * 0.1, MUTED, 12);
+  },
+};
+
+export const energySim = {
+  id: 'energy',
+  timed: true,
+  tMax(p) {
+    const d = energyTrack(p, 0);
+    if (!d.slides) return 4;
+    return Math.min(12, d.tSlope + 3);
+  },
+  authority: 'Released from rest on an incline of angle α, then onto a horizontal floor. Along the slope a = g sinα − μ g cosα. Mechanical energy is mgh + ½mv². It stays at mgH when μ = 0.',
+  params: { m: 1, g: 9.8, H: 1.2, alpha: 30, mu: 0 },
+  schema: [
+    num('m', 'Mass', '质量', 'kg', 0.2, 5, 0.1),
+    num('g', 'g', 'g', 'm/s²', 1, 20, 0.1),
+    num('H', 'Release height', '释放高度', 'm', 0.2, 3, 0.05),
+    num('alpha', 'Slope angle', '斜面倾角', '°', 15, 60, 1),
+    num('mu', 'Friction μ', '摩擦因数 μ', '', 0, 0.6, 0.01),
+  ],
+  compute: (p, t) => energyTrack(p, t),
+  readouts: (d) => [
+    ro('KE', '动能', `${fmt(d.KE, 2)} J`),
+    ro('PE', '势能', `${fmt(d.PE, 2)} J`),
+    ro('E', '机械能', `${fmt(d.E, 2)} J`),
+    ro('mgH', 'mgH', `${fmt(d.E0, 2)} J`),
+  ],
+  checks: (d) => [
+    q('E', 'Mechanical energy now is', '现在的机械能是', [
+      opt(`${fmt(d.E, 2)} J`, `${fmt(d.E, 2)} J`),
+      opt(`${fmt(d.KE, 2)} J`, `${fmt(d.KE, 2)} J`),
+      opt(`${fmt(d.E0 + d.KE, 2)} J`, `${fmt(d.E0 + d.KE, 2)} J`),
+    ], 0),
+    q('cons', 'Compared with mgH', '和 mgH 相比', [
+      opt(Math.abs(d.E - d.E0) < 0.02 * Math.max(1, d.E0) ? 'it matches, μ is not taking energy' : 'it is lower, friction has taken energy', Math.abs(d.E - d.E0) < 0.02 * Math.max(1, d.E0) ? '相等，摩擦没有拿走能量' : '更低，摩擦拿走了能量'),
+      opt('it is always mgH, even with friction', '即使有摩擦也总是 mgH'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Drawing the total as a constant mgH after friction has acted hides the energy that left the mechanical account.',
+    zh: '摩擦已经做了负功，仍把总能量画成不变的 mgH，会把离开机械能的那一部分藏起来。',
+    toggleEn: 'Hold the total at mgH',
+    toggleZh: '把总能量钉在 mgH',
+  },
+  draw(ctx, w, h, _p, d, ui) {
+    clear(ctx, w, h);
+    const x0 = w * 0.1;
+    const floor = h * 0.62;
+    const px = Math.min(80, (floor - 30) / Math.max(d.H, 0.3));
+    const Lpx = d.L * px * Math.cos((d.alpha * Math.PI) / 180);
+    const Hpx = d.H * px;
+    line(ctx, x0, floor - Hpx, x0 + Lpx, floor, INK, 2);
+    line(ctx, x0 + Lpx, floor, w * 0.62, floor, INK, 2);
+    let cx;
+    let cy;
+    if (d.onSlope && d.L > 0) {
+      const f = d.s / d.L;
+      cx = x0 + f * Lpx;
+      cy = floor - Hpx + f * Hpx;
+    } else {
+      cx = x0 + Lpx + (d.s - d.L) * px * 0.35;
+      cy = floor;
+    }
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
+    ctx.fill();
+    const base = h * 0.9;
+    const scale = (h * 0.22) / Math.max(d.E0, d.E, 0.5);
+    const shownE = ui.wrong ? d.E0 : d.E;
+    const bars = [[lab(ui, 'KE', '动能'), d.KE, RAY], [lab(ui, 'PE', '势能'), d.PE, RAY2]];
+    bars.forEach((bar, i) => {
+      const x = w * 0.72 + i * 36;
+      ctx.fillStyle = bar[2];
+      ctx.fillRect(x, base - bar[1] * scale, 24, bar[1] * scale);
+      text(ctx, bar[0], x + 12, base + 12, MUTED, 11, 'center');
+    });
+    const yE = base - shownE * scale;
+    line(ctx, w * 0.68, yE, w * 0.92, yE, INK, 1.5, [4, 3]);
+    text(ctx, lab(ui, 'E', '总能量'), w * 0.93, yE, INK, 11);
+  },
+};
+
+const PHASE = {
+  solid: ['solid', '固态'],
+  melting: ['melting', '熔化'],
+  liquid: ['liquid', '液态'],
+  warming: ['warming', '升温'],
+};
+
+export const meltSim = {
+  id: 'melting',
+  timed: true,
+  tMax(p) {
+    const d = melting(p, 0);
+    const extra = p.m * p.cL * 20;
+    return Math.min(400, (d.Q2 + extra) / Math.max(p.P, 1));
+  },
+  authority: 'Constant power P. A crystal uses Q = m c ΔT off the plateau and Q = m Lf on it, so temperature stays at the melting point while heat is still absorbed. With the crystal switch off there is no latent-heat plateau.',
+  params: { m: 0.1, P: 200, cS: 2100, cL: 4200, Lf: 3.34e5, T0: -20, Tm: 0, crystal: true },
+  schema: [
+    tog('crystal', 'Crystal', '晶体'),
+    num('P', 'Heating power', '加热功率', 'W', 20, 800, 10),
+    num('m', 'Mass', '质量', 'kg', 0.02, 0.5, 0.01),
+    num('T0', 'Start temperature', '初温', '°C', -40, 0, 1),
+    num('Tm', 'Melting point', '熔点', '°C', -10, 20, 1),
+  ],
+  compute: (p, t) => melting(p, t),
+  readouts: (d) => [
+    ro('T', 'T', `${fmt(d.T, 2)} °C`),
+    ro('Phase', '阶段', { en: PHASE[d.phase][0], zh: PHASE[d.phase][1] }),
+    ro('Q', 'Q', `${fmt(d.Q, 0)} J`),
+    ro('Melted', '已熔化', fmt(d.fraction, 2)),
+  ],
+  checks: (d) => [
+    q('T', 'The temperature now is', '现在的温度是', [
+      opt(`${fmt(d.T, 2)} °C`, `${fmt(d.T, 2)} °C`),
+      opt(`${fmt(Math.abs(d.T - d.T0) > 0.2 ? d.T0 : d.T + 8, 2)} °C`, `${fmt(Math.abs(d.T - d.T0) > 0.2 ? d.T0 : d.T + 8, 2)} °C`),
+    ], 0),
+    q('plat', 'On a crystal’s plateau', '晶体的平台段上', [
+      opt(d.phase === 'melting' ? 'heat is absorbed and T stays at the melting point (this is that interval)' : 'heat is absorbed and T stays at the melting point', d.phase === 'melting' ? '吸热，温度停在熔点（现在就是）' : '吸热，温度停在熔点'),
+      opt('temperature keeps rising at the same rate', '温度仍按原来的速率上升'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Spending the latent heat on a temperature rise removes the plateau.',
+    zh: '把熔化热也拿去升温，平台就消失了。',
+    toggleEn: 'Turn latent heat into a temperature rise',
+    toggleZh: '把熔化热也算成升温',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const gx = w * 0.12;
+    const gy = h * 0.78;
+    const gw = w * 0.76;
+    const gh = h * 0.55;
+    const tEnd = meltSim.tMax(p);
+    line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
+    line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
+    const temps = [];
+    for (let i = 0; i <= 60; i += 1) temps.push(melting(p, (tEnd * i) / 60).T);
+    const tMin = Math.min(d.T0, ...temps) - 5;
+    const tMax = Math.max(d.Tm + 15, ...temps);
+    const X = (t) => gx + (t / tEnd) * gw;
+    const Y = (T) => gy - ((T - tMin) / (tMax - tMin)) * gh;
+    if (d.crystal && Number.isFinite(d.t1)) {
+      ctx.fillStyle = 'rgba(196,73,29,0.2)';
+      ctx.fillRect(X(d.t1), Y(d.Tm + 4), Math.max(0, X(d.t2) - X(d.t1)), Y(d.Tm - 4) - Y(d.Tm + 4));
+      text(ctx, lab(ui, 'heat in, T fixed', '吸热但温度不变'), (X(d.t1) + X(d.t2)) / 2, Y(d.Tm) - 14, RAY, 12, 'center');
+    }
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i += 1) {
+      const tt = (tEnd * i) / 60;
+      const sample = ui.wrong && d.crystal
+        ? d.T0 + (p.P * tt) / (p.m * p.cS)
+        : melting(p, tt).T;
+      const Xc = X(tt);
+      const Yc = Y(sample);
+      if (i === 0) ctx.moveTo(Xc, Yc);
+      else ctx.lineTo(Xc, Yc);
+    }
+    ctx.strokeStyle = ui.wrong ? '#a33' : RAY2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const nowT = ui.wrong && d.crystal ? d.T0 + d.Q / (d.m * p.cS) : d.T;
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(X(d.t), Y(nowT), 5, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, `${fmt(d.T, 1)} °C`, gx, gy - gh - 6, INK, 13);
+    ui._geo = { gx, gw, tEnd };
+  },
+  pointer(ev, _p, _d, ui) {
+    const g = ui._geo;
+    if (!g) return null;
+    if (ev.type === 'down') { ui.drag = 't'; return {}; }
+    if (ev.type === 'up') { ui.drag = null; return {}; }
+    return { __clock: Math.min(g.tEnd, Math.max(0, ((ev.x - g.gx) / g.gw) * g.tEnd)) };
+  },
+};
+

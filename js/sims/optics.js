@@ -1,5 +1,6 @@
-import { fmt, pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle } from '../physics/index.js';
-import { num, sel, clear, line, arrow, text, handle, hit, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js';
+import { pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle } from '../physics/optics.js';
+import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) {
   return { id, en, zh, options, answer };
@@ -66,8 +67,8 @@ export const pinhole = {
       line(ctx, scrX + 14, g.mid, scrX + 14, g.mid + bad, '#a33', 2, [4, 3]);
       text(ctx, 'H·u/v', scrX + 18, g.mid + bad + 12, '#a33', 11);
     }
-    text(ctx, 'object', objX, g.mid + 16, MUTED, 11, 'center');
-    text(ctx, 'screen', scrX, g.y0 - 10, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'object', '物体'), objX, g.mid + 16, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'screen', '光屏'), scrX, g.y0 - 10, MUTED, 11, 'center');
     handle(ctx, objX, g.mid - objH, ui.drag === 'obj');
     handle(ctx, scrX, g.mid, ui.drag === 'scr');
     ui._geo = { ...g, px, objX, scrX, objH };
@@ -136,11 +137,11 @@ export const reflection = {
     const ry = cy - L * 0.85 * Math.cos(th);
     arrow(ctx, ix, iy, cx, cy, RAY, 2.5);
     arrow(ctx, cx, cy, rx, ry, RAY2, 2.5);
-    text(ctx, 'normal', cx + 8, cy - L + 8, MUTED, 12);
-    text(ctx, 'mirror', cx - L, cy + 16, MUTED, 12);
+    text(ctx, lab(ui, 'normal', '法线'), cx + 8, cy - L + 8, MUTED, 12);
+    text(ctx, lab(ui, 'mirror', '镜面'), cx - L, cy + 16, MUTED, 12);
     text(ctx, `θ=${fmt(d.theta, 0)}°`, cx - 36, cy - 28, RAY, 12);
     if (ui.wrong) {
-      text(ctx, `surface ${fmt(d.fromSurface, 0)}°`, cx + 16, cy - 18, '#a33', 12);
+      text(ctx, lab(ui, `surface ${fmt(d.fromSurface, 0)}°`, `界面 ${fmt(d.fromSurface, 0)}°`), cx + 16, cy - 18, '#a33', 12);
     }
     handle(ctx, ix, iy, ui.drag === 'ray');
     ui._geo = { cx, cy, ix, iy };
@@ -226,7 +227,7 @@ export const planeMirror = {
     drawF(ix, mid, scale, RAY2, [5, 4], true);
     line(ctx, ox, mid, ix, mid, MUTED, 1, [3, 3]);
     if (ui.wrong) drawF(mx + (p.d / 2) * px, mid - 8, scale, '#a33', [3, 3], true);
-    text(ctx, 'mirror', mx + 8, 40, MUTED, 12);
+    text(ctx, lab(ui, 'mirror', '镜面'), mx + 8, 40, MUTED, 12);
     handle(ctx, ox, mid - scale, ui.drag === 'obj');
     ui._geo = { mx, mid, px, ox, scale };
   },
@@ -299,7 +300,7 @@ export const refraction = {
       arrow(ctx, cx, cy, cx + L * Math.sin(th2), cy + L * Math.cos(th2), RAY2, 2.5);
       text(ctx, `θ2=${fmt(d.theta2, 1)}°`, cx + 16, cy + 28, RAY2, 12);
     } else {
-      text(ctx, 'TIR', cx + 16, cy + 28, RAY2, 14);
+      text(ctx, lab(ui, 'TIR', '全反射'), cx + 16, cy + 28, RAY2, 14);
     }
     if (ui.wrong && !d.tir) {
       const wrong = d.theta * (d.n1 / d.n2);
@@ -415,17 +416,23 @@ export const convexLens = {
     markF(-p.f, 'F');
     markF(2 * p.f, '2F');
     markF(-2 * p.f, '2F');
+    const limit = h * 0.42;
+    const yOf = (cm) => {
+      if (!Number.isFinite(cm)) return midY;
+      const drawn = Math.max(-limit, Math.min(limit, cm * px));
+      return midY - drawn;
+    };
     const ox = cx - p.u * px;
-    const oy = midY - p.h * px;
+    const oy = yOf(p.h);
     arrow(ctx, ox, midY, ox, oy, RAY, 3);
     const scrX = cx + p.screen * px;
     if (d.kind !== 'virtual' || ui.wrong) {
       line(ctx, scrX, midY - 70, scrX, midY + 70, d.aligned && d.catchesImage ? '#2a6b3a' : MUTED, 3);
-      text(ctx, 'screen', scrX, midY - 80, MUTED, 11, 'center');
+      text(ctx, lab(ui, 'screen', '光屏'), scrX, midY - 80, MUTED, 11, 'center');
     }
     if (Number.isFinite(d.v)) {
       const ix = cx + d.v * px;
-      const iy = midY - d.imageH * px;
+      const iy = yOf(d.imageH);
       const dash = d.v < 0;
       arrow(ctx, ix, midY, ix, iy, RAY2, 3);
       if (dash) {
@@ -526,7 +533,7 @@ export const vision = {
     ctx.stroke();
     ctx.strokeStyle = MUTED;
     ctx.strokeRect(eyeX, y - 28, 54, 56);
-    text(ctx, 'eye', eyeX + 27, y, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'eye', '眼睛'), eyeX + 27, y, MUTED, 12, 'center');
     const px = 1.6;
     const mark = d.kind === 'diverging' ? -Math.abs(d.fCm) : Math.abs(d.fCm);
     const fx = lensX + mark * px;
@@ -537,9 +544,9 @@ export const vision = {
     if (ui.wrong) {
       const bad = lensX - mark * px;
       line(ctx, bad, y - 14, bad, y + 14, '#a33', 2, [4, 3]);
-      text(ctx, 'swapped', bad, y + 28, '#a33', 11, 'center');
+      text(ctx, lab(ui, 'swapped', '装反了'), bad, y + 28, '#a33', 11, 'center');
     }
-    text(ctx, d.kind, lensX, y + 68, INK, 13, 'center');
+    text(ctx, lab(ui, d.kind, { diverging: '发散', converging: '会聚' }[d.kind] || d.kind), lensX, y + 68, INK, 13, 'center');
     ui._geo = { lensX, y };
   },
   pointer() { return null; },
