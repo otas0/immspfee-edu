@@ -250,8 +250,12 @@ for (const id of Object.keys(SIMS)) {
 const senior = getBook('sh-senior');
 assert(senior.tocConfidence === 'compulsory-1-3-and-elective-2-2021', 'senior contents note');
 assert(flatten(senior).some((row) => row.lesson.sim === 'vt-area'), 'v–t lesson');
+assert(flatten(senior).some((row) => row.lesson.id === 'shs-2-2a' && row.lesson.sim === 'vt-area'), 'free-fall on v–t');
+assert(flatten(senior).some((row) => row.lesson.preset?.v0 === 0 && row.lesson.preset?.a === 10), 'free-fall preset');
 assert(flatten(senior).some((row) => row.lesson.sim === 'projectile'), 'projectile lesson');
 assert(flatten(senior).some((row) => row.section.title.zh === '平抛运动'), 'published projectile section');
+const freeFall = vtArea({ v0: 0, a: 10, t1: 0, t2: 1.5 });
+near(freeFall.area, 0.5 * 10 * 1.5 * 1.5, 1e-9, 'free-fall triangle area');
 const pep = getBook('pep-junior');
 assert(pep.tocConfidence === 'grade8-2024', 'pep 2024 tree');
 assert(!pep.edition.zh.includes('2011'), 'pep edition no longer says 2011');
