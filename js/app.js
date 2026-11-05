@@ -334,12 +334,20 @@ function renderTeach() {
     const box = document.createElement('div');
     box.className = 'queued';
     const ht = document.createElement('h3');
-    ht.textContent = t(lang, 'queuedTitle');
     const p = document.createElement('p');
-    p.textContent = t(lang, 'queuedBody');
-    const intent = document.createElement('p');
-    intent.textContent = tx(lang, current.lesson.intent);
-    box.append(ht, p, intent);
+    if (current.lesson.status === 'ready' && current.lesson.sim) {
+      ht.textContent = lang === 'zh' ? '模拟还在加载' : 'Simulation still loading';
+      p.textContent = lang === 'zh'
+        ? '这一课已经挂上模拟，但模块还没到。硬刷新一次（或清掉本站缓存）后再打开。'
+        : 'This lesson names a simulation, but the module has not arrived. Hard-refresh (or clear this site’s cache) and open it again.';
+      box.append(ht, p);
+    } else {
+      ht.textContent = t(lang, 'queuedTitle');
+      p.textContent = t(lang, 'queuedBody');
+      const intent = document.createElement('p');
+      intent.textContent = tx(lang, current.lesson.intent);
+      box.append(ht, p, intent);
+    }
     host.appendChild(box);
     return;
   }
@@ -618,7 +626,13 @@ loadLesson(lessonId, phase);
 requestAnimationFrame(tick);
 
 if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    location.reload();
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=2').catch(() => {});
   });
 }
