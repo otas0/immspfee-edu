@@ -1,8 +1,8 @@
 import { fmt } from '../fmt.js';
 import {
-  frames, segmentMotion, uniformAccel, vtArea, projectile, energyTrack, melting,
+  frames, segmentMotion, uniformAccel, vtArea, projectile, energyTrack, melting, circularMotion,
 } from '../physics/motion.js';
-import { num, sel, tog, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -525,6 +525,98 @@ export const meltSim = {
     if (ev.type === 'down') { ui.drag = 't'; return {}; }
     if (ev.type === 'up') { ui.drag = null; return {}; }
     return { __clock: Math.min(g.tEnd, Math.max(0, ((ev.x - g.gx) / g.gw) * g.tEnd)) };
+  },
+};
+
+export const circularSim = {
+  id: 'circular',
+  timed: true,
+  tMax: (p) => Math.max(4, (4 * Math.PI) / Math.max(Math.abs(p.omega), 0.2)),
+  authority: 'Uniform circular motion: v = ω r, a = v² / r = ω² r, and the rope (or rod) force toward the centre is F = m a.',
+  params: { m: 0.5, r: 0.4, omega: 4 },
+  schema: [
+    num('m', 'Mass m', '质量 m', 'kg', 0.1, 2, 0.05),
+    num('r', 'Radius r', '半径 r', 'm', 0.1, 1, 0.02),
+    num('omega', 'Angular speed ω', '角速度 ω', 'rad/s', 0.5, 10, 0.1),
+  ],
+  compute: (p, t) => circularMotion(p, t),
+  readouts: (d) => [
+    ro('v', 'v', `${fmt(d.v, 2)} m/s`),
+    ro('a', 'a', `${fmt(d.a, 2)} m/s²`),
+    ro('F', 'F', `${fmt(d.F, 2)} N`),
+    ro('T', 'T', `${fmt(d.T, 2)} s`),
+  ],
+  checks: (d) => [
+    q('v', 'The linear speed is', '线速度是', [
+      opt(`${fmt(d.v, 2)} m/s = ω r`, `${fmt(d.v, 2)} m/s = ω r`),
+      opt(`${fmt(d.omega / d.r, 2)} m/s`, `${fmt(d.omega / d.r, 2)} m/s`),
+      opt('zero because the path is closed', '为零，因为路径闭合'),
+    ], 0),
+    q('F', 'The centripetal force is', '向心力是', [
+      opt(`${fmt(d.F, 2)} N = m v² / r`, `${fmt(d.F, 2)} N = m v² / r`),
+      opt(`${fmt(d.m * d.v, 2)} N`, `${fmt(d.m * d.v, 2)} N`),
+      opt('outward along the radius', '沿半径向外'),
+    ], 0),
+  ],
+  debug: {
+    en: 'Drawing the force outward treats the need for a centripetal force as a centrifugal push.',
+    zh: '把力画成向外，就变成了离心推开，而不是向心力。',
+    toggleEn: 'Draw F outward',
+    toggleZh: '把 F 画成向外',
+  },
+  draw(ctx, w, h, p, d, ui) {
+    clear(ctx, w, h);
+    const cx = w * 0.42;
+    const cy = h * 0.52;
+    const scale = Math.min(w, h) * 0.32 / Math.max(d.r, 0.2);
+    const R = d.r * scale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = MUTED;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const px = cx + d.x * scale;
+    const py = cy - d.y * scale;
+    line(ctx, cx, cy, px, py, INK, 2);
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(px, py, 8, 0, Math.PI * 2);
+    ctx.fill();
+    const tx = -Math.sin(d.theta);
+    const ty = -Math.cos(d.theta);
+    arrow(ctx, px, py, px + tx * 36, py + ty * 36, RAY2, 2);
+    text(ctx, 'v', px + tx * 44, py + ty * 44, RAY2, 12, 'center');
+    const inward = ui.wrong ? -1 : 1;
+    const fx = cx + (px - cx) * (1 - 0.35 * inward);
+    const fy = cy + (py - cy) * (1 - 0.35 * inward);
+    arrow(ctx, px, py, fx, fy, ui.wrong ? '#a33' : RAY, 2.5);
+    text(ctx, 'F', fx, fy - 12, ui.wrong ? '#a33' : RAY, 12, 'center');
+    text(ctx, `v=${fmt(d.v, 2)} m/s`, w * 0.78, h * 0.3, INK, 13);
+    text(ctx, `a=${fmt(d.a, 2)} m/s²`, w * 0.78, h * 0.4, MUTED, 13);
+    text(ctx, `F=${fmt(d.F, 2)} N`, w * 0.78, h * 0.5, RAY, 13);
+    const rs = w * 0.78;
+    handle(ctx, rs, h * 0.7, ui.drag === 'r');
+    text(ctx, lab(ui, 'drag r', '拖半径'), rs, h * 0.78, MUTED, 11, 'center');
+    ui._geo = { rs, hy: h * 0.7 };
+  },
+  pointer(ev, p, _d, ui) {
+    const g = ui._geo;
+    if (!g) return null;
+    if (ev.type === 'down' && hit(ev.x, ev.y, g.rs, g.hy, 20)) {
+      ui.drag = 'r';
+      return {};
+    }
+    if (ev.type === 'move' && ui.drag === 'r') {
+      const r = Math.min(1, Math.max(0.1, 0.1 + ((g.hy - ev.y) / 120)));
+      return { r };
+    }
+    if (ev.type === 'up') {
+      ui.drag = null;
+      return {};
+    }
+    return null;
   },
 };
 

@@ -33,6 +33,25 @@ export function uniformAccel(p, t) {
   return { t: tt, v, x, v0: p.v0, a: p.a };
 }
 
+/**
+ * Uniform circular motion. v = ω r, a = v² / r = ω² r, T = 2π / ω.
+ * Centripetal force for a rope (or rod) is F = m a toward the centre.
+ */
+export function circularMotion(p, t = 0) {
+  const m = Math.max(p.m, 1e-6);
+  const r = Math.max(p.r, 1e-6);
+  const omega = p.omega;
+  const tt = Math.max(0, t);
+  const v = omega * r;
+  const a = (v * v) / r;
+  const T = Math.abs(omega) > 1e-12 ? (2 * Math.PI) / Math.abs(omega) : Infinity;
+  const theta = omega * tt;
+  const x = r * Math.cos(theta);
+  const y = r * Math.sin(theta);
+  const F = m * a;
+  return { m, r, omega, t: tt, v, a, T, theta, x, y, F };
+}
+
 /** Signed area under a straight v–t graph. For constant acceleration it equals Δx. */
 export function vtArea(p) {
   const t1 = Math.min(p.t1, p.t2);
