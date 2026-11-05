@@ -1,19 +1,21 @@
 import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.js';
-import { SIMS } from './sims/registry.js';
-import { fmt } from './physics/index.js';
+import { getSim } from './sims/registry.js';
+import { fmt } from './fmt.js';
 import { t, tx } from './i18n.js';
 
 const LANG_KEY = 'immspfee-edu-lang';
 const CHECK_KEY = 'immspfee-edu-checks';
+const ROUTE_KEY = 'immspfee-edu-route';
 const PHASES = ['introduce', 'explore', 'check', 'debug'];
+const DEFAULT_ROUTE = { bookId: 'sh-junior', lessonId: 'shj-4-4a', phase: 'introduce' };
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 
 let lang = localStorage.getItem(LANG_KEY) === 'zh' ? 'zh' : 'en';
-let bookId = 'sh-junior';
-let lessonId = 'shj-4-4a';
-let phase = 'introduce';
+let bookId = DEFAULT_ROUTE.bookId;
+let lessonId = DEFAULT_ROUTE.lessonId;
+let phase = DEFAULT_ROUTE.phase;
 let params = {};
 let ui = { drag: null, wrong: false };
 let clock = 0;
@@ -22,6 +24,8 @@ let picks = {};
 let marked = false;
 let query = '';
 let lastFrame = 0;
+let currentSim = null;
+let loadToken = 0;
 
 function passedMap() {
   try { return JSON.parse(localStorage.getItem(CHECK_KEY) || '{}'); } catch { return {}; }
@@ -37,8 +41,7 @@ function row() {
 }
 function lesson() { return row().lesson; }
 function sim() {
-  const id = lesson().sim;
-  return id ? SIMS[id] : null;
+  return currentSim;
 }
 function tMax() {
   const s = sim();
@@ -51,7 +54,13 @@ function derived() {
 }
 
 function parseHash() {
-  const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  let raw = location.hash.replace(/^#\/?/, '');
+  if (!raw) {
+    const saved = localStorage.getItem(ROUTE_KEY) || '';
+    raw = saved.replace(/^#\/?/, '');
+    if (raw) history.replaceState(null, '', `#/${raw}`);
+  }
+  const parts = raw.split('/').filter(Boolean);
   if (parts[0] && BOOKS.some((b) => b.id === parts[0])) bookId = parts[0];
   if (parts[1] && findLesson(bookId, parts[1])) lessonId = parts[1];
   if (parts[2] && PHASES.includes(parts[2])) phase = parts[2];
@@ -60,20 +69,34 @@ function parseHash() {
 function writeHash() {
   const next = `#/${bookId}/${lessonId}/${phase}`;
   if (location.hash !== next) history.replaceState(null, '', next);
+  localStorage.setItem(ROUTE_KEY, next);
+  const brand = document.querySelector('.brand');
+  if (brand) brand.setAttribute('href', next);
 }
 
-function loadLesson(nextId, nextPhase) {
+async function loadLesson(nextId, nextPhase) {
+  const token = ++loadToken;
   lessonId = nextId;
   phase = nextPhase || 'introduce';
-  const s = sim();
-  const preset = lesson().preset || {};
-  params = s ? { ...s.params, ...preset } : {};
+  const wanted = lesson().sim;
+  currentSim = null;
   ui = { drag: null, wrong: false };
   clock = 0;
   playing = false;
   picks = {};
   marked = false;
   writeHash();
+  render();
+  if (!wanted) {
+    params = {};
+    if (token === loadToken) draw();
+    return;
+  }
+  const s = await getSim(wanted);
+  if (token !== loadToken) return;
+  currentSim = s;
+  const preset = lesson().preset || {};
+  params = s ? { ...s.params, ...preset } : {};
   render();
 }
 
@@ -85,6 +108,26 @@ function clampField(field, value) {
   }
   if (field.type === 'toggle') return !!value;
   return value;
+}
+
+function applyPointer(patch) {
+  if (!patch) return;
+  if (Object.prototype.hasOwnProperty.call(patch, '__clock')) {
+    playing = false;
+    clock = Math.min(tMax(), Math.max(0, Number(patch.__clock) || 0));
+    const range = document.querySelector('.transport input[type=range]');
+    const label = document.querySelector('.transport span');
+    if (range) range.value = String(clock);
+    if (label) label.textContent = `${t(lang, 'time')} ${fmt(clock, 2)} s`;
+  }
+  const rest = { ...patch };
+  delete rest.__clock;
+  if (Object.keys(rest).length) {
+    params = { ...params, ...rest };
+    marked = false;
+    syncBench();
+  }
+  draw();
 }
 
 function setParam(key, value) {
@@ -526,31 +569,20 @@ canvas.addEventListener('pointerdown', (ev) => {
   if (!s?.pointer) return;
   canvas.setPointerCapture(ev.pointerId);
   const patch = s.pointer(pointerEvent(ev), params, derived(), ui);
-  if (patch) {
-    if (Object.keys(patch).length) {
-      params = { ...params, ...patch };
-      marked = false;
-      syncBench();
-    }
-    draw();
-  }
+  if (patch) applyPointer(patch);
 });
 canvas.addEventListener('pointermove', (ev) => {
   if (!ui.drag) return;
   const s = sim();
   const patch = s?.pointer?.(pointerEvent(ev), params, derived(), ui);
-  if (patch && Object.keys(patch).length) {
-    params = { ...params, ...patch };
-    marked = false;
-    syncBench();
-    draw();
-  }
+  if (patch) applyPointer(patch);
 });
 canvas.addEventListener('pointerup', (ev) => {
   const s = sim();
-  s?.pointer?.(pointerEvent(ev), params, derived(), ui);
+  const patch = s?.pointer?.(pointerEvent(ev), params, derived(), ui);
   ui.drag = null;
-  draw();
+  if (patch) applyPointer(patch);
+  else draw();
 });
 
 document.getElementById('lang-en').addEventListener('click', () => { lang = 'en'; localStorage.setItem(LANG_KEY, lang); render(); });
@@ -577,6 +609,16 @@ function tick(now) {
 }
 
 parseHash();
-if (!findLesson(bookId, lessonId)) lessonId = 'shj-4-4a';
+if (!findLesson(bookId, lessonId)) {
+  bookId = DEFAULT_ROUTE.bookId;
+  lessonId = DEFAULT_ROUTE.lessonId;
+  phase = DEFAULT_ROUTE.phase;
+}
 loadLesson(lessonId, phase);
 requestAnimationFrame(tick);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
