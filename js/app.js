@@ -1,7 +1,7 @@
-import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.js';
-import { getSim, prefetchSims, setImportErrorHandler } from './sims/registry.js';
-import { fmt } from './fmt.js';
-import { t, tx } from './i18n.js';
+import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.js?v=__BUILD__';
+import { getSim, prefetchSims, setImportErrorHandler } from './sims/registry.js?v=__BUILD__';
+import { fmt } from './fmt.js?v=__BUILD__';
+import { t, tx } from './i18n.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
 const narrowMq = window.matchMedia('(max-width: 768px)');
