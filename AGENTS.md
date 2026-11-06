@@ -13,6 +13,8 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - Narrow projectile layout uses canvas `w <= 360` (stacked teachPanel). Book-select clipping for PEP/沪科 titles is CSS `@media (max-width: 320px)` with `text-overflow: clip`. Keep both breakpoints; do not collapse them without checking 321–360px.
 - At **321–360px**: projectile already stacks (`w <= 360`); the book-select may still use the base `text-overflow: ellipsis` until 320px. Capture reference: `.local-shots/340px-projectile-ellipsis.png` (see `.local-shots/README.md`; PNGs are gitignored). Do not assume clip applies in this band.
 - Leaving Debug clears `ui.wrong` (`clearWrongLeavingDebug`); phase **上一步** from Debug uses the same helper via `goPhase`. Household Debug still forces bp–bn on enter. Leaving household layout also clears wrong.
+- **Reset vs 上一步 (product):** Introduce keeps a single **Reset** (reload lesson + params). Other phases use **上一步** (previous phase). Do not split Explore into a second “reset parameters” ghost — schema fields already edit params. Revisit only if Explore needs one-click preset restore without leaving the phase.
+- University fold hint: idle → `foldCurrent` + chapter title; while searching → `foldSearchOpen` + same chapter title (chapters are all open, but the active subject stays named). `data-chapter-id` on `.fold-hint` must match that chapter.
 - `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports (see `scripts/stamp-build.mjs` comment). Revisit PRECACHE only if offline-first boot must work before `app.js` fetches the graph — not needed today.
 
 ## Release

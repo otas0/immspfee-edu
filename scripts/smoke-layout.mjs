@@ -9,14 +9,17 @@ import {
   UNI_FOLD_KEY,
   readUniFoldsFrom,
   writeUniFoldsTo,
-  pruneUniFoldsMap,
-  foldCurrentHint,
+  pruneUniFoldsIn,
+  foldHintText,
+  foldHintDomProps,
+  applyFoldHintEl,
 } from '../js/uni-fold.js';
 import {
   clearWrongLeavingHousehold,
   clearWrongLeavingDebug,
   readoutClass,
   isCanvasBufferError,
+  toastErrorDetail,
 } from '../js/ui-chrome.js';
 import { getBook, flatten, findLesson } from '../js/curricula/index.js';
 import { STR, t } from '../js/i18n.js';
@@ -374,39 +377,61 @@ let failed = 0;
   // fold-hint 「当前学科」 names the same chapter that defaults to open.
   const sample = findLesson('university', rows[0].lesson.id);
   const hintCh = sample?.chapter;
-  const hint = foldCurrentHint(t('zh', 'foldCurrent'), hintCh?.title?.zh || '');
+  const hint = foldHintText({
+    searching: false,
+    currentLabel: t('zh', 'foldCurrent'),
+    searchLabel: t('zh', 'foldSearchOpen'),
+    chapterTitle: hintCh?.title?.zh || '',
+  });
+  const searchHint = foldHintText({
+    searching: true,
+    currentLabel: t('zh', 'foldCurrent'),
+    searchLabel: t('zh', 'foldSearchOpen'),
+    chapterTitle: hintCh?.title?.zh || '',
+  });
   const defaultOpen = book.chapters.find((ch) => uniChapterOpen(ch.id, hintCh?.id, {}, false));
   if (!hintCh || !defaultOpen || defaultOpen.id !== hintCh.id || !hint.includes(hintCh.title.zh)) {
     failed += 1;
     console.error('FAIL uni fold hint vs default open chapter', { hint, hintCh: hintCh?.id, defaultOpen: defaultOpen?.id });
-  } else console.log('ok uni fold hint ↔ default open chapter', hintCh.id);
+  } else if (!searchHint.includes(t('zh', 'foldSearchOpen')) || !searchHint.includes(hintCh.title.zh)) {
+    failed += 1;
+    console.error('FAIL uni fold search hint should keep current chapter title', searchHint);
+  } else console.log('ok uni fold hint ↔ default open + search copy', hintCh.id);
 
-  // Mock localStorage: expand-all write → read → prune stale ids.
+  // DOM-free fold-hint dataset.chapterId (mirrors app applyFoldHintEl).
+  const props = foldHintDomProps(hintCh.id, hint);
+  const el = { dataset: {}, className: '', textContent: '' };
+  applyFoldHintEl(el, hintCh.id, hint);
+  if (props.dataset.chapterId !== hintCh.id || el.dataset.chapterId !== hintCh.id || el.className !== 'fold-hint') {
+    failed += 1;
+    console.error('FAIL fold-hint DOM props / dataset.chapterId', { props, el });
+  } else console.log('ok fold-hint dataset.chapterId DOM smoke', hintCh.id);
+
+  // App pruneUniFoldsIn path: write expand → inject stale → pruneIn → read.
   const mem = new Map();
   const storage = {
     getItem: (k) => (mem.has(k) ? mem.get(k) : null),
     setItem: (k, v) => { mem.set(k, String(v)); },
   };
   writeUniFoldsTo(storage, uniAllFoldsMap(book.chapters, true));
-  const stored = readUniFoldsFrom(storage);
+  const dirty = readUniFoldsFrom(storage);
+  dirty.__gone__ = true;
+  writeUniFoldsTo(storage, dirty);
   const valid = new Set(book.chapters.map((ch) => ch.id));
-  stored['__gone__'] = true;
-  writeUniFoldsTo(storage, stored);
-  const pruned = pruneUniFoldsMap(readUniFoldsFrom(storage), valid);
-  if (pruned.map.__gone__ || !pruned.changed || Object.keys(pruned.map).length !== book.chapters.length) {
+  const after = pruneUniFoldsIn(storage, valid);
+  const again = readUniFoldsFrom(storage);
+  if (after.__gone__ || again.__gone__ || Object.keys(after).length !== book.chapters.length) {
     failed += 1;
-    console.error('FAIL uni fold storage mock prune', pruned);
+    console.error('FAIL uni fold pruneUniFoldsIn vs storage', { after, again });
   } else if (storage.getItem(UNI_FOLD_KEY) == null) {
     failed += 1;
     console.error('FAIL uni fold storage key missing');
   } else {
-    writeUniFoldsTo(storage, pruned.map);
-    const again = readUniFoldsFrom(storage);
     const stillAllOpen = book.chapters.every((ch) => uniChapterOpen(ch.id, currentCh, again, false));
     if (!stillAllOpen) {
       failed += 1;
       console.error('FAIL uni fold storage round-trip expand map');
-    } else console.log('ok uni fold localStorage mock write/read/prune');
+    } else console.log('ok uni fold pruneUniFoldsIn ↔ mock storage');
   }
 }
 
@@ -481,12 +506,24 @@ let failed = 0;
                   x: gClamp.barX,
                   y: gClamp.gy,
                 }, p, d, ui);
-                sim.pointer({ type: 'up', x: g3.barX, y: g3.yLo }, p, d, ui);
                 if (!atMax || Math.abs(atMax.a - amax) > 1e-12 || !atMin || Math.abs(atMin.a - amin) > 1e-12) {
                   failed += 1;
                   console.error('FAIL double-slit width drag clamp to schema a', { atMax, atMin, amin, amax });
                 } else {
-                  console.log('ok double-slit envelope + width-bar drag/hit/clamp', { a0, amin, amax });
+                  // While dragging, readouts a / 2λD/a stay hi even after clamp.
+                  ui.drag = 'width';
+                  const dClamp = sim.compute({ ...p, a: atMax.a });
+                  const rowsHi = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
+                  const aRow = rowsHi.find((r) => r.en === 'a');
+                  const wRow = rowsHi.find((r) => r.en === '2λD/a');
+                  sim.pointer({ type: 'up', x: g3.barX, y: g3.yLo }, p, d, ui);
+                  const rowsLo = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
+                  if (!aRow?.hi || !wRow?.hi || rowsLo.find((r) => r.en === 'a')?.hi) {
+                    failed += 1;
+                    console.error('FAIL double-slit readout hi should follow drag after clamp', { aRow, wRow, afterUp: rowsLo.find((r) => r.en === 'a') });
+                  } else {
+                    console.log('ok double-slit envelope + width-bar drag/hit/clamp/hi', { a0, amin, amax });
+                  }
                 }
               }
             }
@@ -509,6 +546,11 @@ let failed = 0;
   const snap = sim.onParam('beta', 0.73);
   const loSnap = sim.onParam('beta', 0.049);
   const hiSnap = sim.onParam('beta', 0.951);
+  const betaField = sim.schema.find((f) => f.key === 'beta');
+  const fieldSnap = (v) => {
+    const clamped = Math.max(betaField.min, Math.min(betaField.max, v));
+    return Math.round(clamped / betaField.step) * betaField.step;
+  };
   if (!snap.beta || Math.abs(snap.beta - 0.75) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski onParam: 0.73 should snap to 0.75', snap);
@@ -516,6 +558,12 @@ let failed = 0;
     || !hiSnap.beta || Math.abs(hiSnap.beta - 0.95) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski onParam endpoints 0.049→0.05 / 0.951→0.95', { loSnap, hiSnap });
+  } else if (Math.abs(fieldSnap(0.049) - loSnap.beta) > 1e-9
+    || Math.abs(fieldSnap(0.951) - hiSnap.beta) > 1e-9) {
+    failed += 1;
+    console.error('FAIL minkowski schema field snap ≠ onParam', {
+      fieldLo: fieldSnap(0.049), onLo: loSnap.beta, fieldHi: fieldSnap(0.951), onHi: hiSnap.beta,
+    });
   } else if (!tr) {
     failed += 1;
     console.error('FAIL minkowski: missing _vTrack');
@@ -584,7 +632,14 @@ let failed = 0;
   } else if (!STR.en.isingCanvasNeed || !STR.zh.isingCanvasNeed) {
     failed += 1;
     console.error('FAIL ising: i18n isingCanvasNeed toast keys missing');
-  } else console.log('ok ising clear error + i18n toast keys');
+  } else {
+    const long = { message: `${'x'.repeat(200)}\nsecond line should drop` };
+    const short = toastErrorDetail(long, 120);
+    if (short.includes('\n') || short.length > 120 || !short.endsWith('…')) {
+      failed += 1;
+      console.error('FAIL toastErrorDetail should truncate to first line', short);
+    } else console.log('ok ising clear error + i18n toast keys + trunc detail');
+  }
 }
 
 if (failed) {

@@ -26,3 +26,11 @@ export function isCanvasBufferError(err) {
   const msg = String(err?.message || err || '');
   return /OffscreenCanvas|document\.createElement/.test(msg);
 }
+
+/** First line of an error for ?dev toasts — keep the stage readable. */
+export function toastErrorDetail(err, maxLen = 120) {
+  const raw = String(err?.message || err || '').trim();
+  const line = raw.split(/\r?\n/)[0] || raw;
+  if (line.length <= maxLen) return line;
+  return `${line.slice(0, Math.max(0, maxLen - 1))}…`;
+}

@@ -86,6 +86,7 @@ if (( NO_EXEC )); then
       # Set ENSURE_KEEP_LOG=1 to retain it.
       if [[ "${ENSURE_KEEP_LOG:-}" != "1" ]]; then
         rm -f "$LOG_FILE"
+        echo "cleared $LOG_FILE"
       fi
       exit 0
     fi

@@ -7,14 +7,16 @@ import {
   uniAllFoldsMap,
   readUniFoldsFrom,
   writeUniFoldsTo,
-  pruneUniFoldsMap,
-  foldCurrentHint,
+  pruneUniFoldsIn,
+  foldHintText,
+  applyFoldHintEl,
 } from './uni-fold.js?v=__BUILD__';
 import {
   clearWrongLeavingHousehold,
   clearWrongLeavingDebug,
   readoutClass,
   isCanvasBufferError,
+  toastErrorDetail,
 } from './ui-chrome.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
@@ -244,8 +246,8 @@ function draw() {
   } catch (err) {
     if (isCanvasBufferError(err)) {
       const base = t(lang, 'isingCanvasNeed');
-      const detail = err && err.message ? err.message : String(err);
-      showToast(DEV_TOAST ? `${base} (${detail})` : base, { reload: true });
+      const detail = toastErrorDetail(err);
+      showToast(DEV_TOAST && detail ? `${base} (${detail})` : base, { reload: true });
       paintReadouts(d);
       return;
     }
@@ -369,9 +371,7 @@ function writeUniFolds(map) {
 }
 
 function pruneUniFolds(validIds) {
-  const { map, changed } = pruneUniFoldsMap(readUniFolds(), validIds);
-  if (changed) writeUniFolds(map);
-  return map;
+  return pruneUniFoldsIn(localStorage, validIds);
 }
 
 function setAllUniFolds(open) {
@@ -395,9 +395,17 @@ function renderTree() {
     const current = findLesson(bookId, lessonId);
     if (current?.chapter) {
       const hint = document.createElement('span');
-      hint.className = 'fold-hint';
-      hint.dataset.chapterId = current.chapter.id;
-      hint.textContent = foldCurrentHint(t(lang, 'foldCurrent'), tx(lang, current.chapter.title));
+      const searching = !!q;
+      applyFoldHintEl(
+        hint,
+        current.chapter.id,
+        foldHintText({
+          searching,
+          currentLabel: t(lang, 'foldCurrent'),
+          searchLabel: t(lang, 'foldSearchOpen'),
+          chapterTitle: tx(lang, current.chapter.title),
+        }),
+      );
       tools.appendChild(hint);
     }
     const exp = document.createElement('button');

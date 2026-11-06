@@ -62,9 +62,14 @@ done
 if (( pushed == 0 )); then
   echo "push failed after $attempts attempts" >&2
   if (( cleared_proxy )); then
-    echo "proxy was cleared once; remaining env (empty = unset):" >&2
+    echo "proxy was cleared once; remaining env:" >&2
     for v in https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy; do
-      echo "  $v=${!v-}" >&2
+      if [[ -n "${!v+x}" ]]; then
+        # Set (possibly to empty string) vs truly unset.
+        echo "  $v is set (value=${!v@Q})" >&2
+      else
+        echo "  $v is unset" >&2
+      fi
     done
   fi
   echo "If you see CONNECT tunnel / proxy / port 443 errors, try:" >&2

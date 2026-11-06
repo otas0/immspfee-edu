@@ -20,6 +20,7 @@ IMMSPFEE 教育版：按教材一节一节上课。标准实验室在独立仓�
 
 ```bash
 npm test                 # 含 layout + book-select CSSOM
+npm run smoke:layout     # 仅教学双栏 / 指针烟雾
 npm run smoke:book       # 仅 320px 人教书名 / clip 断言
 npm run preview          # 探测 4174，失败才启动
 ```

@@ -69,10 +69,8 @@ jobs:
             echo "| Saved | $((BEFORE - AFTER)) |"
             echo "| \`lint-teach-layout.mjs\` (CI only) | $(( (LINT_B + 1023) / 1024 )) |"
             echo "| \`smoke-layout.mjs\` (CI only) | $(( (SMOKE_B + 1023) / 1024 )) |"
-            echo "| \`smoke-book-select.mjs\` (CI only) | $(( (BOOK_B + 1023) / 1024 )) |"
-            echo "| \`smoke-book-select.mjs\` (bytes) | $BOOK_B |"
-            echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) |"
-            echo "| \`ensure-dev-server.sh\` (bytes) | $ENSURE_B |"
+            echo "| \`smoke-book-select.mjs\` (CI only) | $(( (BOOK_B + 1023) / 1024 )) KiB / ${BOOK_B} B |"
+            echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB / ${ENSURE_B} B |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       - uses: actions/configure-pages@v6

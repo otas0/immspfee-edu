@@ -81,11 +81,12 @@ if (!/321|360px|w\s*<=\s*360/.test(agents) || !/320px/.test(agents)) {
 }
 
 const shotsReadme = path.join(root, '.local-shots', 'README.md');
-if (!fs.existsSync(shotsReadme) || !/340px-projectile-ellipsis/.test(fs.readFileSync(shotsReadme, 'utf8'))) {
+const shotsTxt = fs.existsSync(shotsReadme) ? fs.readFileSync(shotsReadme, 'utf8') : '';
+if (!/340px-projectile-ellipsis/.test(shotsTxt) || !/340px-zh-long-title-ellipsis/.test(shotsTxt)) {
   failed += 1;
-  console.error('FAIL .local-shots/README.md must describe 340px-projectile-ellipsis.png');
+  console.error('FAIL .local-shots/README.md must describe 340px stack + long-title ellipsis captures');
 } else {
-  console.log('ok .local-shots/README.md documents 340px band capture');
+  console.log('ok .local-shots/README.md documents 340px band captures');
 }
 
 if (failed) {
