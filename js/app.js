@@ -6,19 +6,33 @@ import { t, tx } from './i18n.js?v=__BUILD__';
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
 const narrowMq = window.matchMedia('(max-width: 768px)');
 
-function showToast(message) {
+function showToast(message, opts = {}) {
   const host = document.getElementById('toast');
   if (!host) return;
   host.hidden = false;
-  host.textContent = message;
+  host.replaceChildren();
+  const text = document.createElement('span');
+  text.textContent = message;
+  host.appendChild(text);
+  if (opts.reload) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-reload';
+    btn.textContent = t(lang, 'swReload');
+    btn.addEventListener('click', () => {
+      host.hidden = true;
+      location.reload();
+    });
+    host.appendChild(btn);
+  }
   clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => { host.hidden = true; }, 5000);
+  showToast._t = setTimeout(() => { host.hidden = true; }, opts.reload ? 12000 : 5000);
 }
 
 setImportErrorHandler((err, detail) => {
   const msg = err && err.message ? err.message : String(err);
-  if (DEV_TOAST) showToast(`${detail}: ${msg}`);
-  else showToast(`${t(lang, 'importFail')} ${detail || ''}`.trim());
+  if (DEV_TOAST) showToast(`${detail}: ${msg}`, { reload: true });
+  else showToast(`${t(lang, 'importFail')} ${detail || ''}`.trim(), { reload: true });
 });
 
 function prefetchOpenVolume() {
@@ -356,6 +370,13 @@ function renderTree() {
   if (foldBook) {
     const tools = document.createElement('div');
     tools.className = 'fold-tools';
+    const current = findLesson(bookId, lessonId);
+    if (current?.chapter) {
+      const hint = document.createElement('span');
+      hint.className = 'fold-hint';
+      hint.textContent = `${t(lang, 'foldCurrent')}: ${tx(lang, current.chapter.title)}`;
+      tools.appendChild(hint);
+    }
     const exp = document.createElement('button');
     exp.type = 'button';
     exp.textContent = t(lang, 'foldExpand');

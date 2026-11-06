@@ -32,28 +32,51 @@ export const isingSim = {
     num('paintStep', 'Paint step', '降采样步长', '', 1, 3, 1),
   ],
   onParam(key, value, next) {
-    if (key === 'Tmin' && value >= next.Tmax - 0.2) return { Tmax: value + 0.5 };
-    if (key === 'Tmax' && value <= next.Tmin + 0.2) return { Tmin: Math.max(0.2, value - 0.5) };
-    return {};
+    const patch = {};
+    let Tmin = next.Tmin;
+    let Tmax = next.Tmax;
+    let T = next.T;
+    if (key === 'Tmin' && value >= Tmax - 0.2) {
+      Tmax = value + 0.5;
+      patch.Tmax = Tmax;
+    }
+    if (key === 'Tmax' && value <= Tmin + 0.2) {
+      Tmin = Math.max(0.2, value - 0.5);
+      patch.Tmin = Tmin;
+    }
+    if (key === 'Tmin') Tmin = value;
+    if (key === 'Tmax') Tmax = value;
+    if (key === 'T') T = value;
+    // Keep probe T inside the sweep window used by the cached |M|(T) curve.
+    if (T < Tmin) patch.T = Tmin;
+    else if (T > Tmax) patch.T = Tmax;
+    return patch;
   },
   compute: (p, t) => {
     const Tmin = p.Tmin ?? 0.5;
     const Tmax = p.Tmax ?? 4;
+    const T = Math.min(Tmax, Math.max(Tmin, p.T));
     const key = [p.N, p.sweeps, p.seed, Tmin, Tmax, 20].join('|');
     if (isingSweepCache.key !== key) {
       isingSweepCache = { key, sweep: isingTempSweep({ ...p, Tmin, Tmax, steps: 20 }) };
     }
     const sweep = isingSweepCache.sweep;
     const Tplay = sweep.Tmin + Math.min(1, Math.max(0, t)) * (sweep.Tmax - sweep.Tmin);
-    const at = isingMetropolis({ ...p, T: p.T });
+    const at = isingMetropolis({ ...p, T });
     const play = isingMetropolis({ ...p, T: Tplay, seed: p.seed + Math.round(Tplay * 10) });
     const paintStep = Math.max(1, Math.min(3, Math.round(p.paintStep ?? 1)));
     const cells = Math.ceil(at.N / paintStep) ** 2;
-    return { ...at, sweep, Tplay, playAbsM: play.absM, playSpins: play.spins, Tc: sweep.Tc, paintStep, cells };
+    const inSweep = p.T >= Tmin - 1e-9 && p.T <= Tmax + 1e-9;
+    return {
+      ...at, T, sweep, Tplay, playAbsM: play.absM, playSpins: play.spins, Tc: sweep.Tc,
+      paintStep, cells, Tmin, Tmax, inSweep, tip: inSweep ? '' : `clamp T→[${Tmin},${Tmax}]`,
+    };
   },
   readouts: (d) => [
     ro('|M|', '|M|', fmt(d.absM, 3)),
     ro('T', 'T', fmt(d.T, 2)),
+    ro('window', '扫温窗', `[${fmt(d.Tmin, 1)}, ${fmt(d.Tmax, 1)}]`),
+    { en: 'lock', zh: '互锁', value: d.inSweep ? 'T ∈ [Tmin, Tmax]' : d.tip, hi: !d.inSweep },
     ro('T▶', '扫温 T', fmt(d.Tplay, 2)),
     ro('Tc', 'Onsager Tc', fmt(d.Tc, 4)),
     ro('paint', '有效格点', `${d.cells} (×${d.paintStep})`),

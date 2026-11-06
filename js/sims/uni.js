@@ -250,13 +250,19 @@ export const finiteWellSim = {
     num('E', 'Probe E', '探针 E', 'J', 2e-19, 5e-18, 1e-19),
   ],
   compute: (p) => finiteWell(p),
-  readouts: (d) => [
-    ro('E1f', 'E₁ finite', d.E1f == null ? '—' : d.E1f.toExponential(3) + ' J'),
-    ro('E1∞', 'E₁ infinite', d.E1inf.toExponential(3) + ' J'),
-    ro('∫ψ²', '∫|ψ₁|²', d.bound[0]?.integ != null ? fmt(d.bound[0].integ, 3) : '—'),
-    ro('T', 'T(E)', fmt(d.T, 4)),
-    ro('Nbound', '束缚态数', String(d.bound.length)),
-  ],
+  readouts: (d) => {
+    const g = d.bound[0];
+    const parity = g?.parity === 'even' ? 'even / 偶' : g?.parity === 'odd' ? 'odd / 奇' : '—';
+    return [
+      ro('E1f', 'E₁ finite', d.E1f == null ? '—' : d.E1f.toExponential(3) + ' J'),
+      ro('parity', '宇称', parity),
+      ro('κ', 'κ₁', g?.kappa != null ? g.kappa.toExponential(3) + ' m⁻¹' : '—'),
+      ro('E1∞', 'E₁ infinite', d.E1inf.toExponential(3) + ' J'),
+      ro('∫ψ²', '∫|ψ₁|²', g?.integ != null ? fmt(g.integ, 3) : '—'),
+      ro('T', 'T(E)', fmt(d.T, 4)),
+      ro('Nbound', '束缚态数', String(d.bound.length)),
+    ];
+  },
   checks: (d) => [
     q('lower', 'Relative to the infinite well of the same L, the finite-well ground energy is', '相对同宽无限深阱，有限阱基态能量', [
       opt('lower (E1f < E1∞)', '更低（E1f < E1∞）'),

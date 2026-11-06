@@ -41,11 +41,23 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
       - name: Stage Pages artifact
         run: |
-          # Site-only tree: skip scripts, docs, tests, git metadata, node_modules.
+          # Site-only tree: skip scripts, docs, tests, package.json, git, node_modules.
           rm -rf _site
           mkdir -p _site
-          cp index.html sw.js package.json _site/
+          cp index.html sw.js _site/
           cp -R assets css js _site/
+          BEFORE=$(du -sk --exclude=.git --exclude=node_modules --exclude=_site . | awk '{print $1}')
+          AFTER=$(du -sk _site | awk '{print $1}')
+          {
+            echo "### Pages artifact size"
+            echo ""
+            echo "| Tree | KiB |"
+            echo "| --- | ---: |"
+            echo "| Repo (ex .git/node_modules/_site) | $BEFORE |"
+            echo "| Staged \`_site\` | $AFTER |"
+            echo "| Saved | $((BEFORE - AFTER)) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -115,11 +127,19 @@ jobs:
             "" \
             "cc @otas0")
           TITLE="Pages stamp failed ($SHORT)"
+          RUN_ID="${{ github.run_id }}"
           EXISTING=$(gh issue list --search "$TITLE in:title" --state open --json number,title \
             --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n 1)
           if [ -n "$EXISTING" ]; then
             echo "stamp issue already open: #$EXISTING"
-            gh issue comment "$EXISTING" --body "$BODY" || true
+            # Same workflow run must not pile duplicate comments.
+            ALREADY=$(gh api "repos/${{ github.repository }}/issues/${EXISTING}/comments" \
+              --jq ".[].body" 2>/dev/null | grep -F "actions/runs/${RUN_ID}" || true)
+            if [ -n "$ALREADY" ]; then
+              echo "skip comment: run $RUN_ID already noted on #$EXISTING"
+            else
+              gh issue comment "$EXISTING" --body "$BODY" || true
+            fi
           else
             gh issue create --title "$TITLE" --body "$BODY" --assignee otas0 || true
           fi

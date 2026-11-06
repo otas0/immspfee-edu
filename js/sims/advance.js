@@ -337,6 +337,10 @@ export const modesSim = {
     ctx.fill();
     text(ctx, '1', x1, y - 22, MUTED, 12, 'center');
     text(ctx, '2', x2, y - 22, MUTED, 12, 'center');
+    const resid = d.E - d.E0;
+    const ok = Math.abs(resid) <= 0.02 * Math.max(1, Math.abs(d.E0));
+    text(ctx, `E−E₀=${resid >= 0 ? '+' : ''}${fmt(resid, 3)} J`, w * 0.5, h * 0.14, ok ? INK : '#a33', 13, 'center');
+    text(ctx, ok ? 'E ≈ E₀' : 'E ≉ E₀', w * 0.5, h * 0.22, ok ? MUTED : '#a33', 12, 'center');
   },
 };
 

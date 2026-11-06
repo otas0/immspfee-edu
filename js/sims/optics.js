@@ -623,13 +623,17 @@ export const doubleSlitSim = {
       ctx.setLineDash([3, 3]);
       ctx.stroke();
       ctx.setLineDash([]);
-      const half = d.centralWidth / 2;
-      yLo = gy - ((-half + ySpan) / (2 * ySpan)) * gh;
-      yHi = gy - ((half + ySpan) / (2 * ySpan)) * gh;
-      line(ctx, gx - 6, yLo, gx - 6, yHi, RAY, 2);
-      handle(ctx, gx - 6, yLo, ui.drag === 'width');
-      handle(ctx, gx - 6, yHi, ui.drag === 'width');
-      text(ctx, '2λD/a', gx - 10, (yLo + yHi) / 2, RAY, 10, 'right');
+    }
+    // Central-max width bar is always draggable (2λD/a); envelope is optional overlay.
+    const half = d.centralWidth / 2;
+    yLo = gy - ((-half + ySpan) / (2 * ySpan)) * gh;
+    yHi = gy - ((half + ySpan) / (2 * ySpan)) * gh;
+    line(ctx, gx - 6, yLo, gx - 6, yHi, RAY, 2);
+    handle(ctx, gx - 6, yLo, ui.drag === 'width');
+    handle(ctx, gx - 6, yHi, ui.drag === 'width');
+    text(ctx, d.useEnv ? '2λD/a' : '2λD/a (drag)', gx - 10, (yLo + yHi) / 2, RAY, 10, 'right');
+    if (!d.useEnv) {
+      text(ctx, lab(ui, 'turn on sinc² for envelope', '打开 sinc² 可看包络'), w * 0.5, h * 0.16, MUTED, 11, 'center');
     }
     ui._slit = { gx, gy, gw, gh, ySpan, yLo, yHi, barX: gx - 6 };
     ctx.beginPath();
@@ -655,7 +659,7 @@ export const doubleSlitSim = {
   },
   pointer(ev, p, d, ui) {
     const g = ui._slit;
-    if (!g || !d.useEnv) return null;
+    if (!g) return null;
     if (ev.type === 'down') {
       const onBar = Math.abs(ev.x - g.barX) < 16
         && ev.y >= Math.min(g.yLo, g.yHi) - 10

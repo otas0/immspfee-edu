@@ -292,6 +292,15 @@ const a0 = 5.29177210903e-11;
 const rho4 = 4;
 const Rtab = (n, l, rh) => {
   const a = a0;
+  if (n === 3 && l === 0) {
+    return (2 / (3 * Math.sqrt(3))) * a ** -1.5 * (1 - (2 * rh) / 3 + (2 * rh * rh) / 27) * Math.exp(-rh / 3);
+  }
+  if (n === 3 && l === 1) {
+    return (8 / (27 * Math.sqrt(6))) * a ** -1.5 * rh * (1 - rh / 6) * Math.exp(-rh / 3);
+  }
+  if (n === 3 && l === 2) {
+    return (4 / (81 * Math.sqrt(30))) * a ** -1.5 * (rh * rh) * Math.exp(-rh / 3);
+  }
   if (n === 4 && l === 0) {
     return (1 / 4) * a ** -1.5 * (1 - (3 * rh) / 4 + (rh * rh) / 8 - (rh ** 3) / 192) * Math.exp(-rh / 4);
   }
@@ -306,6 +315,13 @@ const Rtab = (n, l, rh) => {
   }
   return NaN;
 };
+const rho3 = 3;
+for (const l of [0, 1, 2]) {
+  const rad3 = hydrogenRadial({ n: 3, l, r: rho3 * a0 });
+  near(rad3.integ, 1, 0.05, `R3${l} ∫P ≈ 1`);
+  const tab3 = Rtab(3, l, rho3);
+  near(rad3.R, tab3, 1e-6 * Math.max(Math.abs(tab3), 1e-30), `R3${l} table at ρ=3`);
+}
 for (const l of [0, 1, 2, 3]) {
   const rad = hydrogenRadial({ n: 4, l, r: rho4 * a0 });
   near(rad.integ, 1, 0.05, `R4${l} ∫P ≈ 1`);

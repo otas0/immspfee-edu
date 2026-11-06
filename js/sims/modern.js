@@ -613,25 +613,46 @@ export const simultaneitySim = {
     const trackX1 = w * 0.82;
     const trackY = h * 0.9;
     line(ctx, trackX0, trackY, trackX1, trackY, MUTED, 2);
-    const b = Math.min(0.97, Math.max(0.03, d.beta));
-    const hx = trackX0 + ((b - 0.03) / 0.94) * (trackX1 - trackX0);
+    const b = Math.min(0.95, Math.max(0.05, d.beta));
+    const hx = trackX0 + ((b - 0.05) / 0.9) * (trackX1 - trackX0);
     handle(ctx, hx, trackY, ui.drag === 'v');
-    text(ctx, `v (drag)  β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY - 14, MUTED, 11, 'center');
+    text(ctx, `β (drag ↔ slider)  β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY - 14, MUTED, 11, 'center');
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
+  },
+  onParam(key, value) {
+    // Slider → canvas: snap to 0.05 so the drag track and β field stay in lockstep.
+    if (key === 'beta') {
+      const b = Math.round(Math.max(0.05, Math.min(0.95, value)) / 0.05) * 0.05;
+      return Math.abs(b - value) > 1e-9 ? { beta: b } : {};
+    }
+    return {};
   },
   pointer(ev, p, d, ui) {
     const tr = ui._vTrack;
     if (!tr) return null;
     if (ev.type === 'down') {
-      const hx = tr.trackX0 + ((Math.min(0.97, Math.max(0.03, d.beta)) - 0.03) / 0.94) * (tr.trackX1 - tr.trackX0);
+      const hx = tr.trackX0 + ((Math.min(0.95, Math.max(0.05, d.beta)) - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
       if (hit(ev.x, ev.y, hx, tr.trackY, 18)
         || (Math.abs(ev.y - tr.trackY) < 16 && ev.x >= tr.trackX0 && ev.x <= tr.trackX1)) {
         ui.drag = 'v';
       } else return null;
     }
-    if (ev.type === 'up') { ui.drag = null; return {}; }
+    if (ev.type === 'up') {
+      ui.drag = null;
+      ui._betaAt = 0;
+      return {};
+    }
     if (ev.type !== 'move' || ui.drag !== 'v') return null;
     const u = Math.max(0, Math.min(1, (ev.x - tr.trackX0) / (tr.trackX1 - tr.trackX0)));
-    return { v: (0.03 + u * 0.94) * tr.c };
+    // Canvas → slider: write β (not v), snap to schema step, debounce tiny jitter.
+    let beta = Math.round((0.05 + u * 0.9) / 0.05) * 0.05;
+    beta = Math.min(0.95, Math.max(0.05, beta));
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (ui._betaLast != null && Math.abs(beta - ui._betaLast) < 0.025 && now - (ui._betaAt || 0) < 40) {
+      return {};
+    }
+    ui._betaLast = beta;
+    ui._betaAt = now;
+    return { beta };
   },
 };
