@@ -3,3 +3,4 @@
 .dev-server-*.ready
 node_modules/
 *.log
+.local-shots/

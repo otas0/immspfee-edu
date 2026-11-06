@@ -197,6 +197,8 @@ function setParam(key, value) {
   let next = { ...params, [key]: clean };
   const extra = s.onParam?.(key, clean, next) || {};
   params = { ...next, ...extra };
+  // Leaving household layout drops the debug short overlay so series/parallel stay clean.
+  if (key === 'layout' && clean !== 'household') ui.wrong = false;
   marked = false;
   if (field && field.type !== 'number') renderTeach();
   else if (extra && Object.keys(extra).length) renderTeach();
@@ -238,7 +240,7 @@ function paintReadouts(d) {
   host.appendChild(title);
   for (const item of s.readouts(d, params, ui)) {
     const rowEl = document.createElement('div');
-    rowEl.className = item.hi ? 'readout hi' : 'readout';
+    rowEl.className = item.warn ? 'readout warn' : item.hi ? 'readout hi' : 'readout';
     const k = document.createElement('span');
     k.textContent = tx(lang, item);
     const v = document.createElement('strong');

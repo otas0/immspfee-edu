@@ -55,6 +55,7 @@ jobs:
           AFTER=$(du -sk _site | awk '{print $1}')
           LINT_B=$(wc -c < scripts/lint-teach-layout.mjs | tr -d ' ')
           SMOKE_B=$(wc -c < scripts/smoke-layout.mjs | tr -d ' ')
+          ENSURE_B=$(wc -c < scripts/ensure-dev-server.sh | tr -d ' ')
           {
             echo "### Pages artifact size"
             echo ""
@@ -65,6 +66,8 @@ jobs:
             echo "| Saved | $((BEFORE - AFTER)) |"
             echo "| \`lint-teach-layout.mjs\` (CI only) | $(( (LINT_B + 1023) / 1024 )) |"
             echo "| \`smoke-layout.mjs\` (CI only) | $(( (SMOKE_B + 1023) / 1024 )) |"
+            echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) |"
+            echo "| \`ensure-dev-server.sh\` (bytes) | $ENSURE_B |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       - uses: actions/configure-pages@v6

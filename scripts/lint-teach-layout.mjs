@@ -11,14 +11,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const requiredTeachPanel = [
   { file: 'js/sims/circuits.js', id: 'circuit', needles: ['portsOf', 'teachPanel'] },
-  { file: 'js/sims/motion.js', id: 'projectile', needles: ['teachPanel', 'x–t'] },
+  { file: 'js/sims/motion.js', id: 'projectile', needles: ['teachPanel', 'x–t', 'w <= 360'] },
   { file: 'js/sims/motion.js', id: 'st-graph / vt', needles: ['teachPanel'] },
   { file: 'js/sims/optics.js', id: 'double-slit', needles: ['teachPanel', 'screen intensity'] },
   { file: 'js/sims/thermal.js', id: 'heat-engine', needles: ['teachPanel', 'p–V'] },
   { file: 'js/sims/stat.js', id: 'ising', needles: ['teachPanel'] },
   { file: 'js/sims/advance.js', id: 'coupled-pendula', needles: ['teachPanel'] },
   { file: 'js/sims/uni.js', id: 'finite-well', needles: ['teachPanel', 'E ladder'] },
-  { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel'] },
+  { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel', 'midGutter'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

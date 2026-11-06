@@ -263,6 +263,7 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
 .readout strong { font-variant-numeric: tabular-nums; }
 .readout.hi span, .readout.hi strong { color: var(--ink, #1c1c1c); font-weight: 600; }
 .readout.hi { outline: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; background: #fff; }
+.readout.warn span, .readout.warn strong { color: #a33; }
 
 .teach { padding: 14px 14px 18px; overflow: auto; max-height: calc(100vh - 124px); }
 .crumb { margin: 0; color: var(--muted); font-size: 12px; }

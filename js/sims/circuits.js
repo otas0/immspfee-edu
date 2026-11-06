@@ -4,7 +4,7 @@ import { num, sel, tog, clear, line, text, handle, hit, lab, teachPanel, INK, MU
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
-function ro(en, zh, value) { return { en, zh, value }; }
+function ro(en, zh, value, flags) { return { en, zh, value, ...(flags || {}) }; }
 
 const LAYOUTS = [
   { value: 'series', en: 'Series', zh: '串联' },
@@ -75,8 +75,10 @@ export const circuitSim = {
       : d.fault === 'short'
         ? { en: 'load bypassed', zh: '负载被旁路' }
         : d.fault === 'open' ? { en: 'open', zh: '断路' } : { en: 'closed path', zh: '通路' };
+    // Match canvas fault ink (#a33) for short / load-bypassed path rows.
+    const pathWarn = !!(d.batteryShort || d.fault === 'short');
     const rows = [
-      ro('Path', '电路', fault),
+      ro('Path', '电路', fault, pathWarn ? { warn: true } : null),
       ro('I', 'I', `${fmt(d.I, 3)} A`),
       ro('U1', 'U1', `${fmt(d.U1, 3)} V`),
       ro('I1', 'I1', `${fmt(d.I1, 3)} A`),

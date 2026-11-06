@@ -30,10 +30,24 @@ function mockCtx() {
     setLineDash() {},
     save() {},
     restore() {},
+    drawImage() { ops.push(['drawImage']); },
     fillText(str, x, y) { ops.push(['fillText', String(str), +x, +y]); },
     measureText(str) { return { width: String(str).length * 6 }; },
   };
   return ctx;
+}
+
+// Node has no canvas: mock OffscreenCanvas so Ising N≥12 uses the buffered path.
+if (typeof globalThis.OffscreenCanvas === 'undefined') {
+  globalThis.OffscreenCanvas = class OffscreenCanvas {
+    constructor(w, h) {
+      this.width = w;
+      this.height = h;
+    }
+    getContext() {
+      return mockCtx();
+    }
+  };
 }
 
 async function runDraw(id, w, h, patchUi = {}, patchParams = {}) {
@@ -129,13 +143,16 @@ let failed = 0;
 }
 
 {
-  // N < 12 avoids OffscreenCanvas / document fallback in Node smoke.
-  const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 8 });
+  // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
+  const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);
   if (panels.length < 1 || panels[0][1] < w * 0.35) {
     failed += 1;
     console.error('FAIL ising: |M|(T) panel should sit on the right', panels[0]);
-  } else console.log('ok ising |M| panel', { x: panels[0][1].toFixed(0) });
+  } else if (!ctx.ops.some((o) => o[0] === 'drawImage')) {
+    failed += 1;
+    console.error('FAIL ising N=24: expected OffscreenCanvas drawImage path');
+  } else console.log('ok ising |M| panel + Offscreen buffer', { x: panels[0][1].toFixed(0) });
 }
 
 {
@@ -161,26 +178,28 @@ let failed = 0;
 }
 
 {
-  const { ctx } = await runDraw('double-slit', 640, 400, {}, { useEnv: true });
-  const rays = ctx.ops.filter((o) => o[0] === 'lineTo' || o[0] === 'moveTo');
-  // Guide rays: two move/line pairs ending at the same env-baseline Y near panelX.
   const panelX = 640 * 0.42;
   const gy = 0.14 * 400 + 0.78 * 400 * 0.88;
   const gh = 0.78 * 400 * 0.7;
   const envBaseY = gy - gh * 0.5;
-  const hits = ctx.ops.filter((o) => (o[0] === 'lineTo' || o[0] === 'moveTo')
-    && Math.abs(o[1] - (panelX - 2)) < 1
-    && Math.abs(o[2] - envBaseY) < 1.5);
-  // line() uses moveTo+lineTo via kit — count lineTo at screen edge
-  const edgeHits = ctx.ops.filter((o) => o[0] === 'lineTo'
-    && Math.abs(o[1] - (panelX - 2)) < 1
-    && Math.abs(o[2] - envBaseY) < 1.5);
-  if (edgeHits.length < 2) {
-    failed += 1;
-    console.error('FAIL double-slit: guide rays should meet envelope baseline at panel edge', {
-      edgeHits, envBaseY, hits: hits.length, sample: rays.slice(0, 6),
-    });
-  } else console.log('ok double-slit guide rays on envelope baseline', edgeHits.length);
+  const screenX = panelX - 2;
+  for (const envelope of [true, false]) {
+    const { ctx, d } = await runDraw('double-slit', 640, 400, {}, { envelope });
+    if (!!d.useEnv !== envelope) {
+      failed += 1;
+      console.error('FAIL double-slit: useEnv should track envelope', { envelope, useEnv: d.useEnv });
+      continue;
+    }
+    const edgeHits = ctx.ops.filter((o) => o[0] === 'lineTo'
+      && Math.abs(o[1] - screenX) < 1
+      && Math.abs(o[2] - envBaseY) < 1.5);
+    if (edgeHits.length < 2) {
+      failed += 1;
+      console.error('FAIL double-slit: guide rays should meet central-max baseline', {
+        envelope, edgeHits, envBaseY,
+      });
+    } else console.log('ok double-slit guide rays → central max', { envelope, n: edgeHits.length });
+  }
 }
 
 {
@@ -193,7 +212,38 @@ let failed = 0;
   if (!val || val.en !== 'load bypassed' || val.zh !== '负载被旁路') {
     failed += 1;
     console.error('FAIL load-bypassed EN/ZH readout pair', val);
-  } else console.log('ok load-bypassed EN/ZH', val);
+  } else if (!row.warn) {
+    failed += 1;
+    console.error('FAIL load-bypassed: Path readout should warn (#a33) to match canvas');
+  } else console.log('ok load-bypassed EN/ZH + warn', val);
+}
+
+{
+  // Minkowski β track sits below the panel with a vertical gutter for labels.
+  const { ctx, w, h } = await runDraw('simultaneity', 640, 400, {}, { beta: 0.5 });
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1) {
+    failed += 1;
+    console.error('FAIL minkowski: missing teachPanel');
+  } else {
+    const panelBottom = panels[0][2] + panels[0][4];
+    const trackY = h * 0.88;
+    const midGutter = (panelBottom + trackY) / 2;
+    const dragLabel = ctx.ops.find((o) => o[0] === 'fillText' && /Drag β|拖动 β/.test(o[1]));
+    const betaLabel = ctx.ops.find((o) => o[0] === 'fillText' && /^β=/.test(o[1]));
+    // fillText ops: [tag, str, x, y]
+    const gutterOk = dragLabel && betaLabel
+      && Math.abs(dragLabel[3] - (midGutter - 8)) < 1.5
+      && Math.abs(betaLabel[3] - (midGutter + 8)) < 1.5
+      && dragLabel[3] > panelBottom + 4
+      && betaLabel[3] < trackY - 4;
+    if (!gutterOk) {
+      failed += 1;
+      console.error('FAIL minkowski: β gutter labels should sit between panel and track', {
+        panelBottom, trackY, midGutter, dragY: dragLabel?.[3], betaY: betaLabel?.[3], w,
+      });
+    } else console.log('ok minkowski β gutter', { midGutter: midGutter.toFixed(0) });
+  }
 }
 
 {

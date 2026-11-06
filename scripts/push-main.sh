@@ -14,6 +14,17 @@ AUTH_URL="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
 SHA="$(git rev-parse HEAD)"
 SHORT="$(git rev-parse --short HEAD)"
 
+echo "precheck: gh API → $REPO"
+if ! gh api --method GET "/repos/${REPO}" --jq .full_name >/dev/null; then
+  echo "gh API unreachable for $REPO before push" >&2
+  echo "If you see CONNECT tunnel / proxy / port 443 errors, try:" >&2
+  echo "  unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy" >&2
+  echo "  then: bash scripts/push-main.sh" >&2
+  echo "Or use a network path that can reach api.github.com:443." >&2
+  exit 1
+fi
+echo "precheck ok"
+
 attempts=6
 delay=5
 i=1
