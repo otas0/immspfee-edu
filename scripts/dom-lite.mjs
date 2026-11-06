@@ -236,6 +236,52 @@ function queryAdjacentChain(root, parts) {
   return null;
 }
 
+/**
+ * Mixed child/adjacent chain: `div > span + em`.
+ * bits alternate sel / combinator: ['div', '>', 'span', '+', 'em'].
+ */
+function queryCombinatorChain(root, bits) {
+  if (!bits.length || bits.length % 2 === 0) return null;
+  const starts = [];
+  collectDeep(root, bits[0], starts);
+  for (const start of starts) {
+    let cur = start;
+    let ok = true;
+    for (let i = 1; i < bits.length; i += 2) {
+      const comb = bits[i];
+      const nextSel = bits[i + 1];
+      if (!nextSel) { ok = false; break; }
+      if (comb === '>') {
+        let found = null;
+        for (const ch of cur.children || []) {
+          if (matchSel(ch, nextSel)) { found = ch; break; }
+        }
+        if (!found) { ok = false; break; }
+        cur = found;
+      } else if (comb === '+') {
+        const parent = cur.parentNode;
+        if (!parent?.children) { ok = false; break; }
+        const idx = parent.children.indexOf(cur);
+        const next = idx >= 0 ? parent.children[idx + 1] : null;
+        if (!next || !matchSel(next, nextSel)) { ok = false; break; }
+        cur = next;
+      } else {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return cur;
+  }
+  return null;
+}
+
+function splitCombinators(raw) {
+  return String(raw || '')
+    .split(/(\s*>\s*|\s*\+\s*)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function queryIn(root, sel) {
   const raw = String(sel || '').trim();
   if (raw.includes(',')) {
@@ -245,15 +291,22 @@ function queryIn(root, sel) {
     }
     return null;
   }
-  // Adjacent sibling before child: "span.fold-hint + em".
-  if (raw.includes('+')) {
-    const parts = raw.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) return queryAdjacentChain(root, parts);
-  }
-  // Child combinator before descendant: "div > span.fold-hint".
-  if (raw.includes('>')) {
-    const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) return queryChildChain(root, parts);
+  // Mixed or single > / + combinators (e.g. "div > span + em").
+  if (/[>+]/.test(raw)) {
+    const bits = splitCombinators(raw);
+    if (bits.length >= 3 && bits.length % 2 === 1) {
+      const hit = queryCombinatorChain(root, bits);
+      if (hit) return hit;
+      // Fall through for pure > / + if chain miss (legacy helpers).
+    }
+    if (!raw.includes('>') && raw.includes('+')) {
+      const parts = raw.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length > 1) return queryAdjacentChain(root, parts);
+    }
+    if (!raw.includes('+') && raw.includes('>')) {
+      const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length > 1) return queryChildChain(root, parts);
+    }
   }
   // Descendant combinator: "div span.fold-hint" (spaces).
   const parts = raw.split(/\s+/).filter(Boolean);
@@ -272,20 +325,28 @@ function collect(root, sel, out) {
     for (const part of raw.split(',')) collect(root, part.trim(), out);
     return;
   }
-  if (raw.includes('+')) {
-    const parts = raw.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      const hit = queryAdjacentChain(root, parts);
+  if (/[>+]/.test(raw)) {
+    const bits = splitCombinators(raw);
+    if (bits.length >= 3 && bits.length % 2 === 1) {
+      const hit = queryCombinatorChain(root, bits);
       if (hit && !out.includes(hit)) out.push(hit);
       return;
     }
-  }
-  if (raw.includes('>')) {
-    const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      const hit = queryChildChain(root, parts);
-      if (hit && !out.includes(hit)) out.push(hit);
-      return;
+    if (!raw.includes('>') && raw.includes('+')) {
+      const parts = raw.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        const hit = queryAdjacentChain(root, parts);
+        if (hit && !out.includes(hit)) out.push(hit);
+        return;
+      }
+    }
+    if (!raw.includes('+') && raw.includes('>')) {
+      const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        const hit = queryChildChain(root, parts);
+        if (hit && !out.includes(hit)) out.push(hit);
+        return;
+      }
     }
   }
   const parts = raw.split(/\s+/).filter(Boolean);

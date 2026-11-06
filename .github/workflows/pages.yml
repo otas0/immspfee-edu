@@ -21,10 +21,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     steps:
-      # Node 24 scan (2026-11): checkout@v7 + configure-pages@v6 + deploy-pages@v5
-      # all use node24. Last Pages run had no Node 20 deprecation on configure-pages.
+      # Node 24 scan (2026-11): checkout@v7 + setup-node@v7 + configure-pages@v6 +
+      # deploy-pages@v5 all use node24. setup-node@v6 had no Node 20 deprecation on last
+      # run; bumped to @v7 (current major, also node24).
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           package-manager-cache: false
@@ -35,11 +36,11 @@ jobs:
           {
             echo "### Fail artifact names (short SHA \`$SHORT\`)"
             echo ""
-            echo "| Kind | Artifact name |"
-            echo "| --- | --- |"
-            echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` |"
-            echo "| capture-fail | \`capture-last-fail-$SHORT\` |"
-            echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` |"
+            echo "| Kind | Artifact name | Retention |"
+            echo "| --- | --- | --- |"
+            echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` | 7-day |"
+            echo "| capture-fail | \`capture-last-fail-$SHORT\` | 7-day |"
+            echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
@@ -209,7 +210,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 2
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           package-manager-cache: false
@@ -220,11 +221,12 @@ jobs:
           {
             echo "### Fail artifact names (short SHA \`$SHORT\`)"
             echo ""
-            echo "| Kind | Artifact name |"
-            echo "| --- | --- |"
-            echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` |"
-            echo "| capture-fail | \`capture-last-fail-$SHORT\` |"
-            echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` |"
+            echo "| Kind | Artifact name | Retention |"
+            echo "| --- | --- | --- |"
+            echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` | 7-day |"
+            echo "| capture-fail | \`capture-last-fail-$SHORT\` | 7-day |"
+            echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
+            echo "| force_fail | _(filled after force-fail step)_ | — |"
           } >> "$GITHUB_STEP_SUMMARY"
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
       # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
@@ -270,10 +272,18 @@ jobs:
             '```' \
             "" \
             "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+          RUN_ID="${{ github.run_id }}"
           EXISTING=$(gh issue list --search "$TITLE in:title" --state open --json number,title,state \
             --jq "[.[] | select(.title == \"$TITLE\" and (.state | ascii_upcase) == \"OPEN\")] | .[0].number // empty" || true)
           if [ -n "$EXISTING" ]; then
-            gh issue comment "$EXISTING" --body "$BODY" || true
+            # Same workflow run must not pile duplicate pin comments.
+            ALREADY=$(gh api "repos/${{ github.repository }}/issues/${EXISTING}/comments" \
+              --jq ".[].body" 2>/dev/null | grep -F "actions/runs/${RUN_ID}" || true)
+            if [ -n "$ALREADY" ]; then
+              echo "skip pin comment: run $RUN_ID already noted on #$EXISTING"
+            else
+              gh issue comment "$EXISTING" --body "$BODY" || true
+            fi
           else
             # Closed/same-title matches are ignored on purpose (state=open filter above).
             gh issue create --title "$TITLE" --body "$BODY" --assignee otas0 || true
@@ -345,6 +355,11 @@ jobs:
             echo ""
             echo "Verified overflow/topH block (CAPTURE_FORCE_FAIL=1)."
             echo ""
+            echo "| Kind | Status | Retention |"
+            echo "| --- | --- | --- |"
+            echo "| force_fail | ok | — |"
+            echo "| capture-fail (template) | verified | 7-day if uploaded |"
+            echo ""
             cat "$FAIL_MD"
           } >> "$GITHUB_STEP_SUMMARY"
           rm -f "$FAIL_MD"
@@ -361,6 +376,21 @@ jobs:
           ART_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           {
             echo "### Optional capture:340-title"
+            echo ""
+            echo "| Kind | Artifact / status | Retention |"
+            echo "| --- | --- | --- |"
+            echo "| redirect-fail | \`redirect-fail-headers-${SHORT}\` | 7-day |"
+            echo "| capture-fail | \`capture-last-fail-${SHORT}\` | 7-day |"
+            echo "| capture PNG | \`capture-340px-zh-long-title-${SHORT}\` | 7-day |"
+            if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
+              echo "| force_fail | skipped (no Playwright) | — |"
+            elif [ "${{ steps.force_fail.outcome }}" = "success" ]; then
+              echo "| force_fail | ok | — |"
+            elif [ "${{ steps.force_fail.outcome }}" = "failure" ]; then
+              echo "| force_fail | ❌ failed (non-blocking) | — |"
+            else
+              echo "| force_fail | \`${{ steps.force_fail.outcome }}\` | — |"
+            fi
             echo ""
             if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
               echo "Skipped (Playwright unavailable)."

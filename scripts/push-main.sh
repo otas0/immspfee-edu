@@ -169,6 +169,104 @@ print_env_protection_summary() {
   echo ""
 }
 
+print_run_artifacts() {
+  local prefer_fail="${1:-0}"
+  echo "artifact download URLs (short SHA $SHORT):"
+  local art_lines
+  art_lines="$(gh api "repos/${REPO}/actions/runs/${RID}/artifacts" --paginate \
+    --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-last-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
+  if [[ -z "$art_lines" ]]; then
+    echo "  (no matching capture/redirect artifacts for run $RID)"
+  else
+    while IFS=$'\t' read -r name aid url; do
+      [[ -z "$name" ]] && continue
+      if [[ "$prefer_fail" == "1" ]] && [[ "$name" != capture-last-fail-* && "$name" != redirect-fail-headers-* ]]; then
+        continue
+      fi
+      echo "  $name"
+      echo "    browse: https://github.com/${REPO}/actions/runs/${RID}/artifacts/${aid}"
+      [[ -n "$url" ]] && echo "    api:    $url"
+    done <<< "$art_lines"
+  fi
+  # When prefer_fail=0, also diagnose missing PNG.
+  if [[ "$prefer_fail" != "1" ]]; then
+    if ! echo "$art_lines" | grep -q "capture-340px-zh-long-title-${SHORT}"; then
+      diagnose_missing_capture_png
+    fi
+  fi
+}
+
+diagnose_missing_capture_png() {
+  echo "PNG artifact capture-340px-zh-long-title-$SHORT missing — diagnosing:"
+  local jobs_json step_info
+  jobs_json="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" 2>/dev/null || true)"
+  if [[ -z "$jobs_json" ]]; then
+    echo "  (could not fetch jobs for run $RID)"
+    return
+  fi
+  step_info="$(printf '%s' "$jobs_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+jobs = data.get("jobs") or []
+cap = None
+for j in jobs:
+    n = (j.get("name") or "")
+    if "capture" in n.lower() or "340" in n.lower():
+        cap = j
+        break
+if not cap:
+    print("no-capture-job")
+    sys.exit(0)
+concl = cap.get("conclusion") or ""
+status = cap.get("status") or ""
+steps = { (s.get("name") or ""): (s.get("conclusion") or s.get("status") or "") for s in (cap.get("steps") or []) }
+def find(substr):
+    for k, v in steps.items():
+        if substr.lower() in k.lower():
+            return v or "missing"
+    return "missing"
+pw_c = find("Install Playwright")
+ff_c = find("Force-fail")
+cap_c = find("Run capture")
+up_c = find("Upload 340px")
+print("job:%s:%s" % (status, concl))
+print("pw:%s" % pw_c)
+print("force_fail:%s" % ff_c)
+print("capture:%s" % cap_c)
+print("upload:%s" % up_c)
+' 2>/dev/null || echo "parse-failed")"
+  case "$step_info" in
+    no-capture-job)
+      echo "  capture job skipped or not scheduled for this run"
+      ;;
+    parse-failed)
+      echo "  (could not parse capture job steps)"
+      ;;
+    *)
+      job_line="$(echo "$step_info" | head -n 1)"
+      pw_c="$(echo "$step_info" | sed -n 's/^pw://p')"
+      ff_c="$(echo "$step_info" | sed -n 's/^force_fail://p')"
+      cap_c="$(echo "$step_info" | sed -n 's/^capture://p')"
+      up_c="$(echo "$step_info" | sed -n 's/^upload://p')"
+      echo "  capture job: $job_line"
+      echo "  steps: pw=$pw_c force_fail=$ff_c capture=$cap_c upload=$up_c"
+      if [[ "$pw_c" == "skipped" || "$pw_c" == "missing" ]] \
+        || [[ "$cap_c" == "skipped" || "$cap_c" == "missing" ]] \
+        || [[ "$ff_c" == "skipped" && "$cap_c" == "skipped" ]]; then
+        echo "  → job skipped path (Playwright unavailable or capture steps skipped)"
+      elif [[ "$cap_c" == "failure" || "$cap_c" == "cancelled" ]]; then
+        echo "  → capture step failed — check capture-last-fail-$SHORT if uploaded"
+      elif [[ "$up_c" == "failure" ]]; then
+        echo "  → PNG upload failed"
+      elif [[ "$cap_c" == "success" || "$up_c" == "success" || "$up_c" == "skipped" ]]; then
+        echo "  → upload miss (capture ran but PNG artifact not present — file missing or if-no-files-found)"
+      else
+        echo "  → unclear; inspect $RUN_URL"
+      fi
+      ;;
+  esac
+}
+
 while true; do
   meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
   status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
@@ -199,19 +297,13 @@ while true; do
   sleep 5
 done
 
-gh run watch "$RID" --repo "$REPO" --exit-status
-echo "Pages ok for $SHORT"
-# After capture/deploy finish, print real artifact download URLs from the API.
-echo "artifact download URLs (short SHA $SHORT):"
-art_lines="$(gh api "repos/${REPO}/actions/runs/${RID}/artifacts" --paginate \
-  --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-last-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
-if [[ -z "$art_lines" ]]; then
-  echo "  (no matching capture/redirect artifacts for run $RID)"
-else
-  while IFS=$'\t' read -r name aid url; do
-    [[ -z "$name" ]] && continue
-    echo "  $name"
-    echo "    browse: https://github.com/${REPO}/actions/runs/${RID}/artifacts/${aid}"
-    [[ -n "$url" ]] && echo "    api:    $url"
-  done <<< "$art_lines"
+watch_rc=0
+gh run watch "$RID" --repo "$REPO" --exit-status || watch_rc=$?
+if (( watch_rc != 0 )); then
+  echo "Pages watch failed for $SHORT (exit $watch_rc)" >&2
+  echo "still listing fail artifacts if any were uploaded:"
+  print_run_artifacts 1
+  exit "$watch_rc"
 fi
+echo "Pages ok for $SHORT"
+print_run_artifacts 0

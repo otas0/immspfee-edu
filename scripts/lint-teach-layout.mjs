@@ -124,6 +124,12 @@ function lint420AreasOrInherit(block) {
     failed += 1;
     console.error('FAIL lint reverse: @420 without areas/inherit comment must return missing-inherit-doc');
   }
+  // Reverse: wrong areas string (property present but not brand lang / nav nav) → bad-areas.
+  const badAreas = '  .top {\n    grid-template-areas:\n      "brand brand"\n      "nav lang";\n  }\n';
+  if (lint420AreasOrInherit(badAreas) !== 'bad-areas') {
+    failed += 1;
+    console.error('FAIL lint reverse: @420 wrong grid-template-areas must return bad-areas');
+  }
 }
 if (block320) {
   const code320 = stripCssComments(block320);

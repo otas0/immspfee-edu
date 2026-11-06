@@ -646,7 +646,31 @@ let failed = 0;
                   afterPruneUnknown, openSearchDirty, openIdleDirty,
                 });
               } else {
-                console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                // Unknown id + current chapter false → prune drops unknown; idle open set empty.
+                const dirtyClosed = uniAllFoldsMap(book.chapters, false);
+                dirtyClosed[hintCh.id] = false;
+                dirtyClosed['__unknown-ch__'] = true;
+                writeUniFoldsTo(foldStore, dirtyClosed);
+                const afterClosedUnknown = pruneUniFoldsIn(
+                  foldStore, new Set(book.chapters.map((ch) => ch.id)),
+                );
+                const openIdleClosedUnknown = uniOpenChapterIds(
+                  book.chapters, hintCh.id, afterClosedUnknown, false,
+                );
+                const openSearchClosedUnknown = uniOpenChapterIds(
+                  book.chapters, hintCh.id, afterClosedUnknown, true,
+                );
+                if (afterClosedUnknown['__unknown-ch__'] != null
+                  || afterClosedUnknown[hintCh.id] !== false
+                  || openIdleClosedUnknown.length !== 0
+                  || openSearchClosedUnknown.length !== book.chapters.length) {
+                  failed += 1;
+                  console.error('FAIL uni details[open] unknown id + current false → idle empty', {
+                    afterClosedUnknown, openIdleClosedUnknown, openSearchClosedUnknown,
+                  });
+                } else {
+                  console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                }
               }
             }
           }
@@ -911,11 +935,18 @@ let failed = 0;
                 sim.pointer({ type: 'up', x: rx, y: tr.trackY }, p, d, ui);
                 const afterReDrag = sim.readouts(d, p, ui);
                 const betaRe = afterReDrag.find((r) => r.en === 'β');
+                const gammaRe = afterReDrag.find((r) => r.en === 'γ');
+                const dtRe = afterReDrag.find((r) => r.en === 'Δt');
                 if (!rePatch || Math.abs(rePatch.beta - reTarget) > 1e-9
                   || !ui._betaHi || !betaRe?.hi) {
                   failed += 1;
                   console.error('FAIL minkowski re-drag after Explore clear must re-light β hi', {
                     rePatch, sticky: ui._betaHi, betaRe,
+                  });
+                } else if (gammaRe?.hi || dtRe?.hi) {
+                  failed += 1;
+                  console.error('FAIL minkowski re-drag: γ/Δt must stay non-hi (product lock)', {
+                    gammaRe, dtRe,
                   });
                 } else {
                   console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi');

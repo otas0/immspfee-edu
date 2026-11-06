@@ -213,7 +213,16 @@ if (!hasTwoRowTop(block768)) {
           byAdj: !!byAdj, byAdjMiss: !!byAdjMiss,
         });
       } else {
-        console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent');
+        const byMixed = document.querySelector('div > span.fold-hint + em');
+        const byMixedMiss = document.querySelector('div > em + span.fold-hint');
+        if (!byMixed || byMixed !== trailing || byMixedMiss) {
+          failed += 1;
+          console.error('FAIL dom-lite mixed combinator div > span.fold-hint + em', {
+            byMixed: !!byMixed, byMixedMiss: !!byMixedMiss,
+          });
+        } else {
+          console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed');
+        }
       }
     }
   }

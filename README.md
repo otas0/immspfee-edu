@@ -33,7 +33,7 @@ CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow
 
 无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。CI 另有一步 `CAPTURE_FORCE_FAIL=1`（`continue-on-error`）专门校验 capture 摘要模板。
 
-CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`。
+CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`（详见 [`.local-shots/README.md`](.local-shots/README.md)）。
 
 ## Run
 
@@ -44,7 +44,7 @@ npm start
 
 There is **no** `pretest` hook. Use `npm test` (includes rename redirect; soft-skips when GitHub is unreachable) or `npm run test:offline` when you want to skip redirect entirely.
 
-CI artifact names (short SHA): `capture-340px-zh-long-title-<sha>`, `capture-last-fail-<sha>`, `redirect-fail-headers-<sha>`.
+CI artifact names (short SHA): `capture-340px-zh-long-title-<sha>`, `capture-last-fail-<sha>`, `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md).
 
 `npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 
