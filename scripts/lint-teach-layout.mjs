@@ -143,6 +143,25 @@ function lint420AreasOrInherit(block) {
     failed += 1;
     console.error('FAIL lint reverse: correct areas without inherit comment must pass');
   }
+  // Reverse: correct areas + extra inherit comment still passes (property wins; comment noise ok).
+  const goodAreasExtraInherit = '  /* Inherit @768 grid-template-areas: brand lang / nav nav */\n'
+    + '  .top {\n    grid-template-areas:\n      "brand lang"\n      "nav nav";\n  }\n';
+  if (lint420AreasOrInherit(goodAreasExtraInherit) !== null) {
+    failed += 1;
+    console.error('FAIL lint reverse: correct areas + extra inherit comment must still pass');
+  }
+}
+
+// Pages workflow must not set OFFLINE_FIRST in env: (ADR 001 — flip only via dedicated PR).
+{
+  const pagesYml = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
+  // Forbid OFFLINE_FIRST as an env key assignment anywhere in the workflow.
+  if (/(?:^|\n)\s*OFFLINE_FIRST\s*:/m.test(pagesYml)) {
+    failed += 1;
+    console.error('FAIL pages.yml: OFFLINE_FIRST must not appear as an env key (ADR 001)');
+  } else {
+    console.log('ok pages.yml: no OFFLINE_FIRST env key');
+  }
 }
 if (block320) {
   const code320 = stripCssComments(block320);

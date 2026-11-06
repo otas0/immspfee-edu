@@ -233,11 +233,29 @@ if (!hasTwoRowTop(block768)) {
           } catch (e) {
             notThrew = /:not\(\)/.test(String(e && e.message));
           }
+          let isThrew = false;
+          try {
+            document.querySelector('span:is(.fold-hint)');
+          } catch (e) {
+            isThrew = /:is\(\)/.test(String(e && e.message));
+          }
+          let whereThrew = false;
+          try {
+            document.querySelector('span:where(.fold-hint)');
+          } catch (e) {
+            whereThrew = /:where\(\)/.test(String(e && e.message));
+          }
           if (!notThrew) {
             failed += 1;
             console.error('FAIL dom-lite must reject :not() with an Error');
+          } else if (!isThrew) {
+            failed += 1;
+            console.error('FAIL dom-lite must reject :is() with an Error');
+          } else if (!whereThrew) {
+            failed += 1;
+            console.error('FAIL dom-lite must reject :where() with an Error');
           } else {
-            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not-reject');
+            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not/:is/:where-reject');
           }
         }
       }
@@ -246,20 +264,33 @@ if (!hasTwoRowTop(block768)) {
 }
 
 {
-  // Playwright pin dry-run fixture: closed same-hash → create-after-closed (no API write).
+  // Playwright pin dry-run fixtures (no API write).
   const { spawnSync } = await import('node:child_process');
-  const dry = spawnSync(process.execPath, ['scripts/playwright-pin-issue-dry-run.mjs'], {
+  const dryClosed = spawnSync(process.execPath, ['scripts/playwright-pin-issue-dry-run.mjs'], {
     cwd: root,
     env: { ...process.env, DRY_RUN_FIXTURE: 'closed', PIN_HASH: 'fixture01' },
     encoding: 'utf8',
   });
-  if (dry.status !== 0 || !/plan=create-after-closed/.test(dry.stdout || '')) {
+  if (dryClosed.status !== 0 || !/plan=create-after-closed/.test(dryClosed.stdout || '')) {
     failed += 1;
     console.error('FAIL pw pin dry-run fixture closed', {
-      status: dry.status, out: (dry.stdout || '').slice(0, 400), err: dry.stderr,
+      status: dryClosed.status, out: (dryClosed.stdout || '').slice(0, 400), err: dryClosed.stderr,
     });
   } else {
     console.log('ok pw pin dry-run fixture closed → create-after-closed');
+  }
+  const dryOpen = spawnSync(process.execPath, ['scripts/playwright-pin-issue-dry-run.mjs'], {
+    cwd: root,
+    env: { ...process.env, DRY_RUN_FIXTURE: 'open', PIN_HASH: 'fixture01' },
+    encoding: 'utf8',
+  });
+  if (dryOpen.status !== 0 || !/plan=comment/.test(dryOpen.stdout || '')) {
+    failed += 1;
+    console.error('FAIL pw pin dry-run fixture open', {
+      status: dryOpen.status, out: (dryOpen.stdout || '').slice(0, 400), err: dryOpen.stderr,
+    });
+  } else {
+    console.log('ok pw pin dry-run fixture open → comment');
   }
 }
 

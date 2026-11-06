@@ -132,17 +132,23 @@ function matchPseudo(el, name) {
   return false;
 }
 
-/** Explicitly reject unsupported selectors (minimal surface — no :not()). */
+/** Explicitly reject unsupported selectors (minimal surface — no :not/:is/:where). */
 function assertSupportedSel(sel) {
   const s = String(sel || '');
   if (/:not\s*\(/i.test(s)) {
     throw new Error('dom-lite does not support :not()');
   }
+  if (/:is\s*\(/i.test(s)) {
+    throw new Error('dom-lite does not support :is()');
+  }
+  if (/:where\s*\(/i.test(s)) {
+    throw new Error('dom-lite does not support :where()');
+  }
 }
 
 /**
  * Supports tag, .class, [attr], compounds, and :first-child / :last-child
- * (e.g. span.fold-hint:first-child). :not() is rejected — see assertSupportedSel.
+ * (e.g. span.fold-hint:first-child). :not()/:is()/:where() are rejected.
  */
 function matchSel(el, sel) {
   let s = String(sel || '').trim();

@@ -73,9 +73,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          fetch_artifact_names() {
+            local names="" i
+            for i in 1 2 3; do
+              names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+                --jq '.artifacts[].name' 2>/dev/null || true)"
+              if [ -n "$names" ]; then
+                printf '%s\n' "$names"
+                return 0
+              fi
+              sleep 2
+            done
+            printf '%s\n' "$names"
+          }
           redir="—"
-          redir_api="—"
+          redir_api="not uploaded"
           if [ "${{ steps.redirect.outcome }}" = "failure" ]; then
+            redir_api="—"
             if [ "${{ steps.up_redir.outcome }}" = "success" ] \
               && [ -f .local-shots/redirect-fail-headers.txt ]; then
               redir="✅"
@@ -86,14 +100,14 @@ jobs:
             else
               redir="❌"
             fi
+            api_names="$(fetch_artifact_names)"
+            if echo "$api_names" | grep -qx "redirect-fail-headers-${SHORT}"; then
+              redir_api="✅"
+              redir="✅"
+            fi
           elif [ "${{ steps.redirect.outcome }}" = "success" ]; then
             redir="— (not expected)"
-          fi
-          api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            --jq '.artifacts[].name' 2>/dev/null || true)"
-          if echo "$api_names" | grep -qx "redirect-fail-headers-${SHORT}"; then
-            redir_api="✅"
-            redir="✅"
+            redir_api="not uploaded"
           fi
           {
             echo "### Redirect-fail artifact backfill"
@@ -150,11 +164,10 @@ jobs:
             echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
-      # Node 24 re-scan (2026-11): configure-pages@v6 + deploy-pages@v5 both using:node24;
-      # no "Node.js 20 actions are deprecated". deploy-pages still logs soft punycode
-      # DEP0040 (upstream actions/deploy-pages#413 / #434 — needs @actions/artifact bump;
-      # latest tag still v5.0.1). Stay on @v5 until a patch lands. If DEP0040 becomes a
-      # hard error, bump deploy-pages patch/major per those issues — do not suppress.
+      # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
+      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Checked 2026-11:
+      # latest release remains v5.0.1 — no v5.0.2+ yet. When #413 ships a patch, bump
+      # immediately and confirm DEP0040 gone from deploy logs. Do not suppress.
       # upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
@@ -547,9 +560,21 @@ jobs:
               fail="—"
             fi
           fi
-          # Secondary confirm via Actions Artifacts API (not only local files).
-          api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            --jq '.artifacts[].name' 2>/dev/null || true)"
+          # Secondary confirm via Actions Artifacts API (retry 3×2s if list empty/lag).
+          fetch_artifact_names() {
+            local names="" i
+            for i in 1 2 3; do
+              names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+                --jq '.artifacts[].name' 2>/dev/null || true)"
+              if [ -n "$names" ]; then
+                printf '%s\n' "$names"
+                return 0
+              fi
+              sleep 2
+            done
+            printf '%s\n' "$names"
+          }
+          api_names="$(fetch_artifact_names)"
           png_api="—"
           png1280_api="—"
           fail_api="—"

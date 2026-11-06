@@ -149,6 +149,8 @@ mkdir -p "${ROOT}/.local-shots"
   echo ""
   echo "## Heartbeats"
   echo ""
+  echo "<!-- HEARTBEATS_END -->"
+  echo ""
 } > "$SUMMARY_MD"
 summary_append() {
   {
@@ -160,13 +162,43 @@ summary_append() {
   } >> "$SUMMARY_MD"
 }
 summary_heartbeat() {
-  local ts line
+  local ts line tmp
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | "\(.name)=\(.status)/\(.conclusion // "-")"] | join(" · ")
   ' 2>/dev/null || echo "(jobs unavailable)")"
   echo "heartbeat $ts $line"
-  echo "- \`$ts\` $line" >> "$SUMMARY_MD"
+  # Insert inside ## Heartbeats (before marker), not after later summary sections.
+  tmp="$(mktemp)"
+  awk -v row="- \`$ts\` $line" '
+    /<!-- HEARTBEATS_END -->/ { print row; print; next }
+    { print }
+  ' "$SUMMARY_MD" > "$tmp" && mv "$tmp" "$SUMMARY_MD"
+}
+set_issue_title() {
+  local concl="${1:-}" h1
+  # conclusion=failure → FAIL prefix on issue-title template (also cancelled/timed_out).
+  if [[ "$concl" == "failure" || "$concl" == "cancelled" || "$concl" == "timed_out" ]]; then
+    ISSUE_TITLE="FAIL [pages] push-main ${SHORT} — run ${RID}"
+    h1="# FAIL push-main summary"
+  else
+    ISSUE_TITLE="[pages] push-main ${SHORT} — run ${RID}"
+    h1="# push-main summary"
+  fi
+  # Refresh H1 + copy-to-issue line at the top of the summary.
+  if [[ -f "$SUMMARY_MD" ]]; then
+    local tmp
+    tmp="$(mktemp)"
+    awk -v t="$ISSUE_TITLE" -v h="$h1" '
+      /^# (FAIL )?push-main summary$/ { print h; next }
+      /^\> \*\*Copy to issue title:\*\*/ {
+        print "> **Copy to issue title:** `" t "`"
+        next
+      }
+      { print }
+    ' "$SUMMARY_MD" > "$tmp" && mv "$tmp" "$SUMMARY_MD"
+  fi
+  echo "issue title: $ISSUE_TITLE"
 }
 echo "local summary: $SUMMARY_MD (paste into issues)"
 echo "issue title: $ISSUE_TITLE"
@@ -364,6 +396,7 @@ done
 summary_heartbeat
 watch_rc=0
 concl="$(gh run view "$RID" --repo "$REPO" --json conclusion --jq '.conclusion // empty' 2>/dev/null || true)"
+set_issue_title "$concl"
 if [[ "$concl" != "success" ]]; then
   watch_rc=1
 fi

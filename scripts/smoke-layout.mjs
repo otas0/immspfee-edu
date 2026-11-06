@@ -704,7 +704,27 @@ let failed = 0;
                         bytes1, bytes2,
                       });
                     } else {
-                      console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                      // changed:false path (no ghost ids): prune must leave storage bytes untouched.
+                      const cleanOnly = uniAllFoldsMap(book.chapters, false);
+                      cleanOnly[hintCh.id] = true;
+                      writeUniFoldsTo(foldStore, cleanOnly);
+                      const bytesBefore = foldStore.getItem(UNI_FOLD_KEY);
+                      const validIds = new Set(book.chapters.map((ch) => ch.id));
+                      const { map: prunedClean, changed: cleanChanged } = pruneUniFoldsMap(
+                        readUniFoldsFrom(foldStore), validIds,
+                      );
+                      pruneUniFoldsIn(foldStore, validIds);
+                      const bytesAfter = foldStore.getItem(UNI_FOLD_KEY);
+                      if (cleanChanged !== false
+                        || bytesBefore == null || bytesBefore !== bytesAfter
+                        || Object.keys(prunedClean).length !== book.chapters.length) {
+                        failed += 1;
+                        console.error('FAIL uni fold changed:false (no ghosts) must keep bytes', {
+                          cleanChanged, bytesBefore, bytesAfter, prunedClean,
+                        });
+                      } else {
+                        console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown + changed:false bytes', hintCh.id);
+                      }
                     }
                   }
                 }
@@ -986,29 +1006,39 @@ let failed = 0;
                     gammaRe, dtRe,
                   });
                 } else {
-                  // Explore non-beta schema key (L0) must not clear β sticky.
+                  // Schema-real but non-sticky key (L0): exists on sim.params, not in STICKY map.
                   ui._betaHi = true;
                   const l0Before = p.L0;
                   const appliedL0 = applySchemaParam(sim, p, 'L0', l0Before * 2);
                   Object.assign(p, appliedL0.params);
                   clearStickyReadoutHiOnSchema('L0', ui);
                   const afterL0 = sim.readouts(sim.compute(p), p, ui);
-                  if (!ui._betaHi || !afterL0.find((r) => r.en === 'β')?.hi
+                  const l0SchemaOk = Object.prototype.hasOwnProperty.call(sim.params || p, 'L0')
+                    && STICKY_READOUT_HI_BY_SCHEMA.L0 == null;
+                  if (!l0SchemaOk || !ui._betaHi || !afterL0.find((r) => r.en === 'β')?.hi
                     || Math.abs(p.L0 - l0Before * 2) > 1e-6) {
                     failed += 1;
-                    console.error('FAIL minkowski Explore L0 must not clear _betaHi', {
-                      sticky: ui._betaHi, L0: p.L0, row: afterL0.find((r) => r.en === 'β'),
-                    });
+                    console.error(
+                      'FAIL minkowski schema-real non-sticky L0 must not clear _betaHi',
+                      {
+                        sticky: ui._betaHi, L0: p.L0, row: afterL0.find((r) => r.en === 'β'),
+                        l0InParams: Object.prototype.hasOwnProperty.call(sim.params || p, 'L0'),
+                        stickyMapL0: STICKY_READOUT_HI_BY_SCHEMA.L0,
+                      },
+                    );
                   } else {
-                    // Unknown schema key (not L0/beta) must also leave sticky alone.
+                    // Completely unknown key (not on schema, not in sticky map) — separate assert.
                     clearStickyReadoutHiOnSchema('notASchemaKey', ui);
                     clearStickyReadoutHiOnSchema('gamma', ui);
                     const afterUnknown = sim.readouts(sim.compute(p), p, ui);
                     if (!ui._betaHi || !afterUnknown.find((r) => r.en === 'β')?.hi) {
                       failed += 1;
-                      console.error('FAIL minkowski unknown schema key must not clear _betaHi', {
-                        sticky: ui._betaHi, row: afterUnknown.find((r) => r.en === 'β'),
-                      });
+                      console.error(
+                        'FAIL minkowski completely-unknown schema key must not clear _betaHi',
+                        {
+                          sticky: ui._betaHi, row: afterUnknown.find((r) => r.en === 'β'),
+                        },
+                      );
                     } else {
                       console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi + L0/unknown keep sticky');
                     }
