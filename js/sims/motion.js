@@ -2,7 +2,7 @@ import { fmt } from '../fmt.js';
 import {
   frames, segmentMotion, uniformAccel, vtArea, projectile, energyTrack, melting, boiling, sublimation, circularMotion,
 } from '../physics/motion.js';
-import { num, sel, tog, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, text, handle, hit, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -102,19 +102,27 @@ export const stSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const yRoad = h * 0.28;
+    const yRoad = h * 0.22;
     const x0 = w * 0.12;
     const px = 36;
+    text(ctx, lab(ui, 'track', '轨道'), w * 0.5, h * 0.08, MUTED, 12, 'center');
     line(ctx, x0, yRoad, w - 24, yRoad, '#cfc6b8', 2);
     const x = x0 + d.x * px;
     ctx.fillStyle = RAY;
     ctx.fillRect(x - 10, yRoad - 18, 20, 16);
-    const gx = w * 0.12;
-    const gy = h * 0.78;
-    const gw = w * 0.76;
-    const gh = h * 0.36;
+    const panelX = w * 0.06;
+    const panelY = h * 0.36;
+    const panelW = w * 0.88;
+    const panelH = h * 0.58;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 's–t graph', 's–t 图像'));
+    const gx = panelX + panelW * 0.08;
+    const gy = panelY + panelH * 0.82;
+    const gw = panelW * 0.8;
+    const gh = panelH * 0.55;
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
+    text(ctx, 't', gx + gw + 8, gy, MUTED, 11);
+    text(ctx, 's', gx - 10, gy - gh, MUTED, 11);
     const tMax = 8;
     const xs = [];
     for (let i = 0; i <= 40; i += 1) {
@@ -138,7 +146,6 @@ export const stSim = {
     ctx.beginPath();
     ctx.arc(X, Y, 5, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, lab(ui, 's–t', 's–t'), gx + gw, gy - gh, MUTED, 12, 'right');
     handle(ctx, X, Y, ui.drag === 't');
     ui._geo = { gx, gw, tMax };
   },
@@ -194,7 +201,7 @@ export const vtSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const roadY = h * 0.22;
+    const roadY = h * 0.18;
     const x0 = w * 0.08;
     const span = Math.max(4, Math.abs(uniformAccel(p, d.tEnd).x));
     const cart = x0 + ((d.x + span) / (2 * span)) * (w * 0.84);
@@ -202,15 +209,22 @@ export const vtSim = {
     ctx.fillStyle = RAY;
     ctx.fillRect(cart - 12, roadY - 18, 24, 16);
     text(ctx, lab(ui, 'cart', '小车'), cart, roadY - 28, MUTED, 11, 'center');
-    const gx = w * 0.12;
-    const gy = h * 0.72;
-    const gw = w * 0.76;
-    const gh = h * 0.38;
+    const panelX = w * 0.06;
+    const panelY = h * 0.32;
+    const panelW = w * 0.88;
+    const panelH = h * 0.62;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'v–t graph', 'v–t 图像'));
+    const gx = panelX + panelW * 0.08;
+    const gy = panelY + panelH * 0.55;
+    const gw = panelW * 0.8;
+    const gh = panelH * 0.7;
     const vPeak = Math.max(2, Math.abs(d.v0), Math.abs(d.v0 + d.a * d.tEnd));
     const X = (t) => gx + (t / d.tEnd) * gw;
     const Y = (v) => gy - (v / vPeak) * (gh * 0.42);
     line(ctx, gx, gy, gx + gw, gy, INK, 1);
     line(ctx, gx, Y(vPeak), gx, Y(-vPeak), INK, 1);
+    text(ctx, 't', gx + gw + 8, gy, MUTED, 11);
+    text(ctx, 'v', gx - 10, Y(vPeak), MUTED, 11);
     const t1 = d.t1;
     const t2 = d.t2;
     ctx.beginPath();
@@ -227,9 +241,8 @@ export const vtSim = {
     handle(ctx, X(t2), Y(d.v2), ui.drag === 't2');
     handle(ctx, X(d.t), Y(d.v), ui.drag === 't');
     const wrong = d.v2 * (t2 - t1);
-    if (ui.wrong) text(ctx, `v2·Δt=${fmt(wrong, 2)}`, gx, gy + 16, '#a33', 12);
-    else text(ctx, `Δx=${fmt(d.displacement, 2)} m`, gx, gy + 16, INK, 12);
-    text(ctx, 'v–t', gx + gw, Y(vPeak), MUTED, 12, 'right');
+    if (ui.wrong) text(ctx, `v2·Δt=${fmt(wrong, 2)}`, gx + gw * 0.55, panelY + 28, '#a33', 12);
+    else text(ctx, `Δx=${fmt(d.displacement, 2)} m`, gx + gw * 0.55, panelY + 28, INK, 12);
     ui._geo = { gx, gw, tEnd: d.tEnd };
   },
   pointer(ev, _p, d, ui) {

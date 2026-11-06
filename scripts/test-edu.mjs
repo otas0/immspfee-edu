@@ -133,8 +133,14 @@ const house = electricalEnergy({
   layout: 'household', links: CIRCUIT_LINKS.household, closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0, t: 1,
 });
 near(house.I, 220 / 486, 1e-9, 'household load current');
+assert(house.fault === 'ok', 'unused R2=Rs=0 is not a household short');
 const houseShort = circuit({ layout: 'household', links: 'bp-bn', closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0 });
+assert(houseShort.fault === 'short', 'household short fault');
 near(houseShort.I, 110, 1e-9, 'household short is E/r');
+const bypassLoad = circuit({
+  layout: 'series', links: 'bp-s1,s2-a1,a2-bn,a1-a2', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10,
+});
+assert(bypassLoad.fault === 'short' && bypassLoad.bypassed.includes('R1'), 'wire across R1 is a short');
 
 const seen = frames({ frame: 'cart', vCart: 2, vPerson: 0.5, xCart0: 0, xPerson0: 0 }, 2);
 near(seen.vPersonView, -1.5, 1e-9, 'person relative to the cart');

@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js';
 import { circuit, electricalEnergy, toggleLink, CIRCUIT_LINKS, acPeakRms, transformer } from '../physics/circuits.js';
-import { num, sel, tog, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -13,18 +13,22 @@ const LAYOUTS = [
   { value: 'household', en: 'Household', zh: '家庭电路' },
 ];
 
+/** Schematic ports live in the upper band only; the I–U panel is drawn below. */
 function portsOf(w, h) {
+  const yTop = h * 0.2;
+  const yBot = h * 0.44;
+  const yMid = (yTop + yBot) / 2;
   return {
-    bp: [w * 0.1, h * 0.28],
-    bn: [w * 0.1, h * 0.72],
-    s1: [w * 0.24, h * 0.28],
-    s2: [w * 0.34, h * 0.28],
-    a1: [w * 0.46, h * 0.28],
-    a2: [w * 0.58, h * 0.28],
-    b1: [w * 0.46, h * 0.72],
-    b2: [w * 0.58, h * 0.72],
-    h1: [w * 0.7, h * 0.48],
-    h2: [w * 0.82, h * 0.48],
+    bp: [w * 0.1, yTop],
+    bn: [w * 0.1, yBot],
+    s1: [w * 0.24, yTop],
+    s2: [w * 0.34, yTop],
+    a1: [w * 0.46, yTop],
+    a2: [w * 0.58, yTop],
+    b1: [w * 0.46, yBot],
+    b2: [w * 0.58, yBot],
+    h1: [w * 0.7, yMid],
+    h2: [w * 0.82, yMid],
   };
 }
 
@@ -123,6 +127,16 @@ export const circuitSim = {
     clear(ctx, w, h);
     const ports = portsOf(w, h);
     const household = p.layout === 'household';
+    // Status strip (never overlaps the I–U panel).
+    const fault = d.fault === 'short' ? lab(ui, 'short circuit', '短路') : d.fault === 'open' ? lab(ui, 'open circuit', '断路') : lab(ui, 'closed path', '通路');
+    text(ctx, fault, w * 0.2, h * 0.07, d.fault === 'ok' ? INK : '#a33', 15, 'center');
+    text(ctx, `I=${fmt(d.I, 2)} A`, w * 0.42, h * 0.07, MUTED, 12, 'center');
+    if (ui.wrong || d.fault === 'short') text(ctx, `E/r=${fmt(d.E / d.r, 2)} A`, w * 0.62, h * 0.07, '#a33', 12, 'center');
+    if (d.P != null) {
+      text(ctx, `P=${fmt(d.P, 2)} W`, w * 0.82, h * 0.05, RAY2, 12, 'center');
+      text(ctx, `Q=${fmt(d.Q, 2)} J`, w * 0.82, h * 0.1, RAY, 12, 'center');
+    }
+
     const links = String(ui.wrong ? `${p.links},bp-bn` : p.links);
     const shown = links.split(',').map((s) => s.trim()).filter(Boolean);
     for (const row of shown) {
@@ -133,55 +147,66 @@ export const circuitSim = {
     }
     if (p.closed) line(ctx, ports.s1[0], ports.s1[1], ports.s2[0], ports.s2[1], INK, 2);
     line(ctx, ports.bp[0], ports.bp[1], ports.bn[0], ports.bn[1], RAY, 4);
-    text(ctx, household ? lab(ui, 'supply', '电源') : 'E', ports.bp[0] - 18, (ports.bp[1] + ports.bn[1]) / 2, RAY, 12);
+    text(ctx, household ? lab(ui, 'supply', '电源') : 'E', ports.bp[0] - 20, (ports.bp[1] + ports.bn[1]) / 2, RAY, 12);
     if (household) {
-      text(ctx, lab(ui, 'live', '火线'), ports.s1[0], ports.s1[1] - 22, RAY, 12, 'center');
-      text(ctx, lab(ui, 'neutral', '零线'), ports.bn[0] + 40, ports.bn[1] + 18, MUTED, 12);
-      line(ctx, ports.bn[0] + 70, ports.bn[1], ports.a2[0], h * 0.88, MUTED, 1.5, [3, 3]);
-      text(ctx, lab(ui, 'earth', '地线'), (ports.bn[0] + 70 + ports.a2[0]) / 2, h * 0.9, MUTED, 11, 'center');
-      text(ctx, lab(ui, 'load', '用电器'), (ports.a1[0] + ports.a2[0]) / 2, ports.a1[1] - 28, INK, 12, 'center');
+      text(ctx, lab(ui, 'live', '火线'), ports.s1[0], ports.s1[1] - 18, RAY, 12, 'center');
+      text(ctx, lab(ui, 'neutral', '零线'), ports.bn[0] + 36, ports.bn[1] + 16, MUTED, 12);
+      // Earth stays inside the schematic band (above the I–U panel).
+      const earthY = Math.min(ports.bn[1] + h * 0.05, h * 0.5);
+      line(ctx, ports.bn[0] + 56, ports.bn[1], ports.a2[0], earthY, MUTED, 1.5, [3, 3]);
+      text(ctx, lab(ui, 'earth', '地线'), (ports.bn[0] + 56 + ports.a2[0]) / 2, earthY + 12, MUTED, 11, 'center');
+      text(ctx, lab(ui, 'appliance R', '用电器 R'), (ports.a1[0] + ports.a2[0]) / 2, ports.a1[1] - 22, INK, 12, 'center');
     }
+    text(ctx, lab(ui, 'schematic', '电路图'), w * 0.92, h * 0.14, MUTED, 11, 'right');
     const box = (x, y, name) => {
       ctx.strokeStyle = INK;
       ctx.strokeRect(x - 18, y - 12, 36, 24);
       text(ctx, name, x, y, INK, 12, 'center');
     };
-    box((ports.a1[0] + ports.a2[0]) / 2, ports.a1[1], household ? 'R' : 'R1');
+    const loadX = (ports.a1[0] + ports.a2[0]) / 2;
+    box(loadX, ports.a1[1], household ? 'R' : 'R1');
+    if (d.P != null) {
+      const heat = Math.min(1, d.Q / Math.max(d.P * 20, 1));
+      ctx.fillStyle = `rgba(196,73,29,${0.15 + 0.55 * heat})`;
+      ctx.fillRect(loadX - 18, ports.a1[1] - 12, 36, 24);
+      box(loadX, ports.a1[1], household ? 'R' : 'R1');
+    }
     if (!household) {
       box((ports.b1[0] + ports.b2[0]) / 2, ports.b1[1], 'R2');
       box((ports.h1[0] + ports.h2[0]) / 2, ports.h1[1], 'Rs');
     }
-    text(ctx, p.closed ? lab(ui, 'switch', '开关') : lab(ui, 'open switch', '开关断开'), (ports.s1[0] + ports.s2[0]) / 2, ports.s1[1] - 18, MUTED, 11, 'center');
-    const fault = d.fault === 'short' ? lab(ui, 'short circuit', '短路') : d.fault === 'open' ? lab(ui, 'open circuit', '断路') : lab(ui, 'closed path', '通路');
-    text(ctx, fault, w * 0.22, h * 0.1, d.fault === 'ok' ? INK : '#a33', 16);
-    text(ctx, `I=${fmt(d.I, 2)} A`, w * 0.22, h * 0.16, MUTED, 12);
-    if (ui.wrong || d.fault === 'short') text(ctx, `E/r=${fmt(d.E / d.r, 2)} A`, w * 0.42, h * 0.16, '#a33', 12);
-    if (d.P != null) {
-      text(ctx, `P=${fmt(d.P, 2)} W`, w * 0.72, h * 0.12, RAY2, 13);
-      text(ctx, `Q=${fmt(d.Q, 2)} J`, w * 0.72, h * 0.18, RAY, 13);
-      const heat = Math.min(1, d.Q / Math.max(d.P * 20, 1));
-      ctx.fillStyle = `rgba(196,73,29,${0.15 + 0.55 * heat})`;
-      ctx.fillRect((ports.a1[0] + ports.a2[0]) / 2 - 18, ports.a1[1] - 12, 36, 24);
-    }
+    text(ctx, p.closed ? lab(ui, 'switch', '开关') : lab(ui, 'open switch', '开关断开'), (ports.s1[0] + ports.s2[0]) / 2, ports.s1[1] - 16, MUTED, 11, 'center');
 
-    const gx = w * 0.08;
-    const gy = h * 0.84;
-    const gw = w * 0.5;
+    // Dedicated I–U teaching panel under the schematic (opaque — no bleed).
+    const panelX = w * 0.06;
+    const panelY = h * 0.56;
+    const panelW = w * 0.88;
+    const panelH = h * 0.4;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'I–U of the load', '负载的 I–U'));
+    const gx = panelX + panelW * 0.1;
+    const gy = panelY + panelH * 0.82;
+    const gw = panelW * 0.7;
+    const gh = panelH * 0.55;
     line(ctx, gx, gy, gx + gw, gy, INK, 1);
-    line(ctx, gx, gy, gx, gy - h * 0.22, INK, 1);
+    line(ctx, gx, gy, gx, gy - gh, INK, 1);
     text(ctx, 'U', gx + gw + 8, gy, MUTED, 11);
-    text(ctx, 'I', gx - 12, gy - h * 0.22, MUTED, 11);
+    text(ctx, 'I', gx - 12, gy - gh, MUTED, 11);
     if (d.R1 > 1e-6) {
       const uMax = Math.max(d.E, Math.abs(d.U1), 0.5);
       const iMax = Math.max(uMax / d.R1, Math.abs(d.I1), 0.05);
       const x = gx + (Math.abs(d.U1) / uMax) * gw;
-      const y = gy - (Math.abs(d.I1) / iMax) * h * 0.2;
-      line(ctx, gx, gy, gx + gw, gy - (uMax / d.R1 / iMax) * h * 0.2, RAY2, 1.5);
+      const y = gy - (Math.abs(d.I1) / iMax) * gh;
+      line(ctx, gx, gy, gx + gw, gy - (uMax / d.R1 / iMax) * gh, RAY2, 1.5);
       ctx.fillStyle = RAY;
       ctx.beginPath();
       ctx.arc(x, y, 5, 0, Math.PI * 2);
       ctx.fill();
+      text(ctx, `U=${fmt(Math.abs(d.U1), 2)} V`, gx + gw * 0.55, panelY + panelH * 0.28, MUTED, 11);
+      text(ctx, `I=${fmt(Math.abs(d.I1), 2)} A`, gx + gw * 0.55, panelY + panelH * 0.4, MUTED, 11);
+    } else {
+      text(ctx, lab(ui, 'R≈0 (wire)', 'R≈0（导线）'), gx + gw * 0.4, gy - gh * 0.5, MUTED, 12, 'center');
     }
+
     for (const [name, xy] of Object.entries(ports)) {
       if (household && (name === 'b1' || name === 'b2' || name === 'h1' || name === 'h2')) continue;
       handle(ctx, xy[0], xy[1], ui.drag === name);
@@ -191,7 +216,7 @@ export const circuitSim = {
     }
     if (!household) {
       const rsX = ports.h1[0] + ((ports.h2[0] - ports.h1[0]) * d.Rs) / 40;
-      handle(ctx, rsX, ports.h1[1] + 28, ui.drag === 'rs');
+      handle(ctx, rsX, ports.h1[1] + 22, ui.drag === 'rs');
     }
     ui._geo = { ports, household };
   },
@@ -202,7 +227,7 @@ export const circuitSim = {
     if (ev.type === 'down') {
       if (!g.household) {
         const rsX = g.ports.h1[0] + ((g.ports.h2[0] - g.ports.h1[0]) * p.Rs) / 40;
-        if (hit(ev.x, ev.y, rsX, g.ports.h1[1] + 28)) {
+        if (hit(ev.x, ev.y, rsX, g.ports.h1[1] + 22)) {
           ui.drag = 'rs';
           return {};
         }

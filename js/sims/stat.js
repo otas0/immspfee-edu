@@ -6,7 +6,7 @@ import {
   lengthContraction, laserCavity,
 } from '../physics/stat.js';
 import { thinFilm } from '../physics/optics.js';
-import { num, sel, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 const KB = 1.380649e-23;
 let isingBuf = null;
@@ -127,10 +127,16 @@ export const isingSim = {
     } else {
       paint(ctx, x0, y0);
     }
-    const gx = w * 0.48;
-    const gy = h * 0.82;
-    const gw = w * 0.46;
-    const gh = h * 0.55;
+    // |M|(T) panel on the right, clear of the lattice.
+    const panelX = w * 0.44;
+    const panelY = h * 0.16;
+    const panelW = w * 0.52;
+    const panelH = h * 0.72;
+    teachPanel(ctx, panelX, panelY, panelW, panelH);
+    const gx = panelX + panelW * 0.1;
+    const gy = panelY + panelH * 0.88;
+    const gw = panelW * 0.78;
+    const gh = panelH * 0.7;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
     ctx.beginPath();
@@ -148,7 +154,7 @@ export const isingSim = {
     text(ctx, 'Tc', tcX, gy - gh - 6, MUTED, 11, 'center');
     const pX = gx + ((d.Tplay - d.sweep.Tmin) / (d.sweep.Tmax - d.sweep.Tmin)) * gw;
     line(ctx, pX, gy, pX, gy - gh, RAY, 1, [2, 2]);
-    text(ctx, `|M| vs T  ·  T▶=${fmt(d.Tplay, 2)}`, w * 0.72, h * 0.1, INK, 12, 'center');
+    text(ctx, `|M| vs T  ·  T▶=${fmt(d.Tplay, 2)}`, panelX + panelW / 2, panelY + 14, INK, 12, 'center');
   },
   pointer() { return null; },
 };

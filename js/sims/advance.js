@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js';
 import { oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes, coupledPendula } from '../physics/advance.js';
-import { num, clear, line, text, handle, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, clear, line, text, handle, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -407,17 +407,22 @@ export const coupledPendulaSim = {
     ctx.fill();
     const eMax = Math.max(state.E1 + state.E2, 1e-9);
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.08, h * 0.58, (state.E1 / eMax) * w * 0.28, 7);
+    ctx.fillRect(w * 0.08, h * 0.52, (state.E1 / eMax) * w * 0.28, 7);
     ctx.fillStyle = RAY2;
-    ctx.fillRect(w * 0.4, h * 0.58, (state.E2 / eMax) * w * 0.28, 7);
-    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.22, h * 0.52, INK, 11, 'center');
-    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.54, h * 0.52, INK, 11, 'center');
-    // Power-flow time series P₁→₂(t) over one beat window.
+    ctx.fillRect(w * 0.4, h * 0.52, (state.E2 / eMax) * w * 0.28, 7);
+    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.22, h * 0.48, INK, 11, 'center');
+    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.54, h * 0.48, INK, 11, 'center');
+    // Power-flow panel under the energy bars (separate from the pendula).
     const tMax = this.tMax(p);
-    const gx = w * 0.08;
-    const gy = h * 0.92;
-    const gw = w * 0.84;
-    const gh = h * 0.22;
+    const panelX = w * 0.06;
+    const panelY = h * 0.62;
+    const panelW = w * 0.88;
+    const panelH = h * 0.32;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'P₁→₂(t)', '功率流 P₁→₂(t)'));
+    const gx = panelX + panelW * 0.06;
+    const gy = panelY + panelH * 0.78;
+    const gw = panelW * 0.88;
+    const gh = panelH * 0.5;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     line(ctx, gx, gy - gh / 2, gx + gw, gy - gh / 2, MUTED, 1, [2, 2]);
     let pMax = 1e-9;
@@ -440,7 +445,7 @@ export const coupledPendulaSim = {
     ctx.stroke();
     const nowX = gx + (Math.min(1, d.t / tMax)) * gw;
     line(ctx, nowX, gy - gh, nowX, gy, MUTED, 1, [2, 2]);
-    text(ctx, `P₁→₂(t)  now=${fmt(ui.wrong ? 0 : state.Pflow, 2)}`, w * 0.5, gy - gh - 6, MUTED, 11, 'center');
+    text(ctx, `now=${fmt(ui.wrong ? 0 : state.Pflow, 2)}`, gx + gw * 0.5, panelY + 28, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

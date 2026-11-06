@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js';
 import { specificHeat, ottoCycle, STROKES } from '../physics/thermal.js';
-import { num, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, clear, line, text, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -161,11 +161,16 @@ export const heatEngineSim = {
     const name = lab(ui, d.stroke.en, d.stroke.zh);
     text(ctx, name, cx + cw / 2, cy - 14, INK, 15, 'center');
     text(ctx, `V=${fmt(d.V * 1e3, 2)} L`, cx + cw / 2, cy + ch + 16, MUTED, 12, 'center');
-    // p–V
-    const gx = mid;
-    const gy = h * 0.82;
-    const gw = w * 0.44;
-    const gh = h * 0.58;
+    // p–V panel (right), separate from the cylinder schematic.
+    const panelX = mid;
+    const panelY = h * 0.14;
+    const panelW = w * 0.48;
+    const panelH = h * 0.74;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'p–V loop', 'p–V 循环'));
+    const gx = panelX + panelW * 0.12;
+    const gy = panelY + panelH * 0.88;
+    const gw = panelW * 0.7;
+    const gh = panelH * 0.68;
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
     text(ctx, 'V', gx + gw + 6, gy, MUTED, 12);
@@ -194,7 +199,7 @@ export const heatEngineSim = {
     ctx.lineWidth = 2;
     ctx.stroke();
     text(ctx, ui.wrong ? `η?=1−1/r → ${fmt(1 - 1 / d.r, 3)}` : `W=${fmt(d.W, 0)} J`, gx + gw * 0.35, gy - gh * 0.45, ui.wrong ? '#a33' : INK, 13);
-    text(ctx, STROKES.map((s) => lab(ui, s.en[0], s.zh[0])).join('·'), gx, h * 0.1, MUTED, 12);
+    text(ctx, STROKES.map((s) => lab(ui, s.en[0], s.zh[0])).join('·'), panelX + panelW / 2, panelY + 30, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

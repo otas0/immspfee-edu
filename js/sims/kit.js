@@ -80,3 +80,16 @@ export const RAY = '#c4491d';
 export const RAY2 = '#1d4e89';
 export const WATER = 'rgba(70, 130, 170, 0.35)';
 export const WATER_EDGE = '#2f6f93';
+export const STAGE = '#f3efe6';
+export const PANEL = '#fffdf8';
+export const PANEL_EDGE = '#d9d2c5';
+
+/** Opaque teaching panel so schematic and plot never bleed through each other. */
+export function teachPanel(ctx, x, y, w, h, title) {
+  ctx.fillStyle = PANEL;
+  ctx.strokeStyle = PANEL_EDGE;
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeRect(x, y, w, h);
+  if (title) text(ctx, title, x + w / 2, y + 14, MUTED, 12, 'center');
+}

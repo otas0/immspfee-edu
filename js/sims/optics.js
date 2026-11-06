@@ -3,7 +3,7 @@ import {
   pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle,
   doubleSlit, doubleSlitIntensity, malus, telescope, singleSlit,
 } from '../physics/optics.js';
-import { num, sel, tog, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, sel, tog, clear, line, arrow, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) {
   return { id, en, zh, options, answer };
@@ -600,10 +600,17 @@ export const doubleSlitSim = {
     line(ctx, w * 0.12, h * 0.25, w * 0.12, h * 0.75, INK, 2);
     line(ctx, w * 0.12, h * 0.42, w * 0.12, h * 0.45, '#f3efe6', 4);
     line(ctx, w * 0.12, h * 0.55, w * 0.12, h * 0.58, '#f3efe6', 4);
-    const gx = w * 0.55;
-    const gy = h * 0.82;
-    const gw = w * 0.35;
-    const gh = h * 0.6;
+    text(ctx, lab(ui, 'slits', '双缝'), w * 0.12, h * 0.2, MUTED, 11, 'center');
+    // Intensity panel on the right, away from the slit schematic.
+    const panelX = w * 0.42;
+    const panelY = h * 0.14;
+    const panelW = w * 0.54;
+    const panelH = h * 0.78;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'screen intensity', '屏上强度'));
+    const gx = panelX + panelW * 0.2;
+    const gy = panelY + panelH * 0.88;
+    const gw = panelW * 0.62;
+    const gh = panelH * 0.7;
     const ySpan = Math.max(2.2 * d.centralWidth, 4 * d.dy);
     let yLo = gy;
     let yHi = gy;
@@ -654,8 +661,8 @@ export const doubleSlitSim = {
     const dyShow = ui.wrong ? (d.lambda * d.d) / d.D : d.dy;
     const probeY = gy - ((d.y + ySpan) / (2 * ySpan)) * gh;
     line(ctx, gx, probeY, gx + gw, probeY, RAY, 1, [3, 3]);
-    text(ctx, `Δy=${dyShow.toExponential(2)}  width=${d.centralWidth.toExponential(2)}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 12, 'center');
-    text(ctx, d.useEnv ? 'I∝cos²·sinc²' : 'I∝cos²', gx + gw * 0.5, h * 0.92, MUTED, 11, 'center');
+    text(ctx, `Δy=${dyShow.toExponential(2)}  width=${d.centralWidth.toExponential(2)}`, panelX + panelW / 2, panelY + 30, ui.wrong ? '#a33' : INK, 11, 'center');
+    text(ctx, d.useEnv ? 'I∝cos²·sinc²' : 'I∝cos²', gx + gw * 0.5, panelY + panelH - 10, MUTED, 11, 'center');
   },
   pointer(ev, p, d, ui) {
     const g = ui._slit;

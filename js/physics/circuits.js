@@ -68,12 +68,11 @@ export function circuit(p) {
   };
   for (const [a, b] of parseLinks(p.links)) unite(a, b);
   if (p.closed) unite('s1', 's2');
+  // R ≈ 0 is an intentional wire (unused branch), not a fault. Only a
+  // positive-R part whose terminals are already shorted counts as bypassed.
   const bypassed = [];
   for (const key of Object.keys(parts)) {
-    if (parts[key] <= 1e-8) {
-      unite(ends[key][0], ends[key][1]);
-      bypassed.push(key);
-    }
+    if (parts[key] <= 1e-8) unite(ends[key][0], ends[key][1]);
   }
   for (const key of Object.keys(parts)) {
     if (parts[key] > 1e-8 && find(ends[key][0]) === find(ends[key][1])) bypassed.push(key);
