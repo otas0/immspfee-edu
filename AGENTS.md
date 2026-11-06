@@ -17,8 +17,9 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - University fold hint: idle → `foldCurrent` + chapter title; while searching → `foldSearchOpen` + same chapter title (`data-searching="1"`). Clearing search restores `foldCurrent` and drops `data-searching`. `data-chapter-id` must match the active chapter.
 - `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports. **Re-eval (2026-11-06):** still off PRECACHE — triggers + flip PR template in `docs/adr/001-ui-chrome-precache.md`.
 - Minkowski sticky readout hi: **β only** while/after track drag (`_betaHi`). γ / Δt stay plain until product asks; then extend `STICKY_READOUT_HI_BY_SCHEMA` + smoke-layout (do not paint hi first).
-- Stage with `bash scripts/git-stage-allow.sh --default` (or explicit paths). Do not run `git add -A` / `--all` / `.` in agent scripts — lint forbids it.
-- Local health: `npm run doctor` (ready pid + university fold default + rename redirect).
+- Stage with `bash scripts/git-stage-allow.sh --default` (or explicit paths). Do not run `git add -A` / `--all` / `.` in agent scripts — lint forbids it. Optional hook: `git config core.hooksPath scripts/githooks` ([docs/hooks/stage-allow.md](docs/hooks/stage-allow.md)).
+- Local health: `npm run doctor` (auto-clears dead ready sidecars + fold default + rename redirect). Not on Pages.
+- OFFLINE_FIRST flip dry-run: `npm run offline-first:dry-run` (default asserts chrome/fold stay off PRECACHE; side branch may set `OFFLINE_FIRST=1`).
 
 ## Release
 

@@ -132,7 +132,10 @@ function matchPseudo(el, name) {
   return false;
 }
 
-/** Explicitly reject unsupported selectors (minimal surface — no :not/:is/:where/:has). */
+/**
+ * Explicitly reject unsupported selectors (minimal surface).
+ * :first-child / :last-child are allowed; parameterized :nth-child() is not.
+ */
 function assertSupportedSel(sel) {
   const s = String(sel || '');
   if (/:not\s*\(/i.test(s)) {
@@ -147,11 +150,14 @@ function assertSupportedSel(sel) {
   if (/:has\s*\(/i.test(s)) {
     throw new Error('dom-lite does not support :has()');
   }
+  if (/:nth-child\s*\(/i.test(s)) {
+    throw new Error('dom-lite does not support :nth-child() — use :first-child / :last-child');
+  }
 }
 
 /**
  * Supports tag, .class, [attr], compounds, and :first-child / :last-child
- * (e.g. span.fold-hint:first-child). :not()/:is()/:where()/:has() are rejected.
+ * (e.g. span.fold-hint:first-child). :not()/:is()/:where()/:has()/:nth-child() are rejected.
  */
 function matchSel(el, sel) {
   let s = String(sel || '').trim();

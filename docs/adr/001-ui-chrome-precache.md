@@ -5,7 +5,7 @@
 
 **Decision:** Keep them off PRECACHE / REQUIRED. Cache-busting through stamped `app.js` is enough for GitHub Pages today.
 
-**Re-eval (2026-11-06):** Still **off** PRECACHE. Gates 1–3 unmet (no offline-first first-paint product ask; modules stay behind stamped `app.js`; no stale chrome/fold smoke). Do not add to `sw.js` until a flip PR ticks the template below.
+**Re-eval (2026-11-06):** Still **off** PRECACHE. Gates 1–3 unmet (no offline-first first-paint product ask; modules stay behind stamped `app.js`; no stale chrome/fold smoke). Do not add to `sw.js` until a flip PR ticks the template below. Lockstep dry-run: `npm run offline-first:dry-run` (and `OFFLINE_FIRST=1` on a flip side branch).
 
 **Trigger to revisit (offline-first):** Add both to PRECACHE **and** stamp REQUIRED only if **all** of the following become true:
 

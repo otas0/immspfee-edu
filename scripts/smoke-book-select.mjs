@@ -251,6 +251,12 @@ if (!hasTwoRowTop(block768)) {
           } catch (e) {
             hasThrew = /:has\(\)/.test(String(e && e.message));
           }
+          let nthThrew = false;
+          try {
+            document.querySelector('span:nth-child(2)');
+          } catch (e) {
+            nthThrew = /:nth-child\(\)/.test(String(e && e.message));
+          }
           if (!notThrew) {
             failed += 1;
             console.error('FAIL dom-lite must reject :not() with an Error');
@@ -263,8 +269,11 @@ if (!hasTwoRowTop(block768)) {
           } else if (!hasThrew) {
             failed += 1;
             console.error('FAIL dom-lite must reject :has() with an Error');
+          } else if (!nthThrew) {
+            failed += 1;
+            console.error('FAIL dom-lite must reject :nth-child() with an Error');
           } else {
-            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not/:is/:where/:has-reject');
+            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not/:is/:where/:has/:nth-child-reject');
           }
         }
       }
@@ -318,17 +327,47 @@ if (!hasTwoRowTop(block768)) {
 }
 
 {
-  // capture-assert markdown always lists overflow / overflows / topH for step summary.
+  // capture-assert markdown: overflow/topH + kind headings for 340 / 1280.
   const { formatCaptureFailMarkdown } = await import('./capture-assert.mjs');
   const md = formatCaptureFailMarkdown('FORCE FAIL probe', {
     overflow: 'clip', overflows: false, topH: 150,
   });
+  const md340 = formatCaptureFailMarkdown('340 probe', {
+    overflow: 'clip', overflows: false, topH: 150,
+  }, { kind: 'capture:340-title' });
+  const md1280 = formatCaptureFailMarkdown('1280 probe', {
+    overflow: 'clip', overflows: false, topH: 150,
+  }, { kind: 'capture:1280' });
   if (!md.includes('- overflow:') || !md.includes('- overflows:') || !md.includes('- topH:')
     || !md.includes('```json')) {
     failed += 1;
     console.error('FAIL formatCaptureFailMarkdown missing overflow/topH block', md.slice(0, 200));
+  } else if (!md340.includes('### capture:340-title assertion failed')
+    || !md1280.includes('### capture:1280 assertion failed')) {
+    failed += 1;
+    console.error('FAIL formatCaptureFailMarkdown kind headings', {
+      h340: md340.split('\n')[0], h1280: md1280.split('\n')[0],
+    });
   } else {
-    console.log('ok capture-assert overflow/topH summary block');
+    console.log('ok capture-assert overflow/topH + kind headings capture:340 / capture:1280');
+  }
+}
+
+{
+  // ADR 001: default OFFLINE_FIRST path keeps ui-chrome/uni-fold off REQUIRED+PRECACHE.
+  const { spawnSync } = await import('node:child_process');
+  const dry = spawnSync(process.execPath, ['scripts/offline-first-lockstep-dry-run.mjs'], {
+    cwd: root,
+    env: { ...process.env, OFFLINE_FIRST: '0' },
+    encoding: 'utf8',
+  });
+  if (dry.status !== 0) {
+    failed += 1;
+    console.error('FAIL offline-first lockstep dry-run (default off)', {
+      status: dry.status, out: (dry.stdout || '').slice(0, 400), err: dry.stderr,
+    });
+  } else {
+    console.log('ok offline-first lockstep dry-run (shell stay off PRECACHE)');
   }
 }
 

@@ -43,6 +43,8 @@ jobs:
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
             echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
             echo "| force_fail | mirrored — see **Optional capture** job (\`force_fail=ok\` when template passes) | — |"
+            echo ""
+            echo "_Footnote: redirect-fail uploads only when the rename-redirect step fails; on redirect green the backfill row is \`not uploaded\` (skip reason: redirect green)._"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
@@ -74,9 +76,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Retry 1s×5 only while the expected name is still missing (empty list or lag).
+          # Prints "attempts=N" on stderr via RETRIES_USED for the summary metric.
           fetch_artifact_names_until() {
             local want="$1" names="" i
+            RETRIES_USED=0
             for i in 1 2 3 4 5; do
+              RETRIES_USED=$i
               names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
                 --jq '.artifacts[].name' 2>/dev/null || true)"
               if echo "$names" | grep -qx "$want"; then
@@ -90,6 +95,7 @@ jobs:
           redir="—"
           redir_api="not uploaded"
           skip_reason=""
+          retries_note="—"
           if [ "${{ steps.redirect.outcome }}" = "failure" ]; then
             redir_api="—"
             if [ "${{ steps.up_redir.outcome }}" = "success" ] \
@@ -103,6 +109,7 @@ jobs:
               redir="❌"
             fi
             api_names="$(fetch_artifact_names_until "redirect-fail-headers-${SHORT}")"
+            retries_note="${RETRIES_USED:-?} attempt(s)"
             if echo "$api_names" | grep -qx "redirect-fail-headers-${SHORT}"; then
               redir_api="✅"
               redir="✅"
@@ -111,13 +118,14 @@ jobs:
             redir="— (not expected)"
             redir_api="not uploaded"
             skip_reason="skip reason: redirect green"
+            retries_note="0 (skipped — redirect green)"
           fi
           {
             echo "### Redirect-fail artifact backfill"
             echo ""
-            echo "| Kind | Local/step | API |"
-            echo "| --- | --- | --- |"
-            echo "| redirect-fail (\`redirect-fail-headers-${SHORT}\`) | $redir | $redir_api |"
+            echo "| Kind | Local/step | API | API retries |"
+            echo "| --- | --- | --- | --- |"
+            echo "| redirect-fail (\`redirect-fail-headers-${SHORT}\`) | $redir | $redir_api | $retries_note |"
             if [ -n "$skip_reason" ]; then
               echo ""
               echo "$skip_reason"
@@ -172,8 +180,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
-      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06:
-      # latest release remains v5.0.1 — no v5.0.2+; DEP0040 still in deploy logs (soft).
+      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
+      # (this batch): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
       # When #413 ships a patch, bump immediately and confirm DEP0040 gone before merge.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
@@ -299,6 +307,8 @@ jobs:
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
             echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
             echo "| force_fail | ok when template step passes (authoritative here; deploy job mirrors this row) | — |"
+            echo ""
+            echo "_Footnote: redirect-fail lives on the **deploy** job; upload only when rename-redirect fails (skip reason: redirect green → not uploaded)._"
           } >> "$GITHUB_STEP_SUMMARY"
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
       # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
@@ -583,9 +593,12 @@ jobs:
             fi
           fi
           # Retry 1s×5 only while any expected short-SHA name is still missing.
+          RETRIES_USED=0
           fetch_until_names() {
             local names="" i want
+            RETRIES_USED=0
             for i in 1 2 3 4 5; do
+              RETRIES_USED=$i
               names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
                 --jq '.artifacts[].name' 2>/dev/null || true)"
               local missing=0
@@ -613,6 +626,7 @@ jobs:
           if [ ${#expect_names[@]} -gt 0 ]; then
             api_names="$(fetch_until_names "${expect_names[@]}")"
           else
+            RETRIES_USED=1
             api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
               --jq '.artifacts[].name' 2>/dev/null || true)"
           fi
@@ -647,4 +661,6 @@ jobs:
             else
               echo "| force_fail (340+1280) | — | — |"
             fi
+            echo ""
+            echo "API list retries used: **${RETRIES_USED}** (max 5 × 1s while expected short-SHA names missing)."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Optional pre-commit: staged paths must sit under scripts/stage-allow.default.list.
+# Enable (docs/hooks/stage-allow.md):
+#   git config core.hooksPath scripts/githooks
+# Or copy into .git/hooks/pre-commit.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
+LIST="$ROOT/scripts/stage-allow.default.list"
+if [[ ! -f "$LIST" ]]; then
+  echo "pre-commit: missing $LIST" >&2
+  exit 1
+fi
+
+allow_rules=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" || "$line" == \#* ]] && continue
+  allow_rules+=("$line")
+done < "$LIST"
+
+path_allowed() {
+  local p="$1" rule
+  for rule in "${allow_rules[@]}"; do
+    if [[ "$rule" == */ ]]; then
+      [[ "$p" == "$rule"* ]] && return 0
+    else
+      [[ "$p" == "$rule" || "$p" == "$rule"/* ]] && return 0
+    fi
+  done
+  return 1
+}
+
+bad=0
+while IFS= read -r p || [[ -n "$p" ]]; do
+  [[ -z "$p" ]] && continue
+  if ! path_allowed "$p"; then
+    echo "pre-commit: staged path outside allowlist: $p" >&2
+    bad=1
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if (( bad )); then
+  echo "pre-commit: refuse commit — use \`bash scripts/git-stage-allow.sh --default\` (or explicit allowlisted paths)." >&2
+  echo "See docs/hooks/stage-allow.md" >&2
+  exit 1
+fi
+exit 0

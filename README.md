@@ -32,7 +32,7 @@ CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow
 npm run pw:pin-dry-run     # Playwright pin → issue 逻辑 dry-run（不建 issue；见 package.json scripts）
 ```
 
-无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。本地健康清单：`npm run doctor`（`.dev-server-4174.ready` + university fold 默认 + rename redirect）。CI 另有一步 `CAPTURE_FORCE_FAIL=1`（`continue-on-error`）对 **340 与 1280** 校验同一 overflow/topH 摘要模板。`pw:pin-dry-run` 可用 `DRY_RUN_FIXTURE=closed|open|create`（smoke-book-select 三条都挂）。提交用 `bash scripts/git-stage-allow.sh --default`（或显式路径）；勿盲 `git add -A`。
+无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。本地健康清单：`npm run doctor`（stale ready 自动清 sidecar + fold 默认 + rename redirect；不进 Pages）。`npm run offline-first:dry-run` 验 ADR 001 stamp/PRECACHE 锁步（默认 off；旁支 `OFFLINE_FIRST=1`）。CI `CAPTURE_FORCE_FAIL=1` 对 **340 与 1280** 校验同一 overflow/topH 模板。`pw:pin-dry-run`：`DRY_RUN_FIXTURE=closed|open|create`。提交用 `bash scripts/git-stage-allow.sh --default`；可选 `git config core.hooksPath scripts/githooks`（见 [docs/hooks/stage-allow.md](docs/hooks/stage-allow.md)）。
 
 CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`（详见 [`.local-shots/README.md`](.local-shots/README.md)）。
 

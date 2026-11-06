@@ -93,9 +93,35 @@ await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await page.waitForTimeout(1200);
 const about = page.locator('.sources');
 await about.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+// Non force-fail: three-column desktop layout (aside | main | .teach) must be visible side-by-side.
+const cols = await page.evaluate(() => {
+  const aside = document.querySelector('aside');
+  const main = document.querySelector('main') || document.querySelector('.stage-wrap');
+  const teach = document.querySelector('.teach') || document.querySelector('#teach');
+  const box = (el) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const st = getComputedStyle(el);
+    return {
+      w: r.width, h: r.height, x: r.x, y: r.y,
+      display: st.display, visibility: st.visibility,
+    };
+  };
+  return { aside: box(aside), main: box(main), teach: box(teach), vw: window.innerWidth };
+});
+const visible = (b) => b && b.w > 40 && b.h > 40 && b.visibility !== 'hidden' && b.display !== 'none';
+if (!visible(cols.aside) || !visible(cols.main) || !visible(cols.teach)
+  || cols.vw < 1100
+  || !(cols.aside.x < cols.main.x && cols.main.x < cols.teach.x)) {
+  writeCaptureFail('FAIL: 1280 viewport must show three columns (aside | main | teach)', cols);
+  await browser.close();
+  process.exit(2);
+}
 await page.screenshot({ path: out, fullPage: false });
 await browser.close();
 try {
   fs.unlinkSync(path.join(root, '.local-shots', 'capture-last-fail.md'));
 } catch { /* no prior fail */ }
-console.log('wrote', out);
+console.log('wrote', out, '(three-column ok)', {
+  asideX: cols.aside.x, mainX: cols.main.x, teachX: cols.teach.x,
+});

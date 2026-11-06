@@ -16,6 +16,7 @@
     "smoke:live-getsim": "node scripts/smoke-live-getsim.mjs",
     "pw:pin-dry-run": "node scripts/playwright-pin-issue-dry-run.mjs",
     "doctor": "bash scripts/doctor.sh",
+    "offline-first:dry-run": "node scripts/offline-first-lockstep-dry-run.mjs",
     "push:main": "bash scripts/push-main.sh"
   }
 }

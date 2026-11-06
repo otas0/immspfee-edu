@@ -162,15 +162,22 @@ summary_append() {
   } >> "$SUMMARY_MD"
 }
 summary_heartbeat() {
-  local ts line tmp
+  local ts line tmp prefix="" fail_n
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | "\(.name)=\(.status)/\(.conclusion // "-")"] | join(" · ")
   ' 2>/dev/null || echo "(jobs unavailable)")"
-  echo "heartbeat $ts $line"
+  fail_n="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
+    [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
+    | length
+  ' 2>/dev/null || echo 0)"
+  if [[ "$fail_n" =~ ^[1-9] ]]; then
+    prefix="**FAIL** "
+  fi
+  echo "heartbeat $ts ${prefix}$line"
   # Insert inside ## Heartbeats (before marker), not after later summary sections.
   tmp="$(mktemp)"
-  awk -v row="- \`$ts\` $line" '
+  awk -v row="- \`$ts\` ${prefix}$line" '
     /<!-- HEARTBEATS_END -->/ { print row; print; next }
     { print }
   ' "$SUMMARY_MD" > "$tmp" && mv "$tmp" "$SUMMARY_MD"
