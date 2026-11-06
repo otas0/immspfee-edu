@@ -31,6 +31,8 @@ npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 -
 CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow/topH 摘要模板
 ```
 
+无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。CI 另有一步 `CAPTURE_FORCE_FAIL=1`（`continue-on-error`）专门校验 capture 摘要模板。
+
 ## Run
 
 ```bash

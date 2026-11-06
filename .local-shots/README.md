@@ -28,7 +28,7 @@ npm run capture:340-title   # probes :4174; on failure runs ensure-dev --no-exec
 # Short-title stack band (manual): width 340 → #/sh-senior/shs-5-1a/introduce
 ```
 
-CI: optional `capture-340-title` job installs Playwright when available, otherwise skips. A `CAPTURE_FORCE_FAIL=1` step (continue-on-error) checks the overflow/topH summary template, then the real capture runs. Failures stay non-blocking. PNGs upload as `capture-340px-zh-long-title-<sha>` (7-day retention). Local: `CAPTURE_FORCE_FAIL=1 npm run capture:340-title`.
+CI: optional `capture-340-title` job installs Playwright when available, otherwise skips. A `CAPTURE_FORCE_FAIL=1` step (continue-on-error) checks the overflow/topH summary template; verification failure marks the step summary red and links the run artifacts. Then the real capture runs (also non-blocking). Artifacts (7-day): `capture-340px-zh-long-title-<shortSHA>`, and on fail `capture-last-fail-<shortSHA>`. Local: `CAPTURE_FORCE_FAIL=1 npm run capture:340-title`.
 
 ## Playwright pin
 

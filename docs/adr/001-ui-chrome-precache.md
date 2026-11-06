@@ -12,3 +12,17 @@
 3. A failing offline smoke shows a stale chrome/fold module beside a newer `app.js`.
 
 Until then, do not list them in PRECACHE.
+
+## Checklist — stamp REQUIRED + PRECACHE
+
+Use this before editing `scripts/stamp-build.mjs` REQUIRED or `sw.js` PRECACHE for these two modules:
+
+| # | Gate | Pass? |
+| --- | --- | --- |
+| 1 | Offline-first first paint is a product requirement (shell usable with `app.js` unreachable). | |
+| 2 | A smoke or QA case shows chrome/fold UI broken offline while `app.js` is current (or missing). | |
+| 3 | Modules need their own `__BUILD__` rewrite **or** are loaded outside the stamped `app.js` import graph. | |
+| 4 | `index.html` modulepreload / PRECACHE list and `stamp-build` REQUIRED stay in lockstep after the add. | |
+| 5 | `npm test` + a one-shot offline boot check stay green with both files listed. | |
+
+Only when **1–5** are all yes: add `js/ui-chrome.js` and `js/uni-fold.js` to BOTH stamp REQUIRED and `sw.js` PRECACHE in the same commit. Do not add one without the other.

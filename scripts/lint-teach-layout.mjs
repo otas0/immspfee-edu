@@ -66,6 +66,9 @@ if (!/@media\s*\(max-width:\s*320px\)/.test(css)) {
 }
 
 // 340px hit chain: @768 sets brand|lang / nav|nav; @420 must keep or inherit; @320 must not stack lang alone.
+function stripCssComments(block) {
+  return String(block || '').replace(/\/\*[\s\S]*?\*\//g, '');
+}
 function hasTwoRowAreas(block) {
   return block && /grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["'][\s\S]*?["']nav\s+nav["']/.test(block);
 }
@@ -93,9 +96,11 @@ if (!hasTwoRowAreas(block768)) {
   console.error('FAIL edu.css@768: .top grid-template-areas must be brand lang / nav nav (covers 340px)');
 }
 // @420: either set two-row areas, or document inherit from @768 (340 hit chain).
+// Strip comments before detecting the property so inherit docs can name grid-template-areas.
 if (block420) {
-  if (/grid-template-areas/.test(block420)) {
-    if (!hasTwoRowAreas(block420)) {
+  const code420 = stripCssComments(block420);
+  if (/grid-template-areas/.test(code420)) {
+    if (!hasTwoRowAreas(code420)) {
       failed += 1;
       console.error('FAIL edu.css@420: grid-template-areas must stay brand lang / nav nav (340 hit chain)');
     }
@@ -104,9 +109,12 @@ if (block420) {
     console.error('FAIL edu.css@420: if grid-template-areas omitted, comment must document inherit of brand lang / nav nav from @768');
   }
 }
-if (block320 && /grid-template-areas/.test(block320) && !hasTwoRowAreas(block320)) {
-  failed += 1;
-  console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
+if (block320) {
+  const code320 = stripCssComments(block320);
+  if (/grid-template-areas/.test(code320) && !hasTwoRowAreas(code320)) {
+    failed += 1;
+    console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
+  }
 }
 
 // Narrow header height: @768/@420 (340 hit chain) and @320 must not force min-height > 100px.

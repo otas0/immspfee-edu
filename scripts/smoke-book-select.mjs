@@ -100,13 +100,18 @@ if (!/340px-projectile-ellipsis/.test(shotsTxt) || !/340px-zh-long-title-ellipsi
 // Narrow header CSSOM: 340px uses ≤768/420 two-row areas; 320 must not re-stack lang.
 const block768 = mediaBlock(css, /@media\s*\(\s*max-width:\s*768px\s*\)/);
 const block420 = mediaBlock(css, /@media\s*\(\s*max-width:\s*420px\s*\)/);
+function stripCssComments(block) {
+  return String(block || '').replace(/\/\*[\s\S]*?\*\//g, '');
+}
 function hasTwoRowTop(block) {
   if (!block) return false;
   return /grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["'][\s\S]*?["']nav\s+nav["']/.test(block);
 }
 function areasOkOrInherited(block, label) {
-  if (!block || !/grid-template-areas/.test(block)) return true; // inherit prior media
-  if (hasTwoRowTop(block)) return true;
+  const code = stripCssComments(block);
+  // Comments may name grid-template-areas; only the property counts.
+  if (!block || !/grid-template-areas/.test(code)) return true; // inherit prior media
+  if (hasTwoRowTop(code)) return true;
   console.error(`FAIL edu.css@${label} CSSOM: grid-template-areas must stay brand lang / nav nav`);
   return false;
 }
@@ -179,14 +184,29 @@ if (!hasTwoRowTop(block768)) {
     } else {
       const byComma = document.querySelector('div.missing, span.fold-hint.extra');
       const byDesc = document.querySelector('div span.fold-hint');
+      const byChild = document.querySelector('div > span.fold-hint');
+      const byFirst = document.querySelector('span.fold-hint:first-child');
+      // Nest a non-matching sibling so :last-child is not the fold-hint.
+      const trailing = document.createElement('em');
+      host.appendChild(trailing);
+      const byLastWrong = document.querySelector('span.fold-hint:last-child');
+      const byLastEm = document.querySelector('em:last-child');
       if (!byComma || byComma !== hintEl) {
         failed += 1;
         console.error('FAIL dom-lite comma selector list', { byComma: !!byComma });
       } else if (!byDesc || byDesc !== hintEl) {
         failed += 1;
         console.error('FAIL dom-lite descendant div span.fold-hint', { byDesc: !!byDesc });
+      } else if (!byChild || byChild !== hintEl) {
+        failed += 1;
+        console.error('FAIL dom-lite child combinator div > span.fold-hint', { byChild: !!byChild });
+      } else if (!byFirst || byFirst !== hintEl || byLastWrong || !byLastEm || byLastEm !== trailing) {
+        failed += 1;
+        console.error('FAIL dom-lite :first-child / :last-child', {
+          byFirst: !!byFirst, byLastWrong: !!byLastWrong, byLastEm: !!byLastEm,
+        });
       } else {
-        console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant');
+        console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo');
       }
     }
   }

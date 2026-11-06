@@ -132,6 +132,13 @@ if [[ -z "$RID" ]]; then
 fi
 
 echo "watching Pages run $RID"
+# Capture job may still be running; print short-SHA artifact deep links early.
+RUN_URL="https://github.com/${REPO}/actions/runs/${RID}"
+echo "capture artifacts (short SHA $SHORT; upload when capture job finishes):"
+echo "  run: $RUN_URL"
+echo "  PNG:  capture-340px-zh-long-title-$SHORT  → ${RUN_URL}#artifacts"
+echo "  fail: capture-last-fail-$SHORT           → ${RUN_URL}#artifacts"
+echo "  redir: redirect-fail-headers-$SHORT      → ${RUN_URL}#artifacts"
 warned_waiting=0
 waiting_since=0
 # Seconds to stay in environment "waiting" before printing reviewers and exiting.

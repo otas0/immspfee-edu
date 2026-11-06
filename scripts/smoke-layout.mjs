@@ -601,7 +601,30 @@ let failed = 0;
               openOnlySearch, openOnlyClear, afterOnly,
             });
           } else {
-            console.log('ok uni details[open] expand/collapse/only-current + search-clear', hintCh.id);
+            // Third-leg extension: search-open (all) → collapse-all → clear → idle empty.
+            const openSearchThen = uniOpenChapterIds(book.chapters, hintCh.id, afterOnly, true);
+            const collapseAfterSearch = uniAllFoldsMap(book.chapters, false);
+            writeUniFoldsTo(foldStore, collapseAfterSearch);
+            const afterSearchCollapse = pruneUniFoldsIn(
+              foldStore, new Set(book.chapters.map((ch) => ch.id)),
+            );
+            const openIdleAfter = uniOpenChapterIds(
+              book.chapters, hintCh.id, afterSearchCollapse, false,
+            );
+            const openSearchAfter = uniOpenChapterIds(
+              book.chapters, hintCh.id, afterSearchCollapse, true,
+            );
+            if (openSearchThen.length !== book.chapters.length
+              || openIdleAfter.length !== 0
+              || openSearchAfter.length !== book.chapters.length
+              || !book.chapters.every((ch) => afterSearchCollapse[ch.id] === false)) {
+              failed += 1;
+              console.error('FAIL uni details[open] only-current→search-open→collapse→clear', {
+                openSearchThen, openIdleAfter, openSearchAfter, afterSearchCollapse,
+              });
+            } else {
+              console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse', hintCh.id);
+            }
           }
         }
       }
@@ -818,7 +841,7 @@ let failed = 0;
           failed += 1;
           console.error('FAIL minkowski β endpoints 0.05/0.95', { lo, hi });
         } else {
-          // Sticky _betaHi survives pointer-up; schema beta clears via STICKY_READOUT_HI_BY_SCHEMA.
+          // Sticky _betaHi survives pointer-up; Explore schema edit clears via app.setParam path.
           sim.pointer({ type: 'up', x: hx, y: tr.trackY }, p, d, ui);
           const rowsAfterUp = sim.readouts(d, p, ui);
           const betaRow = rowsAfterUp.find((r) => r.en === 'β');
@@ -828,21 +851,30 @@ let failed = 0;
               sticky: ui._betaHi, betaRow, map: STICKY_READOUT_HI_BY_SCHEMA.beta,
             });
           } else {
-            clearStickyReadoutHiOnSchema('beta', ui);
-            const afterSchema = sim.readouts(d, p, ui);
-            if (ui._betaHi || afterSchema.find((r) => r.en === 'β')?.hi) {
+            // Product lock: γ / Δt must stay non-hi while β is sticky.
+            const gammaRow = rowsAfterUp.find((r) => r.en === 'γ');
+            const dtRow = rowsAfterUp.find((r) => r.en === 'Δt');
+            if (gammaRow?.hi || dtRow?.hi) {
               failed += 1;
-              console.error('FAIL minkowski schema beta must clear _betaHi', {
-                sticky: ui._betaHi, row: afterSchema.find((r) => r.en === 'β'),
-              });
+              console.error('FAIL minkowski: γ/Δt must not sticky-hi with β (product)', { gammaRow, dtRow });
             } else {
-              // Product lock: γ / Δt must stay non-hi while β is sticky.
-              const gammaRow = rowsAfterUp.find((r) => r.en === 'γ');
-              const dtRow = rowsAfterUp.find((r) => r.en === 'Δt');
-              if (gammaRow?.hi || dtRow?.hi) {
+              // Explore: change schema β (applySchemaParam) then clear sticky (mirrors app.setParam).
+              const exploreTarget = 0.35;
+              const applied = applySchemaParam(sim, p, 'beta', exploreTarget);
+              Object.assign(p, applied.params);
+              d = sim.compute(p);
+              clearStickyReadoutHiOnSchema('beta', ui);
+              const afterExplore = sim.readouts(d, p, ui);
+              if (Math.abs(applied.clean - exploreTarget) > 1e-9
+                || Math.abs(p.beta - exploreTarget) > 1e-9
+                || ui._betaHi
+                || afterExplore.find((r) => r.en === 'β')?.hi) {
                 failed += 1;
-                console.error('FAIL minkowski: γ/Δt must not sticky-hi with β (product)', { gammaRow, dtRow });
-              } else console.log('ok minkowski β pointer + endpoints + sticky hi (β only) lockstep');
+                console.error('FAIL minkowski Explore schema β must snap + clear _betaHi', {
+                  clean: applied.clean, beta: p.beta, sticky: ui._betaHi,
+                  row: afterExplore.find((r) => r.en === 'β'),
+                });
+              } else console.log('ok minkowski β pointer + endpoints + sticky hi (β only) + Explore clear');
             }
           }
         }

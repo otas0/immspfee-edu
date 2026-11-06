@@ -116,10 +116,39 @@ function matchAttr(el, bracket) {
   return el.getAttribute(name) === want;
 }
 
-/** Supports tag, .class, [attr], and compounds like span.fold-hint / span.fold-hint[data-searching="1"]. */
+function siblingIndex(el) {
+  const parent = el.parentNode;
+  if (!parent || !parent.children) return -1;
+  return parent.children.indexOf(el);
+}
+
+function matchPseudo(el, name) {
+  if (name === 'first-child') return siblingIndex(el) === 0;
+  if (name === 'last-child') {
+    const parent = el.parentNode;
+    if (!parent || !parent.children?.length) return false;
+    return siblingIndex(el) === parent.children.length - 1;
+  }
+  return false;
+}
+
+/**
+ * Supports tag, .class, [attr], compounds, and :first-child / :last-child
+ * (e.g. span.fold-hint:first-child).
+ */
 function matchSel(el, sel) {
-  const s = String(sel || '').trim();
+  let s = String(sel || '').trim();
   if (!s) return false;
+  let pseudo = null;
+  const pseudoM = s.match(/^(.*?):(first-child|last-child)$/i);
+  if (pseudoM) {
+    s = pseudoM[1].trim();
+    pseudo = pseudoM[2].toLowerCase();
+    if (!s) {
+      // Bare :first-child / :last-child
+      return matchPseudo(el, pseudo);
+    }
+  }
   const compound = s.match(/^([a-z][\w-]*)?((?:\.[a-z][\w-]*)+)?(\[[^\]]+\])?$/i);
   if (compound && (compound[1] || compound[2] || compound[3])) {
     if (compound[1] && el.tagName !== compound[1].toUpperCase()) return false;
@@ -129,11 +158,22 @@ function matchSel(el, sel) {
       }
     }
     if (compound[3] && !matchAttr(el, compound[3])) return false;
+    if (pseudo && !matchPseudo(el, pseudo)) return false;
     return true;
   }
-  if (s.startsWith('.')) return hasClass(el, s.slice(1));
-  if (s.startsWith('[')) return matchAttr(el, s);
-  return el.tagName === s.toUpperCase();
+  if (s.startsWith('.')) {
+    if (!hasClass(el, s.slice(1))) return false;
+    if (pseudo && !matchPseudo(el, pseudo)) return false;
+    return true;
+  }
+  if (s.startsWith('[')) {
+    if (!matchAttr(el, s)) return false;
+    if (pseudo && !matchPseudo(el, pseudo)) return false;
+    return true;
+  }
+  if (el.tagName !== s.toUpperCase()) return false;
+  if (pseudo && !matchPseudo(el, pseudo)) return false;
+  return true;
 }
 
 /** Collect every descendant (not only children) matching a simple/compound sel. */
@@ -157,6 +197,24 @@ function queryDescendantChain(root, parts) {
   return null;
 }
 
+/** Direct-child chain for `div > span.fold-hint` (no mixed descendant segments). */
+function queryChildChain(root, parts) {
+  if (!parts.length) return null;
+  const [head, ...rest] = parts;
+  for (const child of root.children || []) {
+    if (!matchSel(child, head)) continue;
+    if (!rest.length) return child;
+    const hit = queryChildChain(child, rest);
+    if (hit) return hit;
+  }
+  // Also search deeper hosts so `document.querySelector('div > span')` finds nested hosts.
+  for (const child of root.children || []) {
+    const hit = queryChildChain(child, parts);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 function queryIn(root, sel) {
   const raw = String(sel || '').trim();
   if (raw.includes(',')) {
@@ -166,7 +224,12 @@ function queryIn(root, sel) {
     }
     return null;
   }
-  // Descendant combinator: "div span.fold-hint" (spaces; no >/+ yet).
+  // Child combinator before descendant: "div > span.fold-hint".
+  if (raw.includes('>')) {
+    const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) return queryChildChain(root, parts);
+  }
+  // Descendant combinator: "div span.fold-hint" (spaces).
   const parts = raw.split(/\s+/).filter(Boolean);
   if (parts.length > 1) return queryDescendantChain(root, parts);
   for (const child of root.children || []) {
@@ -183,11 +246,18 @@ function collect(root, sel, out) {
     for (const part of raw.split(',')) collect(root, part.trim(), out);
     return;
   }
+  if (raw.includes('>')) {
+    const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const hit = queryChildChain(root, parts);
+      if (hit && !out.includes(hit)) out.push(hit);
+      return;
+    }
+  }
   const parts = raw.split(/\s+/).filter(Boolean);
   if (parts.length > 1) {
     const hit = queryDescendantChain(root, parts);
     if (hit) out.push(hit);
-    // Also collect all matching chains
     const [head, ...rest] = parts;
     const matches = [];
     collectDeep(root, head, matches);
