@@ -66,12 +66,12 @@ jobs:
             echo "| --- | ---: |"
             echo "| Repo (ex .git/node_modules/_site) | ${BEFORE} KiB |"
             echo "| Staged \`_site\` | ${AFTER} KiB |"
-            # Saved stays pure KiB (du -sk); do not mix B on this row.
+            # All size rows stay pure KiB (no mixed B on Saved or script rows).
             echo "| Saved | $((BEFORE - AFTER)) KiB |"
-            echo "| \`lint-teach-layout.mjs\` (CI only) | $(( (LINT_B + 1023) / 1024 )) KiB / ${LINT_B} B |"
-            echo "| \`smoke-layout.mjs\` (CI only) | $(( (SMOKE_B + 1023) / 1024 )) KiB / ${SMOKE_B} B |"
-            echo "| \`smoke-book-select.mjs\` (CI only) | $(( (BOOK_B + 1023) / 1024 )) KiB / ${BOOK_B} B |"
-            echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB / ${ENSURE_B} B |"
+            echo "| \`lint-teach-layout.mjs\` (CI only) | $(( (LINT_B + 1023) / 1024 )) KiB |"
+            echo "| \`smoke-layout.mjs\` (CI only) | $(( (SMOKE_B + 1023) / 1024 )) KiB |"
+            echo "| \`smoke-book-select.mjs\` (CI only) | $(( (BOOK_B + 1023) / 1024 )) KiB |"
+            echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       - uses: actions/configure-pages@v6
@@ -160,3 +160,38 @@ jobs:
             gh issue create --title "$TITLE" --body "$BODY" --assignee otas0 || true
           fi
           exit 1
+
+  capture-340-title:
+    name: Optional capture 340px title
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install Playwright or skip
+        id: pw
+        run: |
+          set +e
+          npm install --no-save playwright@1.50.1
+          INSTALL_PKG=$?
+          if [ "$INSTALL_PKG" -ne 0 ]; then
+            echo "have=0" >> "$GITHUB_OUTPUT"
+            echo "::notice::Playwright package unavailable — skipping capture:340-title"
+            exit 0
+          fi
+          npx playwright install chromium
+          INSTALL_BR=$?
+          if [ "$INSTALL_BR" -ne 0 ]; then
+            echo "have=0" >> "$GITHUB_OUTPUT"
+            echo "::notice::Playwright Chromium unavailable — skipping capture:340-title"
+            exit 0
+          fi
+          echo "have=1" >> "$GITHUB_OUTPUT"
+      - name: Run capture:340-title
+        if: steps.pw.outputs.have == '1'
+        run: |
+          bash scripts/ensure-dev-server.sh --no-exec --quiet
+          npm run capture:340-title

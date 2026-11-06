@@ -65,8 +65,19 @@ if (!/@media\s*\(max-width:\s*320px\)/.test(css)) {
   console.error('FAIL edu.css: keep @media (max-width: 320px) for book-select; distinct from canvas w<=360');
 }
 
+// 340px (≤768) and 320px header: brand|lang over nav|nav — no third-row lang stack.
+if (!/@media\s*\(\s*max-width:\s*768px\s*\)[\s\S]*?grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["'][\s\S]*?["']nav\s+nav["']/.test(css)) {
+  failed += 1;
+  console.error('FAIL edu.css@768: .top grid-template-areas must be brand lang / nav nav (covers 340px)');
+}
+if (/@media\s*\(\s*max-width:\s*320px\s*\)[\s\S]*?grid-template-areas\s*:\s*[^;]*["']lang["']\s*;/.test(css)
+  && !/@media\s*\(\s*max-width:\s*320px\s*\)[\s\S]*?grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["']/.test(css)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
+}
+
 if (failed) {
   console.error(`lint-teach-layout: ${failed} failure(s)`);
   process.exit(1);
 }
-console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book + warn/#a33 + narrow breakpoints)`);
+console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book + warn/#a33 + narrow breakpoints + header areas)`);

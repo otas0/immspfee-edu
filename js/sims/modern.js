@@ -619,7 +619,8 @@ export const simultaneitySim = {
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
   onParam(key, value) {
-    // Slider → canvas: snap to 0.05 so the drag track and β field stay in lockstep.
+    // Belt-and-suspenders: clampSchemaValue already snaps β to schema.step.
+    // Keep this so older call sites / pointer-adjacent paths stay lockstep.
     if (key === 'beta') {
       const b = Math.round(Math.max(0.05, Math.min(0.95, value)) / 0.05) * 0.05;
       return Math.abs(b - value) > 1e-9 ? { beta: b } : {};

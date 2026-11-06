@@ -60,13 +60,30 @@ export function toastErrorDetail(err, maxLen = 120) {
   return truncateUnits(line, maxLen, Array.from(line));
 }
 
-/** Shared with app.setParam: clamp a schema field value. */
+/**
+ * Shared with app.setParam: clamp a schema field value.
+ * Number fields with `step` also snap onto the step grid (min as origin) so
+ * `clean` already matches Minkowski-style onParam snap — no clean≠snapped drift.
+ */
 export function clampSchemaValue(field, value, fallback) {
   if (!field) return value;
   if (field.type === 'number') {
-    const n = Number(value);
+    let n = Number(value);
     if (!Number.isFinite(n)) return fallback;
-    return Math.min(field.max, Math.max(field.min, n));
+    n = Math.min(field.max, Math.max(field.min, n));
+    const step = Number(field.step);
+    if (Number.isFinite(step) && step > 0) {
+      const base = Number(field.min);
+      n = Math.round((n - base) / step) * step + base;
+      n = Math.min(field.max, Math.max(field.min, n));
+      const decimals = (() => {
+        const s = String(step);
+        const i = s.indexOf('.');
+        return i >= 0 ? s.length - i - 1 : 0;
+      })();
+      if (decimals > 0) n = Number(n.toFixed(decimals));
+    }
+    return n;
   }
   if (field.type === 'toggle') return !!value;
   return value;

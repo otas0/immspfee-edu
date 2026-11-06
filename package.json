@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node scripts/dev-server.mjs",
+    "start": "ENSURE_QUIET=1 bash scripts/ensure-dev-server.sh",
     "preview": "bash scripts/ensure-dev-server.sh",
     "test": "node scripts/test-edu.mjs && node scripts/lint-teach-layout.mjs && node scripts/smoke-layout.mjs && node scripts/smoke-book-select.mjs",
     "lint:layout": "node scripts/lint-teach-layout.mjs",

@@ -35,7 +35,7 @@ npm test
 npm start
 ```
 
-`npm start` reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a bilingual tip if the port is busy. Prefer probing first:
+`npm start` runs `ensure-dev-server.sh` with `ENSURE_QUIET=1`: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 
 ```bash
 npm run preview          # curl -sI …/4174/ ; start only on failure

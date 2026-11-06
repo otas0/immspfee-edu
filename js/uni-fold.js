@@ -10,6 +10,13 @@ export function uniChapterOpen(chId, currentChId, foldMap = {}, searching = fals
   return chId === currentChId;
 }
 
+/** Same open set app assigns to university `<details open>` for a query state. */
+export function uniOpenChapterIds(chapters, currentChId, foldMap = {}, searching = false) {
+  return (chapters || [])
+    .filter((ch) => uniChapterOpen(ch.id, currentChId, foldMap, searching))
+    .map((ch) => ch.id);
+}
+
 /** Expand-all / collapse-all map written by the university fold tools. */
 export function uniAllFoldsMap(chapters, open) {
   const map = {};

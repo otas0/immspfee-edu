@@ -577,7 +577,8 @@ export const doubleSlitSim = {
   ],
   compute: (p) => doubleSlitIntensity(p),
   readouts: (d, _p, ui) => {
-    const hi = !!(ui && ui.drag === 'width');
+    // Sticky after width-bar edit so paintReadouts can still mark hi on pointer-up.
+    const hi = !!(ui && (ui.drag === 'width' || ui._slitWidthHi));
     return [
       ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
       ro('I', 'I/I0', fmt(d.I, 3)),
@@ -685,12 +686,16 @@ export const doubleSlitSim = {
         && ev.y <= Math.max(g.yLo, g.yHi) + 10;
       if (onBar || hit(ev.x, ev.y, g.barX, g.yLo) || hit(ev.x, ev.y, g.barX, g.yHi)) {
         ui.drag = 'width';
+        ui._slitWidthHi = true;
         return {};
       }
+      // Other hits clear sticky hi (schema edits also clear via setParam redraw path).
+      ui._slitWidthHi = false;
       return null;
     }
     if (ev.type === 'up') { ui.drag = null; return {}; }
     if (ev.type !== 'move' || ui.drag !== 'width') return null;
+    ui._slitWidthHi = true;
     const yPhys = g.ySpan - ((g.gy - ev.y) / g.gh) * 2 * g.ySpan;
     const half = Math.max(1e-5, Math.abs(yPhys));
     const a = (p.lambda * p.D) / half;

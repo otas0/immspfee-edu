@@ -49,20 +49,34 @@ if [[ -f "$READY_FILE" ]]; then
   PID="$(ready_pid || true)"
   if pid_alive "$PID"; then
     if probe_ok; then
-      echo "$URL (already up, pid $PID)"
+      if (( QUIET )); then
+        echo "$URL"
+      else
+        echo "$URL (already up, pid $PID)"
+      fi
       exit 0
     fi
-    echo "ready pid $PID alive but probe failed; starting fresh"
+    if (( ! QUIET )); then
+      echo "ready pid $PID alive but probe failed; starting fresh"
+    fi
   else
-    echo "stale .ready (pid ${PID:-?} not alive); clearing sidecars"
+    if (( ! QUIET )); then
+      echo "stale .ready (pid ${PID:-?} not alive); clearing sidecars"
+    fi
     rm -f "$READY_FILE" "$PID_FILE"
   fi
 elif probe_ok; then
-  echo "$URL (already up)"
+  if (( QUIET )); then
+    echo "$URL"
+  else
+    echo "$URL (already up)"
+  fi
   exit 0
 fi
 
-echo "probe failed; starting dev server on $PORT"
+if (( ! QUIET )); then
+  echo "probe failed; starting dev server on $PORT"
+fi
 cd "$ROOT"
 
 LOG_FILE="/tmp/immspfee-edu-${PORT}.log"
@@ -84,7 +98,11 @@ if (( NO_EXEC )); then
   START_PID=$!
   for _ in $(seq 1 50); do
     if probe_ok; then
-      echo "$URL (started pid ${START_PID}, --no-exec)"
+      if (( QUIET )); then
+        echo "$URL"
+      else
+        echo "$URL (started pid ${START_PID}, --no-exec)"
+      fi
       # Drop the startup log on success so a later failure does not show a stale OK run.
       # Set ENSURE_KEEP_LOG=1 to retain it.
       if [[ "${ENSURE_KEEP_LOG:-}" != "1" ]]; then

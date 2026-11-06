@@ -14,6 +14,7 @@ import {
   foldHintText,
   foldHintDomProps,
   uniFoldHintFromQuery,
+  uniOpenChapterIds,
   applyFoldHintEl,
 } from '../js/uni-fold.js';
 import {
@@ -520,6 +521,28 @@ let failed = 0;
       console.error('FAIL pruneUniFoldsIn empty validIds should no-op', afterEmpty);
     } else console.log('ok pruneUniFoldsIn empty validIds safe no-op');
   }
+
+  // Search clear → details[open] set from real storage fold map (app renderTree path).
+  const foldMem = new Map();
+  const foldStore = {
+    getItem: (k) => (foldMem.has(k) ? foldMem.get(k) : null),
+    setItem: (k, v) => { foldMem.set(k, String(v)); },
+  };
+  const savedOpenMap = uniAllFoldsMap(book.chapters, false);
+  savedOpenMap[hintCh.id] = true; // only current subject open, like a saved map
+  writeUniFoldsTo(foldStore, savedOpenMap);
+  const storedMap = pruneUniFoldsIn(foldStore, new Set(book.chapters.map((ch) => ch.id)));
+  const openWhileSearch = uniOpenChapterIds(book.chapters, hintCh.id, storedMap, true);
+  const openAfterClear = uniOpenChapterIds(book.chapters, hintCh.id, storedMap, false);
+  const openEmptyQ = uniOpenChapterIds(book.chapters, hintCh.id, storedMap, !!String('   ').trim());
+  if (openWhileSearch.length !== book.chapters.length
+    || openAfterClear.length !== 1 || openAfterClear[0] !== hintCh.id
+    || openEmptyQ.join() !== openAfterClear.join()) {
+    failed += 1;
+    console.error('FAIL uni details[open] search→clear storage set', {
+      openWhileSearch, openAfterClear, openEmptyQ, storedMap,
+    });
+  } else console.log('ok uni details[open] search clear ↔ storage', hintCh.id);
 }
 
 {
@@ -597,24 +620,30 @@ let failed = 0;
                   failed += 1;
                   console.error('FAIL double-slit width drag clamp to schema a', { atMax, atMin, amin, amax });
                 } else {
-                  // While dragging, readouts a / 2λD/a stay hi even after clamp.
+                  // Sticky _slitWidthHi: hi stays assertable after pointer-up (not only while drag).
                   ui.drag = 'width';
+                  ui._slitWidthHi = true;
                   const dClamp = sim.compute({ ...p, a: atMax.a });
                   const rowsHi = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
                   const aRow = rowsHi.find((r) => r.en === 'a');
                   const wRow = rowsHi.find((r) => r.en === '2λD/a');
                   sim.pointer({ type: 'up', x: g3.barX, y: g3.yLo }, p, d, ui);
-                  const rowsLo = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
-                  if (!aRow?.hi || !wRow?.hi || rowsLo.find((r) => r.en === 'a')?.hi) {
+                  const rowsAfterUp = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
+                  const aAfterUp = rowsAfterUp.find((r) => r.en === 'a');
+                  const wAfterUp = rowsAfterUp.find((r) => r.en === '2λD/a');
+                  if (!aRow?.hi || !wRow?.hi || !aAfterUp?.hi || !wAfterUp?.hi || ui.drag != null) {
                     failed += 1;
-                    console.error('FAIL double-slit readout hi should follow drag after clamp', { aRow, wRow, afterUp: rowsLo.find((r) => r.en === 'a') });
+                    console.error('FAIL double-slit readout hi should stick after pointer-up', {
+                      aRow, wRow, aAfterUp, wAfterUp, drag: ui.drag, sticky: ui._slitWidthHi,
+                    });
                   } else {
-                    // Light DOM: paintReadouts className via applyReadoutRowEl.
-                    const domHi = applyReadoutRowEl({ className: '' }, aRow);
-                    const domLo = applyReadoutRowEl({ className: '' }, rowsLo.find((r) => r.en === 'a'));
-                    if (domHi.className !== 'readout hi' || domLo.className !== 'readout') {
+                    const domHi = applyReadoutRowEl({ className: '' }, aAfterUp);
+                    sim.pointer({ type: 'down', x: 0, y: 0 }, p, dClamp, ui);
+                    const rowsCleared = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
+                    const domLo = applyReadoutRowEl({ className: '' }, rowsCleared.find((r) => r.en === 'a'));
+                    if (domHi.className !== 'readout hi' || domLo.className !== 'readout' || ui._slitWidthHi) {
                       failed += 1;
-                      console.error('FAIL double-slit paintReadouts DOM class', { domHi, domLo });
+                      console.error('FAIL double-slit paintReadouts DOM class / sticky clear', { domHi, domLo, sticky: ui._slitWidthHi });
                     } else {
                       console.log('ok double-slit envelope + width-bar drag/hit/clamp/hi/DOM', { a0, amin, amax });
                     }
@@ -660,43 +689,50 @@ let failed = 0;
     failed += 1;
     console.error('FAIL minkowski: missing _vTrack');
   } else {
-    const target = 0.7;
-    const hx = tr.trackX0 + ((target - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
-    ui._betaLast = null;
-    ui._betaAt = 0;
-    sim.pointer({ type: 'down', x: hx, y: tr.trackY }, p, d, ui);
-    const patch = sim.pointer({ type: 'move', x: hx, y: tr.trackY }, p, d, ui);
-    if (!patch || Math.abs(patch.beta - target) > 1e-9) {
+    // step snap lives in clampSchemaValue → clean === params.beta (no clean≠snapped).
+    const mid = applySchemaParam(sim, p, 'beta', 0.73);
+    if (Math.abs(mid.clean - 0.75) > 1e-9 || Math.abs(mid.params.beta - mid.clean) > 1e-9) {
       failed += 1;
-      console.error('FAIL minkowski pointer: β should snap to 0.05 grid', { patch, target });
+      console.error('FAIL minkowski clampSchemaValue step must equal clean/params', mid);
     } else {
-      // Sequence along the track stays on 0.05 steps, including endpoints.
-      const steps = [0.05, 0.1, 0.25, 0.55, 0.9, 0.95];
-      let bad = null;
-      for (const b of steps) {
-        const x = tr.trackX0 + ((b - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
+      const target = 0.7;
+      const hx = tr.trackX0 + ((target - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
+      ui._betaLast = null;
+      ui._betaAt = 0;
+      sim.pointer({ type: 'down', x: hx, y: tr.trackY }, p, d, ui);
+      const patch = sim.pointer({ type: 'move', x: hx, y: tr.trackY }, p, d, ui);
+      if (!patch || Math.abs(patch.beta - target) > 1e-9) {
+        failed += 1;
+        console.error('FAIL minkowski pointer: β should snap to 0.05 grid', { patch, target });
+      } else {
+        // Sequence along the track stays on 0.05 steps, including endpoints.
+        const steps = [0.05, 0.1, 0.25, 0.55, 0.9, 0.95];
+        let bad = null;
+        for (const b of steps) {
+          const x = tr.trackX0 + ((b - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
+          ui._betaLast = null;
+          ui._betaAt = 0;
+          const expect = Math.round(b / 0.05) * 0.05;
+          const got = sim.pointer({ type: 'move', x, y: tr.trackY }, p, d, ui);
+          if (!got || Math.abs(got.beta - expect) > 1e-9) {
+            bad = { b, expect, got };
+            break;
+          }
+        }
         ui._betaLast = null;
         ui._betaAt = 0;
-        const expect = Math.round(b / 0.05) * 0.05;
-        const got = sim.pointer({ type: 'move', x, y: tr.trackY }, p, d, ui);
-        if (!got || Math.abs(got.beta - expect) > 1e-9) {
-          bad = { b, expect, got };
-          break;
-        }
+        const lo = sim.pointer({ type: 'move', x: tr.trackX0 - 20, y: tr.trackY }, p, d, ui);
+        ui._betaLast = null;
+        ui._betaAt = 0;
+        const hi = sim.pointer({ type: 'move', x: tr.trackX1 + 20, y: tr.trackY }, p, d, ui);
+        if (bad) {
+          failed += 1;
+          console.error('FAIL minkowski β pointer sequence lockstep', bad);
+        } else if (!lo || Math.abs(lo.beta - 0.05) > 1e-9 || !hi || Math.abs(hi.beta - 0.95) > 1e-9) {
+          failed += 1;
+          console.error('FAIL minkowski β endpoints 0.05/0.95', { lo, hi });
+        } else console.log('ok minkowski β pointer + endpoints 0.05/0.95 lockstep');
       }
-      ui._betaLast = null;
-      ui._betaAt = 0;
-      const lo = sim.pointer({ type: 'move', x: tr.trackX0 - 20, y: tr.trackY }, p, d, ui);
-      ui._betaLast = null;
-      ui._betaAt = 0;
-      const hi = sim.pointer({ type: 'move', x: tr.trackX1 + 20, y: tr.trackY }, p, d, ui);
-      if (bad) {
-        failed += 1;
-        console.error('FAIL minkowski β pointer sequence lockstep', bad);
-      } else if (!lo || Math.abs(lo.beta - 0.05) > 1e-9 || !hi || Math.abs(hi.beta - 0.95) > 1e-9) {
-        failed += 1;
-        console.error('FAIL minkowski β endpoints 0.05/0.95', { lo, hi });
-      } else console.log('ok minkowski β pointer + endpoints 0.05/0.95 lockstep');
     }
   }
 }
@@ -751,7 +787,21 @@ let failed = 0;
     } else if (!zwjOk) {
       failed += 1;
       console.error('FAIL toastErrorDetail emoji ZWJ boundary', { zwjCut, zwjUnits, hasSeg });
-    } else console.log('ok ising clear error + i18n + code-point/ZWJ trunc');
+    } else {
+      // Pirate flag ZWJ (🏴‍☠️) is one Segmenter grapheme.
+      const flag = '🏴‍☠️';
+      const flagCut = toastErrorDetail({ message: `${flag}${flag}${flag}${flag}` }, 3);
+      const flagUnits = hasSeg
+        ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(flagCut)].map((s) => s.segment)
+        : Array.from(flagCut);
+      const flagOk = hasSeg
+        ? (flagUnits.length === 3 && flagUnits[0] === flag && flagUnits[1] === flag && flagUnits[2] === '…')
+        : (flagCut.endsWith('…') && !/\u200D…$/.test(flagCut));
+      if (!flagOk) {
+        failed += 1;
+        console.error('FAIL toastErrorDetail flag ZWJ Segmenter boundary', { flagCut, flagUnits, hasSeg });
+      } else console.log('ok ising clear error + i18n + code-point/ZWJ/flag trunc');
+    }
   }
 }
 

@@ -132,17 +132,54 @@ fi
 
 echo "watching Pages run $RID"
 warned_waiting=0
+waiting_since=0
+# Seconds to stay in environment "waiting" before printing reviewers and exiting.
+WAITING_TIMEOUT="${PAGES_WAITING_TIMEOUT:-900}"
+print_env_protection_summary() {
+  echo ""
+  echo "=== github-pages environment protection summary ==="
+  gh api "/repos/${REPO}/environments/github-pages" --jq '
+    "name: \(.name // "github-pages")",
+    "wait_timer: \(.wait_timer // 0)s",
+    (.protection_rules // [] | .[] |
+      if .type == "required_reviewers" then
+        "required_reviewers: " + (([.reviewers[]? | (.reviewer.login // .reviewer.slug // .reviewer.name // "?")] | join(", ")) // "(none listed)")
+      elif .type == "wait_timer" then
+        "wait_timer_rule: \(.wait_timer // 0)s"
+      elif .type == "branch_policy" then
+        "branch_policy: present"
+      else
+        "rule: \(.type // "unknown")"
+      end
+    ),
+    (if (.deployment_branch_policy.protected_branches == true) then "deployment_branch_policy: protected_branches" else empty end),
+    (if (.deployment_branch_policy.custom_branch_policies == true) then "deployment_branch_policy: custom" else empty end)
+  ' 2>/dev/null || echo "(could not fetch /repos/${REPO}/environments/github-pages — check gh auth scope)"
+  echo "Approve: https://github.com/${REPO}/settings/environments"
+  echo "Run: ${1:-https://github.com/$REPO/actions/runs/$RID}"
+  echo "==================================================="
+  echo ""
+}
+
 while true; do
   meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
   status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
   url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
-  if [[ "$status" == "waiting" && "$warned_waiting" -eq 0 ]]; then
-    echo ""
-    echo "Pages is WAITING on the github-pages environment (approval / protection rule)."
-    echo "Open and approve: ${url:-https://github.com/$REPO/actions/runs/$RID}"
-    echo "This script will keep waiting until the run leaves 'waiting'."
-    echo ""
-    warned_waiting=1
+  if [[ "$status" == "waiting" ]]; then
+    now="$(date +%s)"
+    if (( warned_waiting == 0 )); then
+      waiting_since="$now"
+      echo ""
+      echo "Pages is WAITING on the github-pages environment (approval / protection rule)."
+      echo "Open and approve: ${url:-https://github.com/$REPO/actions/runs/$RID}"
+      echo "This script will keep waiting until the run leaves 'waiting' (timeout ${WAITING_TIMEOUT}s)."
+      echo ""
+      warned_waiting=1
+    elif (( now - waiting_since >= WAITING_TIMEOUT )); then
+      echo "environment waiting timed out after ${WAITING_TIMEOUT}s" >&2
+      print_env_protection_summary "$url"
+      exit 1
+    fi
   fi
   if [[ "$status" == "completed" ]]; then
     break
