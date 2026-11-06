@@ -125,8 +125,8 @@ button { cursor: pointer; }
     column-gap: 6px;
     min-height: 0;
   }
-  .brand { padding: 0; max-width: min(160px, calc(100vw - 84px)); }
-  .brand img { max-width: min(132px, calc(100vw - 92px)); }
+  .brand { padding: 0; max-width: min(120px, calc(100vw - 84px)); }
+  .brand img { max-width: min(112px, calc(100vw - 92px)); }
   .top-nav { gap: 2px; }
   #regions.seg { gap: 3px; }
   #books.book-select-wrap,
@@ -314,42 +314,41 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
   aside, .teach { max-height: none; }
 }
 @media (max-width: 768px) {
-  .top {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      "brand lang"
-      "nav nav";
-    min-height: 0;
-  }
   .lang { justify-self: end; }
   .layout { padding-top: 8px; }
 }
 @media (max-width: 420px) {
+  /* Keep brand + lang on one row so the bar can stay under ~100px at 320. */
   .top {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "brand"
-      "lang"
-      "nav";
-    min-height: 0;
-    justify-items: start;
+      "brand lang"
+      "nav nav";
+    justify-items: stretch;
   }
-  .lang { justify-self: start; }
-  .brand img { max-width: min(200px, calc(100vw - 24px)); }
+  .lang { justify-self: end; }
+  .brand { max-width: min(112px, calc(100vw - 80px)); }
+  .brand img { max-width: min(104px, calc(100vw - 88px)); }
   .book-select {
     font-size: 12px;
     max-width: calc(100vw - 20px);
   }
 }
 @media (max-width: 320px) {
-  .top { padding: 4px 6px; }
-  .brand img { max-width: calc(100vw - 16px); }
+  .top { padding: 2px 4px; row-gap: 0; }
+  .brand { max-width: min(100px, calc(100vw - 72px)); }
+  .brand img { max-width: min(96px, calc(100vw - 80px)); }
+  .seg button, .lang button {
+    padding: 1px 6px;
+    font-size: 11px;
+  }
+  .lang button { width: 36px; height: 22px; flex-basis: 36px; }
   /* Keep 「沪科初中物理」「沪科高中物理」「人教版初中物理」 fully visible.
      Match .book-select-wrap select specificity so clip beats the base ellipsis. */
   .book-select-wrap select,
   .book-select {
     font-size: 11px;
-    padding: 3px 16px 3px 4px;
+    padding: 2px 14px 2px 4px;
     letter-spacing: 0;
     text-overflow: clip;
     overflow: visible;
@@ -358,7 +357,7 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
   }
   #books.book-select-wrap,
   .book-select-wrap {
-    max-width: calc(100vw - 12px);
+    max-width: calc(100vw - 8px);
   }
 }
 @media (prefers-color-scheme: dark) {

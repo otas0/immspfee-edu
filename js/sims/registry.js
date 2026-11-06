@@ -146,7 +146,7 @@ async function loadGroup(name, reload = false) {
   if (reload) groupCache.delete(name);
   const path = PATHS[name];
   if (!path) throw new Error(`Unknown sim group ${name}`);
-  // Stamp replaces __BUILD__ so nested sims track the Pages deploy, not a disk-cached module.
+  // Nested sims append the stamped build id so disk-cached modules cannot stick.
   const href = reload
     ? `${path}?v=__BUILD__&reload=${Date.now()}`
     : `${path}?v=__BUILD__`;
