@@ -41,11 +41,13 @@
       Promise.all([clearCaches(), dropSW()]).then(go, go);
     })();
   </script>
-  <!-- Transparent PNG at a never-cached path; Safari ignores data: and keeps old marks. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="./assets/blank-tab-32-nov6.png?v=__BUILD__">
-  <link rel="icon" type="image/png" sizes="16x16" href="./assets/blank-tab-16-nov6.png?v=__BUILD__">
-  <link rel="shortcut icon" type="image/png" href="./assets/blank-tab-32-nov6.png?v=__BUILD__">
-  <link rel="apple-touch-icon" href="./assets/blank-tab-32-nov6.png?v=__BUILD__">
+  <!-- Transparent icons under never-used names + root favicon.ico (Safari’s default fetch). -->
+  <link rel="icon" href="./favicon.ico?v=__BUILD__" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="./assets/blank-tab-nov6b.svg?v=__BUILD__">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/blank-tab-32-nov6b.png?v=__BUILD__">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/blank-tab-16-nov6b.png?v=__BUILD__">
+  <link rel="shortcut icon" href="./favicon.ico?v=__BUILD__">
+  <link rel="apple-touch-icon" href="./assets/blank-tab-32-nov6b.png?v=__BUILD__">
   <link rel="stylesheet" href="./css/edu.css?v=__BUILD__">
   <link rel="modulepreload" href="./js/app.js?v=__BUILD__">
   <link rel="modulepreload" href="./js/fmt.js?v=__BUILD__">

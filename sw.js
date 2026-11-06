@@ -10,8 +10,10 @@ const PRECACHE = [
   './js/curricula/index.js',
   './js/sims/registry.js',
   './assets/immspfee-education-logo.png',
-  './assets/blank-tab-16-nov6.png',
-  './assets/blank-tab-32-nov6.png',
+  './favicon.ico',
+  './assets/blank-tab-nov6b.svg',
+  './assets/blank-tab-16-nov6b.png',
+  './assets/blank-tab-32-nov6b.png',
 ];
 
 function isCode(url) {
