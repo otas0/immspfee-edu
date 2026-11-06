@@ -51,10 +51,15 @@ while (( i <= attempts )); do
       echo "post-push fetch timed out/failed; confirming SHA via gh API (resume watch)" >&2
     fi
     remote_main="$(git rev-parse origin/main 2>/dev/null || true)"
-    if (( fetch_ok )) && [[ -n "$remote_main" && "$local_head" == "$remote_main" ]]; then
-      :
-    elif gh api "repos/${REPO}/commits/${local_head}" --jq .sha >/dev/null 2>&1 \
+    gh_ok=0
+    if gh api "repos/${REPO}/commits/${local_head}" --jq .sha >/dev/null 2>&1 \
       || gh api "repos/${REPO}/git/ref/heads/main" --jq .object.sha 2>/dev/null | grep -qx "$local_head"; then
+      gh_ok=1
+    fi
+    confirm_out="$(post_push_confirm "$local_head" "$remote_main" "$fetch_ok" "$gh_ok" || true)"
+    if [[ "$confirm_out" == "ok_fetch" ]]; then
+      :
+    elif [[ "$confirm_out" == "ok_gh_resume" ]]; then
       echo "gh confirms $local_head on remote; continuing watch without local origin/main update"
       git update-ref refs/remotes/origin/main "$local_head" 2>/dev/null || true
     elif echo "$err_txt" | grep -qi 'Everything up-to-date'; then
@@ -119,9 +124,10 @@ fi
 
 echo "waiting for Pages run on $SHORT"
 RID=""
+# Prefer newest run for this SHA (cancel-in-progress can leave older cancelled + newer queued).
 for _ in $(seq 1 40); do
-  RID="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 15 --json databaseId,headSha,status,createdAt \
-    --jq "[.[] | select(.headSha==\"$SHA\")] | .[0].databaseId // empty" || true)"
+  runs_json="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 20 --json databaseId,headSha,status,createdAt 2>/dev/null || echo '[]')"
+  RID="$(pick_latest_run_id_for_sha "$runs_json" "$SHA")"
   if [[ -n "$RID" ]]; then
     break
   fi
@@ -135,8 +141,8 @@ if [[ -z "$RID" ]]; then
   SHORT="$(git rev-parse --short HEAD)"
   echo "no Pages run listed for $SHA yet; fallback watch latest headSha==HEAD ($SHORT)"
   for _ in $(seq 1 20); do
-    RID="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 20 --json databaseId,headSha,createdAt \
-      --jq "[.[] | select(.headSha==\"$HEAD_NOW\")] | sort_by(.createdAt) | reverse | .[0].databaseId // empty" || true)"
+    runs_json="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 20 --json databaseId,headSha,createdAt 2>/dev/null || echo '[]')"
+    RID="$(pick_latest_run_id_for_sha "$runs_json" "$HEAD_NOW")"
     if [[ -n "$RID" ]]; then
       SHA="$HEAD_NOW"
       break
@@ -382,8 +388,9 @@ print("upload:%s" % up_c)
 }
 
 # Mid-run (incl. env waiting): if any job already failed (e.g. capture red while deploy waits), flip ISSUE_TITLE.
+mid_fail_summary_noted=0
 maybe_mid_fail_title() {
-  local mid cap_note=""
+  local mid cap_note="" run_status="${1:-}"
   mid="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
     | length
@@ -396,6 +403,12 @@ maybe_mid_fail_title() {
     ' 2>/dev/null || true)"
     if [[ -n "$cap_note" ]]; then
       echo "mid-FAIL title${cap_note}"
+      if [[ "$run_status" == "waiting" && "$mid_fail_summary_noted" -eq 0 && -n "${SUMMARY_MD:-}" ]]; then
+        mid_fail_summary_noted=1
+        summary_append "Mid-FAIL (waiting)" \
+          "mid-FAIL title${cap_note}" \
+          "Run was still \`waiting\` on github-pages while capture (or another job) already failed."
+      fi
     fi
   fi
 }
@@ -406,7 +419,7 @@ while true; do
   status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
   url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
   # Title first so Heartbeats FAIL mark and ISSUE_TITLE stay aligned during waiting.
-  maybe_mid_fail_title
+  maybe_mid_fail_title "$status"
   summary_heartbeat
   if [[ "$status" == "waiting" ]]; then
     now="$(date +%s)"

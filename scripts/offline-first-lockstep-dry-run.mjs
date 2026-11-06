@@ -5,11 +5,11 @@
  *
  *   node scripts/offline-first-lockstep-dry-run.mjs
  *   OFFLINE_FIRST=1 node scripts/offline-first-lockstep-dry-run.mjs
- *   OFFLINE_FIRST_FIXTURE=1 node scripts/offline-first-lockstep-dry-run.mjs
- *     → temp tree with chrome/fold on REQUIRED+PRECACHE; asserts green lockstep (does not touch main).
+ *   OFFLINE_FIRST_FIXTURE=1 …          → minimal temp tree (green)
+ *   OFFLINE_FIRST_REALTREE=1 …         → copy real stamp/sw/index, inject chrome/fold (green; main untouched)
  *
  * Default (unset/0): asserts chrome/fold stay OFF required + PRECACHE (today's main).
- * OFFLINE_FIRST=1 against real tree: exit 1 until a flip side branch lists those files.
+ * OFFLINE_FIRST=1 against real main tree: exit 1 until a flip side branch lists those files.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -18,7 +18,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = process.env.OFFLINE_FIRST_FIXTURE === '1';
-const OFFLINE = FIXTURE || process.env.OFFLINE_FIRST === '1';
+const REALTREE = process.env.OFFLINE_FIRST_REALTREE === '1';
+const OFFLINE = FIXTURE || REALTREE || process.env.OFFLINE_FIRST === '1';
 const SHELL = ['js/ui-chrome.js', 'js/uni-fold.js'];
 
 function buildFixtureTree() {
@@ -47,7 +48,41 @@ function buildFixtureTree() {
   return dir;
 }
 
-const treeRoot = FIXTURE ? buildFixtureTree() : root;
+/** Side-branch simulation: patch a copy of the real stamp/sw/index (never writes main). */
+function buildRealTreeFlip() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'immspfee-offline-realtree-'));
+  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  let stamp = fs.readFileSync(path.join(root, 'scripts/stamp-build.mjs'), 'utf8');
+  let sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  // Inject shell into REQUIRED array (before closing ]).
+  if (!/js\/ui-chrome\.js/.test(stamp)) {
+    stamp = stamp.replace(
+      /const REQUIRED = \[/,
+      "const REQUIRED = [\n  'js/ui-chrome.js',\n  'js/uni-fold.js',",
+    );
+  }
+  if (!/ui-chrome\.js/.test(sw)) {
+    sw = sw.replace(
+      /const PRECACHE = \[/,
+      "const PRECACHE = [\n  './js/ui-chrome.js',\n  './js/uni-fold.js',",
+    );
+  }
+  fs.writeFileSync(path.join(dir, 'scripts/stamp-build.mjs'), stamp);
+  fs.writeFileSync(path.join(dir, 'sw.js'), sw);
+  fs.writeFileSync(path.join(dir, 'index.html'), index);
+  return dir;
+}
+
+let treeRoot = root;
+let tempKind = '';
+if (FIXTURE) {
+  treeRoot = buildFixtureTree();
+  tempKind = 'fixture';
+} else if (REALTREE) {
+  treeRoot = buildRealTreeFlip();
+  tempKind = 'realtree';
+}
 
 function read(rel) {
   return fs.readFileSync(path.join(treeRoot, rel), 'utf8');
@@ -78,9 +113,9 @@ const modulepreload = (rel) => {
 
 console.log('### OFFLINE_FIRST lockstep dry-run (no writes to main)');
 console.log('');
-console.log(`- OFFLINE_FIRST=${OFFLINE ? '1' : '0 (default)'}${FIXTURE ? ' (temp fixture tree)' : ''}`);
+console.log(`- OFFLINE_FIRST=${OFFLINE ? '1' : '0 (default)'}${tempKind ? ` (${tempKind} temp tree)` : ''}`);
 console.log(`- shell: ${SHELL.join(', ')}`);
-if (FIXTURE) console.log(`- fixture: ${treeRoot}`);
+if (tempKind) console.log(`- temp: ${treeRoot}`);
 console.log('');
 
 let failed = 0;
@@ -114,7 +149,7 @@ for (const rel of SHELL) {
   console.log('');
 }
 
-if (FIXTURE) {
+if (tempKind) {
   try {
     fs.rmSync(treeRoot, { recursive: true, force: true });
   } catch {
@@ -128,6 +163,8 @@ if (failed) {
 }
 if (FIXTURE) {
   console.log('ok OFFLINE_FIRST_FIXTURE=1 lockstep green (temp tree; main untouched)');
+} else if (REALTREE) {
+  console.log('ok OFFLINE_FIRST_REALTREE=1 lockstep green (patched real-file copy; main untouched)');
 } else {
   console.log(OFFLINE
     ? 'ok OFFLINE_FIRST=1 lockstep dry-run (shell on REQUIRED+PRECACHE)'

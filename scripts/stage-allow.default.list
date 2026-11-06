@@ -9,6 +9,7 @@ docs/
 assets/
 README.md
 AGENTS.md
+CONTRIBUTING.md
 package.json
 sw.js
 index.html

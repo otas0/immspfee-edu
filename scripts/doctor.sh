@@ -5,6 +5,10 @@
 # (2) university chapter details default = current-subject-only
 # (3) rename redirect check
 # Not run on Pages — local only. Fold default is also covered by smoke-layout.
+#
+# After clearing a stale sidecar, optionally restart preview:
+#   DOCTOR_AUTO_ENSURE=1 npm run doctor   # default: auto ensure-dev-server --no-exec
+#   DOCTOR_AUTO_ENSURE=0 npm run doctor   # tip only
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -13,12 +17,22 @@ READY_FILE="$ROOT/.dev-server-${PORT}.ready"
 PID_FILE="$ROOT/.dev-server-${PORT}.pid"
 URL="http://127.0.0.1:${PORT}/"
 fail=0
+DOCTOR_AUTO_ENSURE="${DOCTOR_AUTO_ENSURE:-1}"
 
 clear_stale_sidecars() {
   local why="$1"
   echo "clearing stale sidecars ($why): $READY_FILE $PID_FILE"
   rm -f "$READY_FILE" "$PID_FILE"
-  echo "tip: restart with \`bash scripts/ensure-dev-server.sh\` (or \`npm start\` / \`npm run preview\`)"
+  if [[ "$DOCTOR_AUTO_ENSURE" == "1" ]]; then
+    echo "DOCTOR_AUTO_ENSURE=1 → bash scripts/ensure-dev-server.sh --no-exec --quiet"
+    if bash scripts/ensure-dev-server.sh --no-exec --quiet; then
+      echo "ok ensure-dev-server after clear"
+    else
+      echo "ensure-dev-server failed after clear — try \`npm start\` manually" >&2
+    fi
+  else
+    echo "tip: restart with \`bash scripts/ensure-dev-server.sh\` (or \`npm start\` / \`npm run preview\`)"
+  fi
 }
 
 echo "### doctor — local preview / university nav"
@@ -28,7 +42,12 @@ echo ""
 echo "## 1. .dev-server-${PORT}.ready"
 if [[ ! -f "$READY_FILE" ]]; then
   echo "FAIL: missing $READY_FILE — run npm start / npm run preview first"
-  echo "tip: \`bash scripts/ensure-dev-server.sh\`"
+  if [[ "$DOCTOR_AUTO_ENSURE" == "1" ]]; then
+    echo "DOCTOR_AUTO_ENSURE=1 → bash scripts/ensure-dev-server.sh --no-exec --quiet"
+    bash scripts/ensure-dev-server.sh --no-exec --quiet || true
+  else
+    echo "tip: \`bash scripts/ensure-dev-server.sh\`"
+  fi
   fail=$((fail + 1))
 else
   PID="$(python3 -c 'import json,sys
@@ -51,7 +70,6 @@ except Exception as e:
       echo "ok ready pid=$PID probe $URL"
     else
       echo "FAIL: pid $PID alive but HTTP probe of $URL failed"
-      # Alive pid that does not answer HTTP is still a bad sidecar — clear and restart.
       clear_stale_sidecars "pid $PID alive but HTTP probe failed"
       fail=$((fail + 1))
     fi

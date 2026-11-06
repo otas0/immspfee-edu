@@ -547,7 +547,7 @@ export const simultaneitySim = {
   compute: (p) => simultaneity({ L0: p.L0, v: Math.max(0.05, Math.min(0.95, p.beta)) * 2.99792458e8 }),
   readouts: (d, _p, ui) => {
     // Product lock: only β sticky-hi while/after track. γ / Δt plain — no hi paint until
-    // product asks AND STICKY_READOUT_HI_BY_SCHEMA + smoke are extended first.
+    // otas0/immspfee-edu#1 is checked AND STICKY_READOUT_HI_BY_SCHEMA + smoke are extended first.
     const hi = !!(ui && (ui.drag === 'v' || ui._betaHi));
     return [
       { en: 'β', zh: 'β', value: fmt(d.beta, 3), hi },

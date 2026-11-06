@@ -18,8 +18,9 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports. **Re-eval (2026-11-06):** still off PRECACHE — triggers + flip PR template in `docs/adr/001-ui-chrome-precache.md`.
 - Minkowski sticky readout hi: **β only** while/after track drag (`_betaHi`). γ / Δt stay plain until product confirmation [issue #1](https://github.com/otas0/immspfee-edu/issues/1) is checked; then extend `STICKY_READOUT_HI_BY_SCHEMA` + smoke-layout (do not paint hi first).
 - Stage with `bash scripts/git-stage-allow.sh --default` (or explicit paths). Do not run `git add -A` / `--all` / `.` in agent scripts — lint forbids it. Optional hook: `git config core.hooksPath scripts/githooks` ([docs/hooks/stage-allow.md](docs/hooks/stage-allow.md)).
-- Local health: `npm run doctor` (auto-clears dead ready sidecars + fold default + rename redirect). Not on Pages.
-- OFFLINE_FIRST flip dry-run: `npm run offline-first:dry-run` (default asserts chrome/fold stay off PRECACHE; side branch may set `OFFLINE_FIRST=1`).
+- Local health: `npm run doctor` (clears bad sidecars; `DOCTOR_AUTO_ENSURE=1` default restarts via ensure-dev-server --no-exec). Not on Pages.
+- OFFLINE_FIRST flip dry-run: `npm run offline-first:dry-run` (default off PRECACHE; `OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` green without touching main).
+- See also [CONTRIBUTING.md](CONTRIBUTING.md) (hooksPath one-liner).
 
 ## Release
 

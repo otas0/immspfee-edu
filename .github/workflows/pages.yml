@@ -128,15 +128,13 @@ jobs:
           {
             echo "### Redirect-fail artifact backfill"
             echo ""
-            echo "| Kind | Local/step | API | API retries |"
+            echo "| Kind | Local/step | API | retries_used |"
             echo "| --- | --- | --- | --- |"
-            echo "| redirect-fail (\`redirect-fail-headers-${SHORT}\`) | $redir | $redir_api | $retries_note |"
+            echo "| redirect-fail (\`redirect-fail-headers-${SHORT}\`) | $redir | $redir_api | ${RETRIES_USED:-0} ($retries_note) |"
             if [ -n "$skip_reason" ]; then
               echo ""
               echo "$skip_reason"
             fi
-            echo ""
-            echo "GITHUB_OUTPUT retries_used=${RETRIES_USED:-0} (job output \`redir_retries\` for cross-job)."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "retries_used=${RETRIES_USED:-0}" >> "$GITHUB_OUTPUT"
       - name: Guard against edition / ready-count chrome
@@ -189,7 +187,7 @@ jobs:
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
       # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
-      # (post-08be4f6): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
+      # (post-e443b76): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
       # When #413 ships a patch, bump immediately and confirm DEP0040 gone before merge.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
@@ -287,11 +285,34 @@ jobs:
           fi
           exit 1
 
+  # Optional: read deploy.redir_retries without blocking the parallel capture job.
+  redir-retries-diag:
+    name: Redirect retries diag
+    needs: [deploy]
+    if: always() && needs.deploy.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - name: Echo deploy redir_retries
+        run: |
+          RR="${{ needs.deploy.outputs.redir_retries }}"
+          echo "deploy.outputs.redir_retries=${RR:-"(empty)"}"
+          {
+            echo "### Redirect retries (cross-job diag)"
+            echo ""
+            echo "| Source | Value |"
+            echo "| --- | --- |"
+            echo "| \`needs.deploy.outputs.redir_retries\` | \`${RR:-empty}\` |"
+            echo ""
+            echo "Capture job stays parallel (no \`needs: deploy\`). This diag job alone consumes the output."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   capture-340-title:
     name: Optional capture 340px title
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Capture is advisory: never fail the Pages workflow on screenshot/Playwright issues.
+    # Does NOT needs: deploy — redir_retries is read by redir-retries-diag instead.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
@@ -315,8 +336,9 @@ jobs:
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
             echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
             echo "| force_fail | ok when template step passes (authoritative here; deploy job mirrors this row) | — |"
+            echo "| force_cols | \`capture-cols-fail-$SHORT\` when three-column FORCE_COLS path verifies | 7-day |"
             echo ""
-            echo "_Footnote: redirect-fail lives on the **deploy** job; upload only when rename-redirect fails (skip reason: redirect green → not uploaded)._"
+            echo "_Footnote: redirect-fail lives on the **deploy** job; upload only when rename-redirect fails (skip reason: redirect green → not uploaded). \`redir_retries\` is echoed by the **Redirect retries diag** job (not by capture)._"
           } >> "$GITHUB_STEP_SUMMARY"
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
       # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
@@ -469,6 +491,50 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           rm -f "$FAIL_MD"
           echo "force-fail summary template ok (340+1280)"
+      - name: Force-cols-fail 1280 → capture-last-fail upload path
+        id: force_cols
+        if: steps.pw.outputs.have == '1'
+        continue-on-error: true
+        run: |
+          FAIL_MD=.local-shots/capture-last-fail.md
+          rm -f "$FAIL_MD"
+          set +e
+          CAPTURE_FORCE_COLS_FAIL=1 npm run capture:1280
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "CAPTURE_FORCE_COLS_FAIL=1 exited 0 — expected non-zero"
+            exit 1
+          fi
+          if [ ! -f "$FAIL_MD" ] || ! grep -q 'three columns' "$FAIL_MD"; then
+            echo "Verification failed: $FAIL_MD missing three-columns assert body"
+            exit 1
+          fi
+          {
+            echo "### Force-cols-fail 1280 (three-column → capture-last-fail)"
+            echo ""
+            echo "Verified fail md for upload path (\`CAPTURE_FORCE_COLS_FAIL=1\`)."
+            echo ""
+            echo "| Kind | Status |"
+            echo "| --- | --- |"
+            echo "| force_cols | ok |"
+            echo "| artifact | \`capture-cols-fail-${SHORT}\` |"
+            echo ""
+            cat "$FAIL_MD"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "force-cols-fail md ok"
+      - name: Upload force-cols capture-last-fail
+        id: up_cols
+        if: always() && steps.pw.outputs.have == '1' && steps.force_cols.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: capture-cols-fail-${{ env.SHORT }}
+          path: .local-shots/capture-last-fail.md
+          if-no-files-found: error
+          retention-days: 7
+      - name: Clear force-cols fail md before real captures
+        if: always() && steps.pw.outputs.have == '1'
+        run: rm -f .local-shots/capture-last-fail.md
       - name: Run capture:340-title
         id: capture
         if: steps.pw.outputs.have == '1'
@@ -673,21 +739,25 @@ jobs:
           {
             echo "### Artifact upload backfill"
             echo ""
-            echo "| Kind | Local/step | API |"
-            echo "| --- | --- | --- |"
-            echo "| capture PNG (\`capture-340px-zh-long-title-${SHORT}\`) | $png | $png_api |"
-            echo "| capture 1280 (\`capture-1280-desktop-${SHORT}\`) | $png1280 | $png1280_api |"
-            echo "| capture-fail (\`capture-last-fail-${SHORT}\`) | $fail | $fail_api |"
-            echo "| redirect-fail | — (deploy job) | — |"
+            echo "| Kind | Local/step | API | retries_used |"
+            echo "| --- | --- | --- | --- |"
+            echo "| capture PNG (\`capture-340px-zh-long-title-${SHORT}\`) | $png | $png_api | ${RETRIES_USED} |"
+            echo "| capture 1280 (\`capture-1280-desktop-${SHORT}\`) | $png1280 | $png1280_api | ${RETRIES_USED} |"
+            echo "| capture-fail (\`capture-last-fail-${SHORT}\`) | $fail | $fail_api | ${RETRIES_USED} |"
+            echo "| redirect-fail | — (deploy job / diag) | — | — |"
             if [ "${{ steps.force_fail.outcome }}" = "success" ]; then
-              echo "| force_fail (340+1280) | ok | — |"
+              echo "| force_fail (340+1280) | ok | — | — |"
             elif [ "${{ steps.force_fail.outcome }}" = "failure" ]; then
-              echo "| force_fail (340+1280) | ❌ | — |"
+              echo "| force_fail (340+1280) | ❌ | — | — |"
             else
-              echo "| force_fail (340+1280) | — | — |"
+              echo "| force_fail (340+1280) | — | — | — |"
             fi
-            echo ""
-            echo "API list retries used: **${RETRIES_USED}** (max 5 × 1s while expected short-SHA names missing)."
-            echo "Step output \`retries_used=${RETRIES_USED}\` (capture job); deploy exposes \`needs.deploy.outputs.redir_retries\` when a dependent job is added."
+            if [ "${{ steps.force_cols.outcome }}" = "success" ]; then
+              echo "| force_cols (1280→fail md) | ok | — | — |"
+            elif [ "${{ steps.force_cols.outcome }}" = "failure" ]; then
+              echo "| force_cols (1280→fail md) | ❌ | — | — |"
+            else
+              echo "| force_cols (1280→fail md) | — | — | — |"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           echo "retries_used=${RETRIES_USED:-0}" >> "$GITHUB_OUTPUT"

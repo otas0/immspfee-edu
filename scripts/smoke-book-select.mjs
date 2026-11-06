@@ -392,10 +392,24 @@ if (!hasTwoRowTop(block768)) {
   } else {
     console.log('ok offline-first OFFLINE_FIRST_FIXTURE=1 lockstep green (temp tree)');
   }
+  // Real-file copy with chrome/fold injected (side-branch simulation; main untouched).
+  const real = spawnSync(process.execPath, ['scripts/offline-first-lockstep-dry-run.mjs'], {
+    cwd: root,
+    env: { ...process.env, OFFLINE_FIRST_REALTREE: '1' },
+    encoding: 'utf8',
+  });
+  if (real.status !== 0 || !/OFFLINE_FIRST_REALTREE=1 lockstep green/.test(real.stdout || '')) {
+    failed += 1;
+    console.error('FAIL offline-first realtree lockstep green', {
+      status: real.status, out: (real.stdout || '').slice(0, 400), err: real.stderr,
+    });
+  } else {
+    console.log('ok offline-first OFFLINE_FIRST_REALTREE=1 lockstep green (patched copy)');
+  }
 }
 
 {
-  // Heartbeats FAIL mark fixture (job conclusion=failure → **FAIL** prefix).
+  // Heartbeats FAIL mark + push-resume fixtures.
   const { spawnSync } = await import('node:child_process');
   const hb = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
     cwd: root,
@@ -409,6 +423,19 @@ if (!hasTwoRowTop(block768)) {
     });
   } else {
     console.log('ok heartbeat FAIL fixture (**FAIL** prefix on failure conclusion)');
+  }
+  const resume = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
+    cwd: root,
+    env: { ...process.env, PUSH_RESUME_FIXTURE: '1' },
+    encoding: 'utf8',
+  });
+  if (resume.status !== 0 || !/ok push-resume fixture/.test(resume.stdout || '')) {
+    failed += 1;
+    console.error('FAIL push-resume fixture (push ok + fetch fail + gh ok)', {
+      status: resume.status, out: (resume.stdout || '').slice(0, 400), err: resume.stderr,
+    });
+  } else {
+    console.log('ok push-resume fixture (push ok + fetch fail + gh ok) + latest-SHA pick');
   }
 }
 
