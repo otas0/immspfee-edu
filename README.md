@@ -25,6 +25,7 @@ npm test                 # 含 layout + book-select CSSOM
 npm run smoke:layout     # 仅教学双栏 / 指针烟雾
 npm run smoke:book       # 仅 320px 人教书名 / clip 断言
 npm run preview          # 探测 4174，失败才启动
+npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 --no-exec 再拍）
 ```
 
 ## Run
@@ -56,6 +57,7 @@ For chained scripts that must keep running after preview starts:
 
 ```bash
 bash scripts/ensure-dev-server.sh --no-exec   # or ENSURE_NO_EXEC=1
+bash scripts/ensure-dev-server.sh --quiet     # reuse tip only; no banner noise
 curl -sI http://127.0.0.1:4174/
 ```
 

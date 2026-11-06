@@ -84,6 +84,24 @@ export function foldHintDomProps(chapterId, text, searching = false) {
   };
 }
 
+/**
+ * Same inputs renderTree uses for the university fold hint (search clear ↔ idle).
+ */
+export function uniFoldHintFromQuery(q, chapter, labels) {
+  const searching = !!(q && String(q).trim());
+  const chapterTitle = labels?.chapterTitle ?? '';
+  return {
+    searching,
+    chapterId: chapter?.id || '',
+    text: foldHintText({
+      searching,
+      currentLabel: labels?.currentLabel || '',
+      searchLabel: labels?.searchLabel || '',
+      chapterTitle,
+    }),
+  };
+}
+
 export function applyFoldHintEl(el, chapterId, text, searching = false) {
   const props = foldHintDomProps(chapterId, text, searching);
   el.className = props.className;
@@ -91,6 +109,12 @@ export function applyFoldHintEl(el, chapterId, text, searching = false) {
   el.dataset.chapterId = props.dataset.chapterId;
   if (searching) el.dataset.searching = '1';
   else delete el.dataset.searching;
+  // Dual-write attributes for E2E that query getAttribute / CSS [data-searching].
+  if (typeof el.setAttribute === 'function') {
+    el.setAttribute('data-chapter-id', props.dataset.chapterId);
+    if (searching) el.setAttribute('data-searching', '1');
+    else if (typeof el.removeAttribute === 'function') el.removeAttribute('data-searching');
+  }
   el.textContent = props.textContent;
   return el;
 }

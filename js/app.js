@@ -8,7 +8,7 @@ import {
   readUniFoldsFrom,
   writeUniFoldsTo,
   pruneUniFoldsIn,
-  foldHintText,
+  uniFoldHintFromQuery,
   applyFoldHintEl,
 } from './uni-fold.js?v=__BUILD__';
 import {
@@ -17,6 +17,7 @@ import {
   isCanvasBufferError,
   toastErrorDetail,
   applyReadoutRowEl,
+  applySchemaParam,
 } from './ui-chrome.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
@@ -170,16 +171,6 @@ async function loadLesson(nextId, nextPhase) {
   prefetchOpenVolume();
 }
 
-function clampField(field, value) {
-  if (field.type === 'number') {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return params[field.key];
-    return Math.min(field.max, Math.max(field.min, n));
-  }
-  if (field.type === 'toggle') return !!value;
-  return value;
-}
-
 function applyPointer(patch) {
   if (!patch) return;
   if (Object.prototype.hasOwnProperty.call(patch, '__clock')) {
@@ -208,11 +199,9 @@ function schemaOf(s) {
 function setParam(key, value) {
   const s = sim();
   if (!s) return;
-  const field = schemaOf(s).find((f) => f.key === key);
-  const clean = field ? clampField(field, value) : value;
-  let next = { ...params, [key]: clean };
-  const extra = s.onParam?.(key, clean, next) || {};
-  params = { ...next, ...extra };
+  // Shared with smoke: clamp + onParam must not drift from field inputs / canvas tracks.
+  const { params: next, clean, field, extra } = applySchemaParam(s, params, key, value);
+  params = next;
   // Leaving household layout drops the debug short overlay so series/parallel stay clean.
   clearWrongLeavingHousehold(key, clean, ui);
   marked = false;
@@ -395,18 +384,12 @@ function renderTree() {
     const current = findLesson(bookId, lessonId);
     if (current?.chapter) {
       const hint = document.createElement('span');
-      const searching = !!q;
-      applyFoldHintEl(
-        hint,
-        current.chapter.id,
-        foldHintText({
-          searching,
-          currentLabel: t(lang, 'foldCurrent'),
-          searchLabel: t(lang, 'foldSearchOpen'),
-          chapterTitle: tx(lang, current.chapter.title),
-        }),
-        searching,
-      );
+      const fold = uniFoldHintFromQuery(q, current.chapter, {
+        currentLabel: t(lang, 'foldCurrent'),
+        searchLabel: t(lang, 'foldSearchOpen'),
+        chapterTitle: tx(lang, current.chapter.title),
+      });
+      applyFoldHintEl(hint, fold.chapterId, fold.text, fold.searching);
       tools.appendChild(hint);
     }
     const exp = document.createElement('button');

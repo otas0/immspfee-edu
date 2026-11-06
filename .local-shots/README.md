@@ -9,11 +9,11 @@ PNGs here are **not** committed (see `.gitignore`). Regenerate after chrome or p
 | `320px-pep-zh-book.png` | 320×720, `lang=zh` | 「人教版初中物理」 fully visible; computed `text-overflow: clip`. |
 | `320px-projectile-stack.png` | 320×720 | Strobe path above stacked x–t · y–t panel. |
 
-Suggested capture (with preview on `:4174`):
+Suggested capture:
 
 ```bash
-bash scripts/ensure-dev-server.sh --no-exec
-node scripts/capture-340px-long-title.mjs   # → .local-shots/340px-zh-long-title-ellipsis.png
+npm run capture:340-title   # probes :4174; on failure runs ensure-dev --no-exec, then shoots
+# → .local-shots/340px-zh-long-title-ellipsis.png (also asserts .top ≤100px at 340)
 # Short-title stack band (manual): width 340 → #/sh-senior/shs-5-1a/introduce
 ```
 

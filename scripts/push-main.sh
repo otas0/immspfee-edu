@@ -35,8 +35,25 @@ while (( i <= attempts )); do
   err_log="$(mktemp)"
   if git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push "$AUTH_URL" HEAD:main 2>"$err_log"; then
     cat "$err_log" >&2 || true
+    err_txt="$(cat "$err_log" 2>/dev/null || true)"
     rm -f "$err_log"
     git fetch "$AUTH_URL" main:refs/remotes/origin/main 2>/dev/null || git fetch origin
+    remote_main="$(git rev-parse origin/main 2>/dev/null || true)"
+    local_head="$(git rev-parse HEAD)"
+    # "Everything up-to-date" can be a false calm if fetch lagged or refs drifted.
+    if [[ -z "$remote_main" || "$local_head" != "$remote_main" ]]; then
+      echo "push exited 0 but HEAD ($local_head) != origin/main (${remote_main:-missing})" >&2
+      if echo "$err_txt" | grep -qi 'Everything up-to-date'; then
+        echo "Ignoring false Everything up-to-date; will retry push." >&2
+      fi
+      i=$(( i + 1 ))
+      sleep "$delay"
+      delay=$(( delay * 2 ))
+      if (( delay > 60 )); then delay=60; fi
+      continue
+    fi
+    SHA="$local_head"
+    SHORT="$(git rev-parse --short HEAD)"
     echo "pushed $SHORT"
     pushed=1
     break
@@ -83,16 +100,33 @@ fi
 echo "waiting for Pages run on $SHORT"
 RID=""
 for _ in $(seq 1 40); do
-  RID="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 5 --json databaseId,headSha,status \
-    --jq ".[] | select(.headSha==\"$SHA\") | .databaseId" | head -n 1 || true)"
+  RID="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 15 --json databaseId,headSha,status,createdAt \
+    --jq "[.[] | select(.headSha==\"$SHA\")] | .[0].databaseId // empty" || true)"
   if [[ -n "$RID" ]]; then
     break
   fi
   sleep 3
 done
 
+# Push succeeded but the SHA run never listed (cancel-in-progress race / API lag):
+# watch the newest run whose headSha equals current HEAD.
 if [[ -z "$RID" ]]; then
-  echo "no Pages run found for $SHA" >&2
+  HEAD_NOW="$(git rev-parse HEAD)"
+  SHORT="$(git rev-parse --short HEAD)"
+  echo "no Pages run listed for $SHA yet; fallback watch latest headSha==HEAD ($SHORT)"
+  for _ in $(seq 1 20); do
+    RID="$(gh run list --repo "$REPO" --workflow=pages.yml --limit 20 --json databaseId,headSha,createdAt \
+      --jq "[.[] | select(.headSha==\"$HEAD_NOW\")] | sort_by(.createdAt) | reverse | .[0].databaseId // empty" || true)"
+    if [[ -n "$RID" ]]; then
+      SHA="$HEAD_NOW"
+      break
+    fi
+    sleep 3
+  done
+fi
+
+if [[ -z "$RID" ]]; then
+  echo "no Pages run found for HEAD $(git rev-parse HEAD)" >&2
   exit 1
 fi
 

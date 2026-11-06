@@ -13,6 +13,7 @@ import {
   pruneUniFoldsMap,
   foldHintText,
   foldHintDomProps,
+  uniFoldHintFromQuery,
   applyFoldHintEl,
 } from '../js/uni-fold.js';
 import {
@@ -24,6 +25,23 @@ import {
   toastErrorDetail,
   applySchemaParam,
 } from '../js/ui-chrome.js';
+
+/** Minimal element stand-in with dataset + setAttribute dual-write surface. */
+function mockHintEl(seed = {}) {
+  const attrs = { ...(seed.attrs || {}) };
+  const dataset = { ...(seed.dataset || {}) };
+  return {
+    className: seed.className || '',
+    textContent: seed.textContent || '',
+    dataset,
+    attrs,
+    setAttribute(k, v) { attrs[k] = String(v); },
+    removeAttribute(k) { delete attrs[k]; },
+    getAttribute(k) {
+      return Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : null;
+    },
+  };
+}
 import { getBook, flatten, findLesson } from '../js/curricula/index.js';
 import { STR, t } from '../js/i18n.js';
 
@@ -342,6 +360,18 @@ let failed = 0;
     failed += 1;
     console.error('FAIL bypass Path DOM warn/#a33', { cls, cssOk });
   } else console.log('ok bypass Path .readout.warn → #a33');
+
+  // Double-slit / any row: warn + hi together → warn wins (applyReadoutRowEl priority).
+  const both = { en: 'I', warn: true, hi: true };
+  const elBoth = { className: '' };
+  applyReadoutRowEl(elBoth, both);
+  if (readoutClass(both) !== 'readout warn' || elBoth.className !== 'readout warn') {
+    failed += 1;
+    console.error('FAIL readoutClass/applyReadoutRowEl warn>hi priority', { cls: readoutClass(both), elBoth });
+  } else if (readoutClass({ hi: true }) !== 'readout hi') {
+    failed += 1;
+    console.error('FAIL readoutClass hi alone');
+  } else console.log('ok applyReadoutRowEl warn>hi priority');
 }
 
 {
@@ -402,11 +432,15 @@ let failed = 0;
   } else console.log('ok uni fold hint ↔ default open + search copy', hintCh.id);
 
   // Search on → data-searching=1; clear search → foldCurrent + drop data-searching.
-  const elSearch = { dataset: {}, className: '', textContent: '' };
+  const elSearch = mockHintEl();
   applyFoldHintEl(elSearch, hintCh.id, searchHint, true);
-  const elClear = { dataset: { searching: '1', chapterId: hintCh.id }, className: '', textContent: '' };
+  const elClear = mockHintEl({
+    dataset: { searching: '1', chapterId: hintCh.id },
+    attrs: { 'data-searching': '1', 'data-chapter-id': hintCh.id },
+  });
   applyFoldHintEl(elClear, hintCh.id, hint, false);
-  if (elSearch.dataset.searching !== '1' || elClear.dataset.searching != null
+  if (elSearch.dataset.searching !== '1' || elSearch.getAttribute('data-searching') !== '1'
+    || elClear.dataset.searching != null || elClear.getAttribute('data-searching') != null
     || !elClear.textContent.startsWith(t('zh', 'foldCurrent'))) {
     failed += 1;
     console.error('FAIL fold hint search→clear UI regression', { elSearch, elClear, hint });
@@ -414,13 +448,34 @@ let failed = 0;
 
   // DOM-free fold-hint dataset.chapterId + data-searching (mirrors app applyFoldHintEl).
   const props = foldHintDomProps(hintCh.id, searchHint, true);
-  const el = { dataset: {}, className: '', textContent: '' };
+  const el = mockHintEl();
   applyFoldHintEl(el, hintCh.id, searchHint, true);
   if (props.dataset.chapterId !== hintCh.id || props.dataset.searching !== '1'
-    || el.dataset.chapterId !== hintCh.id || el.dataset.searching !== '1' || el.className !== 'fold-hint') {
+    || el.dataset.chapterId !== hintCh.id || el.dataset.searching !== '1' || el.className !== 'fold-hint'
+    || el.getAttribute('data-searching') !== '1' || el.getAttribute('data-chapter-id') !== hintCh.id) {
     failed += 1;
-    console.error('FAIL fold-hint DOM props / dataset', { props, el });
+    console.error('FAIL fold-hint DOM props / dataset + setAttribute dual-write', { props, el });
   } else console.log('ok fold-hint dataset.chapterId + data-searching DOM smoke', hintCh.id);
+
+  // Light integration: same uniFoldHintFromQuery path renderTree uses (mock query → clear).
+  const foldLabels = {
+    currentLabel: t('zh', 'foldCurrent'),
+    searchLabel: t('zh', 'foldSearchOpen'),
+    chapterTitle: hintCh?.title?.zh || '',
+  };
+  const fromSearch = uniFoldHintFromQuery('动量', hintCh, foldLabels);
+  const fromClearQ = uniFoldHintFromQuery('', hintCh, foldLabels);
+  const fromWs = uniFoldHintFromQuery('   ', hintCh, foldLabels);
+  const elTree = mockHintEl();
+  applyFoldHintEl(elTree, fromSearch.chapterId, fromSearch.text, fromSearch.searching);
+  applyFoldHintEl(elTree, fromClearQ.chapterId, fromClearQ.text, fromClearQ.searching);
+  if (!fromSearch.searching || fromClearQ.searching || fromWs.searching
+    || !fromSearch.text.includes(t('zh', 'foldSearchOpen'))
+    || !fromClearQ.text.startsWith(t('zh', 'foldCurrent'))
+    || elTree.dataset.searching != null || elTree.getAttribute('data-searching') != null) {
+    failed += 1;
+    console.error('FAIL uniFoldHintFromQuery renderTree path', { fromSearch, fromClearQ, fromWs, elTree });
+  } else console.log('ok uniFoldHintFromQuery search→clear renderTree path');
 
   // App pruneUniFoldsIn path: write expand → inject stale → pruneIn → read.
   const mem = new Map();
@@ -586,7 +641,7 @@ let failed = 0;
   const snap = sim.onParam('beta', 0.73);
   const loSnap = sim.onParam('beta', 0.049);
   const hiSnap = sim.onParam('beta', 0.951);
-  // Field <input> path = clamp + onParam (same as setParam / β track snap).
+  // Field <input> path = shared applySchemaParam (same module as app.setParam / β track snap).
   const fromField = applySchemaParam(sim, p, 'beta', 0.049);
   const fromFieldHi = applySchemaParam(sim, p, 'beta', 0.951);
   if (!snap.beta || Math.abs(snap.beta - 0.75) > 1e-9) {
@@ -596,8 +651,9 @@ let failed = 0;
     || !hiSnap.beta || Math.abs(hiSnap.beta - 0.95) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski onParam endpoints 0.049→0.05 / 0.951→0.95', { loSnap, hiSnap });
-  } else if (Math.abs(fromField.beta - 0.05) > 1e-9 || Math.abs(fromFieldHi.beta - 0.95) > 1e-9
-    || Math.abs(fromField.beta - loSnap.beta) > 1e-9) {
+  } else if (Math.abs(fromField.params.beta - 0.05) > 1e-9 || Math.abs(fromFieldHi.params.beta - 0.95) > 1e-9
+    || Math.abs(fromField.params.beta - loSnap.beta) > 1e-9
+    || Math.abs(fromField.clean - 0.05) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski field input applySchemaParam ≠ onParam/track', { fromField, fromFieldHi, loSnap });
   } else if (!tr) {
@@ -673,14 +729,29 @@ let failed = 0;
     const short = toastErrorDetail(long, 120);
     const cjkCut = toastErrorDetail({ message: `${'汉'.repeat(80)}` }, 5);
     const cjkChars = Array.from(cjkCut);
+    // Family emoji ZWJ sequence is one grapheme; code-point truncation must not split mid-ZWJ.
+    const family = '👨‍👩‍👧'; // U+1F468 ZWJ U+1F469 ZWJ U+1F467
+    const zwjMsg = `${family}${family}${family}${family}${family}`;
+    const zwjCut = toastErrorDetail({ message: zwjMsg }, 3);
+    const hasSeg = typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function';
+    const zwjUnits = hasSeg
+      ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(zwjCut)].map((s) => s.segment)
+      : Array.from(zwjCut);
     // maxLen 5 → 4 code points + ellipsis (must not split a surrogate / CJK glyph).
+    // maxLen 3 + Segmenter → 2 family graphemes + …; code-point path must not end with ZWJ….
+    const zwjOk = hasSeg
+      ? (zwjUnits.length === 3 && zwjUnits[0] === family && zwjUnits[1] === family && zwjUnits[2] === '…')
+      : (zwjCut.endsWith('…') && !/\u200D…$/.test(zwjCut));
     if (short.includes('\n') || Array.from(short).length > 120 || !short.endsWith('…')) {
       failed += 1;
       console.error('FAIL toastErrorDetail should truncate to first line', short);
     } else if (cjkChars.length !== 5 || cjkChars[4] !== '…' || cjkChars.slice(0, 4).join('') !== '汉汉汉汉') {
       failed += 1;
       console.error('FAIL toastErrorDetail must truncate by code point (CJK)', { cjkCut, cjkChars });
-    } else console.log('ok ising clear error + i18n + code-point trunc');
+    } else if (!zwjOk) {
+      failed += 1;
+      console.error('FAIL toastErrorDetail emoji ZWJ boundary', { zwjCut, zwjUnits, hasSeg });
+    } else console.log('ok ising clear error + i18n + code-point/ZWJ trunc');
   }
 }
 

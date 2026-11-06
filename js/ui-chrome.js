@@ -13,7 +13,10 @@ export function clearWrongLeavingDebug(prevPhase, nextPhase, ui) {
   if (prevPhase === 'debug' && nextPhase !== 'debug' && ui) ui.wrong = false;
 }
 
-/** Class name for a readout row (Path warn matches canvas #a33 via CSS). */
+/**
+ * Class name for a readout row (Path warn matches canvas #a33 via CSS).
+ * Priority when both flags are set: **warn > hi > plain**.
+ */
 export function readoutClass(item) {
   if (!item) return 'readout';
   if (item.warn) return 'readout warn';
@@ -33,31 +36,51 @@ export function isCanvasBufferError(err) {
   return /OffscreenCanvas|document\.createElement/.test(msg);
 }
 
+function truncateUnits(line, maxLen, units) {
+  if (units.length <= maxLen) return units.join('');
+  const cut = units.slice(0, Math.max(0, maxLen - 1));
+  // Code-point fallback must not leave a dangling ZWJ before the ellipsis.
+  while (cut.length && cut[cut.length - 1] === '\u200D') cut.pop();
+  return `${cut.join('')}…`;
+}
+
 /**
  * First line of an error for ?dev toasts — keep the stage readable.
- * Truncates by Unicode code points (Array.from) so CJK glyphs are not split.
+ * Prefers grapheme clusters (Intl.Segmenter) so emoji ZWJ sequences stay intact;
+ * falls back to Unicode code points (Array.from) when Segmenter is missing.
  */
 export function toastErrorDetail(err, maxLen = 120) {
   const raw = String(err?.message || err || '').trim();
   const line = raw.split(/\r?\n/)[0] || raw;
-  const chars = Array.from(line);
-  if (chars.length <= maxLen) return chars.join('');
-  return `${chars.slice(0, Math.max(0, maxLen - 1)).join('')}…`;
+  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+    const segs = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(line)]
+      .map((s) => s.segment);
+    return truncateUnits(line, maxLen, segs);
+  }
+  return truncateUnits(line, maxLen, Array.from(line));
+}
+
+/** Shared with app.setParam: clamp a schema field value. */
+export function clampSchemaValue(field, value, fallback) {
+  if (!field) return value;
+  if (field.type === 'number') {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(field.max, Math.max(field.min, n));
+  }
+  if (field.type === 'toggle') return !!value;
+  return value;
 }
 
 /**
- * Mirror app setParam for a schema number: clamp → onParam merge.
- * Used so Minkowski field input and β track share one snap path in smoke.
+ * Shared with app.setParam: clamp → onParam merge.
+ * Field inputs and canvas tracks must go through this so snap cannot drift.
  */
 export function applySchemaParam(sim, params, key, value) {
-  const schema = typeof sim.schema === 'function' ? sim.schema(params) : sim.schema;
-  const field = (schema || []).find((f) => f.key === key);
-  let clean = value;
-  if (field && field.type === 'number') {
-    const n = Number(value);
-    clean = Number.isFinite(n) ? Math.min(field.max, Math.max(field.min, n)) : params[key];
-  }
+  const schema = typeof sim?.schema === 'function' ? sim.schema(params) : (sim?.schema || []);
+  const field = schema.find((f) => f.key === key);
+  const clean = clampSchemaValue(field, value, params[key]);
   const next = { ...params, [key]: clean };
-  const extra = sim.onParam?.(key, clean, next) || {};
-  return { ...next, ...extra };
+  const extra = (typeof sim?.onParam === 'function' ? sim.onParam(key, clean, next) : null) || {};
+  return { params: { ...next, ...extra }, clean, field, extra };
 }

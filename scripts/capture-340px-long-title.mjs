@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
  * Reproducible 340px capture: long Chinese book label forces ellipsis.
- * Requires preview on :4174 and Playwright (see /tmp/pw-shot or npx).
+ * Probes :4174; on failure runs ensure-dev-server --no-exec then captures.
  *
- *   bash scripts/ensure-dev-server.sh --no-exec
- *   node scripts/capture-340px-long-title.mjs
+ *   npm run capture:340-title
+ *   # or: node scripts/capture-340px-long-title.mjs
  */
 import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +16,37 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, '.local-shots', '340px-zh-long-title-ellipsis.png');
 const long = '沪科版初中物理（上海科学技术出版社·五四制全日制义务教育·2024）教学用书全称';
 const url = process.env.CAPTURE_URL || 'http://127.0.0.1:4174/#/sh-junior/shj-4-4a/introduce';
+
+async function probe4174() {
+  try {
+    const res = await fetch('http://127.0.0.1:4174/', {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(2500),
+    });
+    return res.status > 0 && res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function ensurePreview() {
+  if (await probe4174()) return;
+  console.log('4174 probe failed; bash scripts/ensure-dev-server.sh --no-exec');
+  const r = spawnSync('bash', ['scripts/ensure-dev-server.sh', '--no-exec'], {
+    cwd: root,
+    stdio: 'inherit',
+  });
+  if (r.status !== 0) {
+    console.error('ensure-dev-server --no-exec failed');
+    process.exit(r.status || 1);
+  }
+  for (let i = 0; i < 40; i += 1) {
+    if (await probe4174()) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  console.error('4174 still unreachable after ensure-dev-server');
+  process.exit(1);
+}
 
 async function loadPlaywright() {
   try {
@@ -32,6 +64,8 @@ async function loadPlaywright() {
   }
 }
 
+await ensurePreview();
+
 const { chromium } = await loadPlaywright();
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const browser = await chromium.launch();
@@ -47,6 +81,7 @@ await page.evaluate((label) => {
 }, long);
 const info = await page.evaluate(() => {
   const sel = document.querySelector('select.book-select');
+  const top = document.querySelector('.top');
   const cs = getComputedStyle(sel);
   const ctx = document.createElement('canvas').getContext('2d');
   ctx.font = cs.font;
@@ -57,6 +92,7 @@ const info = await page.evaluate(() => {
     textW,
     clientW: sel.clientWidth,
     overflows: textW + pad > sel.clientWidth,
+    topH: top ? top.getBoundingClientRect().height : null,
   };
 });
 await page.screenshot({ path: out });
@@ -66,4 +102,9 @@ if (info.overflow !== 'ellipsis' || !info.overflows) {
   console.error('FAIL: expected ellipsis with text wider than select at 340px');
   process.exit(2);
 }
-console.log('ok wrote', out);
+// 99f9ab8: narrow header stays under ~100px (lang no longer stacks under brand).
+if (info.topH == null || info.topH > 100) {
+  console.error('FAIL: .top height should stay ≤100px at 340px after header layout', info.topH);
+  process.exit(3);
+}
+console.log('ok wrote', out, `(top ${info.topH.toFixed(1)}px)`);
