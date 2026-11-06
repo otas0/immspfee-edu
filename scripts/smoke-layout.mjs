@@ -25,6 +25,7 @@ import {
   isCanvasBufferError,
   toastErrorDetail,
   applySchemaParam,
+  clearSlitWidthHiOnSchemaA,
 } from '../js/ui-chrome.js';
 
 /** Minimal element stand-in with dataset + setAttribute dual-write surface. */
@@ -542,7 +543,21 @@ let failed = 0;
     console.error('FAIL uni details[open] search→clear storage set', {
       openWhileSearch, openAfterClear, openEmptyQ, storedMap,
     });
-  } else console.log('ok uni details[open] search clear ↔ storage', hintCh.id);
+  } else {
+    // Saved map closes the current chapter → idle open set empty (search still opens all).
+    const closedCurrent = { ...storedMap, [hintCh.id]: false };
+    writeUniFoldsTo(foldStore, closedCurrent);
+    const afterClose = pruneUniFoldsIn(foldStore, new Set(book.chapters.map((ch) => ch.id)));
+    const openIdleClosed = uniOpenChapterIds(book.chapters, hintCh.id, afterClose, false);
+    const openSearchClosed = uniOpenChapterIds(book.chapters, hintCh.id, afterClose, true);
+    if (openIdleClosed.length !== 0 || openSearchClosed.length !== book.chapters.length
+      || afterClose[hintCh.id] !== false) {
+      failed += 1;
+      console.error('FAIL uni details[open] saved map closes current chapter', {
+        openIdleClosed, openSearchClosed, afterClose,
+      });
+    } else console.log('ok uni details[open] search clear ↔ storage + closed-current', hintCh.id);
+  }
 }
 
 {
@@ -645,7 +660,18 @@ let failed = 0;
                       failed += 1;
                       console.error('FAIL double-slit paintReadouts DOM class / sticky clear', { domHi, domLo, sticky: ui._slitWidthHi });
                     } else {
-                      console.log('ok double-slit envelope + width-bar drag/hit/clamp/hi/DOM', { a0, amin, amax });
+                      // Schema `a` edit clears sticky hi (mirrors setParam → clearSlitWidthHiOnSchemaA).
+                      ui._slitWidthHi = true;
+                      clearSlitWidthHiOnSchemaA('a', ui);
+                      const afterSchema = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
+                      if (ui._slitWidthHi || afterSchema.find((r) => r.en === 'a')?.hi) {
+                        failed += 1;
+                        console.error('FAIL double-slit schema a must clear _slitWidthHi', {
+                          sticky: ui._slitWidthHi, row: afterSchema.find((r) => r.en === 'a'),
+                        });
+                      } else {
+                        console.log('ok double-slit envelope + width-bar drag/hit/clamp/hi/DOM', { a0, amin, amax });
+                      }
                     }
                   }
                 }
@@ -659,7 +685,7 @@ let failed = 0;
 }
 
 {
-  // Minkowski β pointer snaps to 0.05; onParam lockstep.
+  // Minkowski β pointer snaps to 0.05; snap lives in clampSchemaValue (onParam deprecated no-op).
   const sim = await getSim('simultaneity');
   const ui = { lang: 'en', wrong: false };
   let p = { ...sim.params, beta: 0.5 };
@@ -667,24 +693,21 @@ let failed = 0;
   const ctx = mockCtx();
   sim.draw(ctx, 640, 400, p, d, ui);
   const tr = ui._vTrack;
-  const snap = sim.onParam('beta', 0.73);
-  const loSnap = sim.onParam('beta', 0.049);
-  const hiSnap = sim.onParam('beta', 0.951);
+  const deprecated = sim.onParam?.('beta', 0.73) || {};
   // Field <input> path = shared applySchemaParam (same module as app.setParam / β track snap).
   const fromField = applySchemaParam(sim, p, 'beta', 0.049);
   const fromFieldHi = applySchemaParam(sim, p, 'beta', 0.951);
-  if (!snap.beta || Math.abs(snap.beta - 0.75) > 1e-9) {
+  const snap = applySchemaParam(sim, p, 'beta', 0.73);
+  if (Object.keys(deprecated).length) {
     failed += 1;
-    console.error('FAIL minkowski onParam: 0.73 should snap to 0.75', snap);
-  } else if (!loSnap.beta || Math.abs(loSnap.beta - 0.05) > 1e-9
-    || !hiSnap.beta || Math.abs(hiSnap.beta - 0.95) > 1e-9) {
+    console.error('FAIL minkowski onParam should be deprecated no-op (snap via clamp)', deprecated);
+  } else if (Math.abs(snap.params.beta - 0.75) > 1e-9 || Math.abs(snap.clean - 0.75) > 1e-9) {
     failed += 1;
-    console.error('FAIL minkowski onParam endpoints 0.049→0.05 / 0.951→0.95', { loSnap, hiSnap });
+    console.error('FAIL minkowski applySchemaParam: 0.73 should snap to 0.75', snap);
   } else if (Math.abs(fromField.params.beta - 0.05) > 1e-9 || Math.abs(fromFieldHi.params.beta - 0.95) > 1e-9
-    || Math.abs(fromField.params.beta - loSnap.beta) > 1e-9
     || Math.abs(fromField.clean - 0.05) > 1e-9) {
     failed += 1;
-    console.error('FAIL minkowski field input applySchemaParam ≠ onParam/track', { fromField, fromFieldHi, loSnap });
+    console.error('FAIL minkowski field input applySchemaParam endpoints', { fromField, fromFieldHi });
   } else if (!tr) {
     failed += 1;
     console.error('FAIL minkowski: missing _vTrack');
@@ -797,9 +820,22 @@ let failed = 0;
       const flagOk = hasSeg
         ? (flagUnits.length === 3 && flagUnits[0] === flag && flagUnits[1] === flag && flagUnits[2] === '…')
         : (flagCut.endsWith('…') && !/\u200D…$/.test(flagCut));
+      // forceCodePoints path: strip trailing ZWJ before ellipsis (对照表).
+      // Flag code points: 🏴 U+1F3F4, ZWJ, ☠ U+2620, VS16 U+FE0F → Array.from length 4.
+      // maxLen 3 → take 2 units then peel ZWJ → often just 🏴 + … (never … preceded by ZWJ).
+      const flagCp = toastErrorDetail({ message: `${flag}${flag}` }, 3, { forceCodePoints: true });
+      const familyCp = toastErrorDetail({ message: zwjMsg }, 3, { forceCodePoints: true });
+      const stripTable = [
+        { name: 'flag', got: flagCp, expectNoTrailZwj: true },
+        { name: 'family', got: familyCp, expectNoTrailZwj: true },
+      ];
+      const stripFail = stripTable.find((row) => !row.got.endsWith('…') || /\u200D…$/.test(row.got));
       if (!flagOk) {
         failed += 1;
         console.error('FAIL toastErrorDetail flag ZWJ Segmenter boundary', { flagCut, flagUnits, hasSeg });
+      } else if (stripFail) {
+        failed += 1;
+        console.error('FAIL toastErrorDetail forceCodePoints must peel trailing ZWJ', { stripFail, stripTable });
       } else console.log('ok ising clear error + i18n + code-point/ZWJ/flag trunc');
     }
   }

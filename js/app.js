@@ -18,6 +18,7 @@ import {
   toastErrorDetail,
   applyReadoutRowEl,
   applySchemaParam,
+  clearSlitWidthHiOnSchemaA,
 } from './ui-chrome.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
@@ -202,6 +203,8 @@ function setParam(key, value) {
   // Shared with smoke: clamp + onParam must not drift from field inputs / canvas tracks.
   const { params: next, clean, field, extra } = applySchemaParam(s, params, key, value);
   params = next;
+  // Schema `a` edit clears sticky double-slit width-bar hi (same as off-bar pointer down).
+  clearSlitWidthHiOnSchemaA(key, ui);
   // Leaving household layout drops the debug short overlay so series/parallel stay clean.
   clearWrongLeavingHousehold(key, clean, ui);
   marked = false;

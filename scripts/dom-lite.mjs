@@ -102,18 +102,37 @@ function createElement(tag) {
   return el;
 }
 
+function hasClass(el, cls) {
+  return (` ${el.className || ''} `).includes(` ${cls} `);
+}
+
+function matchAttr(el, bracket) {
+  const attr = String(bracket || '').match(/^\[([^=\]]+)(?:=["']?([^"'\]]*)["']?)?\]$/);
+  if (!attr) return false;
+  const name = attr[1];
+  const want = attr[2];
+  if (!el.hasAttribute(name)) return false;
+  if (want == null) return true;
+  return el.getAttribute(name) === want;
+}
+
+/** Supports tag, .class, [attr], and compounds like span.fold-hint / span.fold-hint[data-searching="1"]. */
 function matchSel(el, sel) {
   const s = String(sel || '').trim();
   if (!s) return false;
-  if (s.startsWith('.')) return (` ${el.className} `).includes(` ${s.slice(1)} `);
-  const attr = s.match(/^\[([^=\]]+)(?:=["']?([^"'\]]*)["']?)?\]$/);
-  if (attr) {
-    const name = attr[1];
-    const want = attr[2];
-    if (!el.hasAttribute(name)) return false;
-    if (want == null) return true;
-    return el.getAttribute(name) === want;
+  const compound = s.match(/^([a-z][\w-]*)?((?:\.[a-z][\w-]*)+)?(\[[^\]]+\])?$/i);
+  if (compound && (compound[1] || compound[2] || compound[3])) {
+    if (compound[1] && el.tagName !== compound[1].toUpperCase()) return false;
+    if (compound[2]) {
+      for (const cls of compound[2].slice(1).split('.')) {
+        if (!hasClass(el, cls)) return false;
+      }
+    }
+    if (compound[3] && !matchAttr(el, compound[3])) return false;
+    return true;
   }
+  if (s.startsWith('.')) return hasClass(el, s.slice(1));
+  if (s.startsWith('[')) return matchAttr(el, s);
   return el.tagName === s.toUpperCase();
 }
 

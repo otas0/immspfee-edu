@@ -28,6 +28,20 @@ npm run capture:340-title   # probes :4174; on failure runs ensure-dev --no-exec
 # Short-title stack band (manual): width 340 → #/sh-senior/shs-5-1a/introduce
 ```
 
-CI: optional `capture-340-title` job in `.github/workflows/pages.yml` installs Playwright when available, otherwise skips.
+CI: optional `capture-340-title` job in `.github/workflows/pages.yml` installs Playwright when available, otherwise skips. Failures use `continue-on-error` + a step summary so deploy stays green.
+
+## Playwright pin
+
+Version is pinned in `scripts/playwright-version.txt` (CI reads it). Local capture:
+
+```bash
+PW_VER=$(tr -d ' \n\r' < scripts/playwright-version.txt)
+mkdir -p /tmp/pw-shot && cd /tmp/pw-shot
+npm init -y
+npm install "playwright@${PW_VER}"
+npx playwright install chromium
+cd -   # back to repo
+NODE_PATH=/tmp/pw-shot/node_modules npm run capture:340-title
+```
 
 Policy is also noted in `AGENTS.md` (321–360px bullet).

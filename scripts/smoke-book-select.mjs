@@ -153,7 +153,24 @@ if (!hasTwoRowTop(block768)) {
       ws, tab, idle, lastAttr: last.getAttribute('data-searching'), text: last.textContent,
     });
   } else {
-    console.log('ok uniFoldHintFromQuery whitespace/blank DOM via createElement');
+    // Compound querySelector('span.fold-hint') / span.fold-hint[data-searching="1"].
+    host.children.length = 0;
+    const searchFold = uniFoldHintFromQuery('动量', ch, labels);
+    const hintEl = document.createElement('span');
+    host.appendChild(hintEl);
+    applyFoldHintEl(hintEl, searchFold.chapterId, searchFold.text, searchFold.searching);
+    const byCompound = document.querySelector('span.fold-hint');
+    const byCompoundAttr = document.querySelector('span.fold-hint[data-searching="1"]');
+    if (!byCompound || byCompound !== hintEl || !byCompoundAttr || byCompoundAttr !== hintEl
+      || byCompoundAttr.getAttribute('data-searching') !== '1') {
+      failed += 1;
+      console.error('FAIL dom-lite querySelector span.fold-hint compound', {
+        byCompound: !!byCompound, same: byCompound === hintEl,
+        byCompoundAttr: byCompoundAttr?.getAttribute('data-searching'),
+      });
+    } else {
+      console.log('ok uniFoldHintFromQuery whitespace/blank DOM + span.fold-hint compound');
+    }
   }
 }
 

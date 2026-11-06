@@ -20,6 +20,8 @@ for arg in "$@"; do
   case "$arg" in
     --no-exec) NO_EXEC=1 ;;
     --quiet) QUIET=1 ;;
+    # Escape hatch when npm start set ENSURE_QUIET=1 but you want banners again.
+    --verbose) QUIET=0 ;;
   esac
 done
 

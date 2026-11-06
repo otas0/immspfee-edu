@@ -618,13 +618,9 @@ export const simultaneitySim = {
     handle(ctx, hx, trackY, ui.drag === 'v');
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
-  onParam(key, value) {
-    // Belt-and-suspenders: clampSchemaValue already snaps β to schema.step.
-    // Keep this so older call sites / pointer-adjacent paths stay lockstep.
-    if (key === 'beta') {
-      const b = Math.round(Math.max(0.05, Math.min(0.95, value)) / 0.05) * 0.05;
-      return Math.abs(b - value) > 1e-9 ? { beta: b } : {};
-    }
+  onParam(_key, _value) {
+    // Deprecated for β snap: clampSchemaValue (via applySchemaParam / setParam) already
+    // snaps schema.step. Kept as a no-op so callers expecting onParam still work.
     return {};
   },
   pointer(ev, p, d, ui) {

@@ -76,8 +76,48 @@ if (/@media\s*\(\s*max-width:\s*320px\s*\)[\s\S]*?grid-template-areas\s*:\s*[^;]
   console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
 }
 
+// Narrow header height intent: @768 (covers 340) and @320 must not force min-height > 100px.
+function topMinHeightInMedia(src, maxWidthPx) {
+  const re = new RegExp(`@media\\s*\\(\\s*max-width:\\s*${maxWidthPx}px\\s*\\)`);
+  const start = src.search(re);
+  if (start < 0) return null;
+  const brace = src.indexOf('{', start);
+  if (brace < 0) return null;
+  let depth = 0;
+  let end = -1;
+  for (let i = brace; i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') {
+      depth -= 1;
+      if (depth === 0) { end = i; break; }
+    }
+  }
+  if (end < 0) return null;
+  const block = src.slice(brace + 1, end);
+  const top = block.match(/\.top\s*\{([^}]*)\}/);
+  if (!top) return 'inherit';
+  const mh = top[1].match(/min-height\s*:\s*([^;]+)/);
+  return mh ? mh[1].trim() : 'unset';
+}
+for (const w of [768, 320]) {
+  const mh = topMinHeightInMedia(css, w);
+  if (mh == null) {
+    if (w === 768) {
+      failed += 1;
+      console.error('FAIL edu.css@768: missing media block for narrow header min-height lint');
+    }
+    continue;
+  }
+  if (mh === 'inherit' || mh === 'unset' || mh === '0' || mh === '0px') continue;
+  const px = Number.parseFloat(mh);
+  if (Number.isFinite(px) && px > 100) {
+    failed += 1;
+    console.error(`FAIL edu.css@${w}: .top min-height must be ≤100px (got ${mh})`);
+  }
+}
+
 if (failed) {
   console.error(`lint-teach-layout: ${failed} failure(s)`);
   process.exit(1);
 }
-console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book + warn/#a33 + narrow breakpoints + header areas)`);
+console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book + warn/#a33 + narrow breakpoints + header areas/min-height)`);

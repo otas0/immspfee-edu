@@ -59,6 +59,7 @@ jobs:
           SMOKE_B=$(wc -c < scripts/smoke-layout.mjs | tr -d ' ')
           BOOK_B=$(wc -c < scripts/smoke-book-select.mjs | tr -d ' ')
           ENSURE_B=$(wc -c < scripts/ensure-dev-server.sh | tr -d ' ')
+          CAPTURE_B=$(wc -c < scripts/capture-340px-long-title.mjs | tr -d ' ')
           {
             echo "### Pages artifact size"
             echo ""
@@ -71,6 +72,7 @@ jobs:
             echo "| \`lint-teach-layout.mjs\` (CI only) | $(( (LINT_B + 1023) / 1024 )) KiB |"
             echo "| \`smoke-layout.mjs\` (CI only) | $(( (SMOKE_B + 1023) / 1024 )) KiB |"
             echo "| \`smoke-book-select.mjs\` (CI only) | $(( (BOOK_B + 1023) / 1024 )) KiB |"
+            echo "| \`capture-340px-long-title.mjs\` (optional CI) | $(( (CAPTURE_B + 1023) / 1024 )) KiB |"
             echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
@@ -165,6 +167,8 @@ jobs:
     name: Optional capture 340px title
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Capture is advisory: never fail the Pages workflow on screenshot/Playwright issues.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -175,7 +179,9 @@ jobs:
         id: pw
         run: |
           set +e
-          npm install --no-save playwright@1.50.1
+          PW_VER="$(tr -d ' \n\r' < scripts/playwright-version.txt)"
+          echo "Playwright pin: $PW_VER"
+          npm install --no-save "playwright@${PW_VER}"
           INSTALL_PKG=$?
           if [ "$INSTALL_PKG" -ne 0 ]; then
             echo "have=0" >> "$GITHUB_OUTPUT"
@@ -191,7 +197,28 @@ jobs:
           fi
           echo "have=1" >> "$GITHUB_OUTPUT"
       - name: Run capture:340-title
+        id: capture
         if: steps.pw.outputs.have == '1'
+        continue-on-error: true
         run: |
           bash scripts/ensure-dev-server.sh --no-exec --quiet
           npm run capture:340-title
+      - name: Capture step summary
+        if: always()
+        run: |
+          {
+            echo "### Optional capture:340-title"
+            echo ""
+            if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
+              echo "Skipped (Playwright unavailable)."
+            elif [ "${{ steps.capture.outcome }}" = "success" ]; then
+              echo "Succeeded."
+            elif [ "${{ steps.capture.outcome }}" = "failure" ]; then
+              echo "Failed — **non-blocking** (\`continue-on-error\`). Inspect job logs; deploy may still be green."
+            else
+              echo "Outcome: \`${{ steps.capture.outcome }}\` / Playwright have=\`${{ steps.pw.outputs.have }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.capture.outcome }}" = "failure" ]; then
+            echo "::warning::capture:340-title failed (workflow continues)"
+          fi

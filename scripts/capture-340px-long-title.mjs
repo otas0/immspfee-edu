@@ -3,6 +3,8 @@
  * Reproducible 340px capture: long Chinese book label forces ellipsis.
  * Probes :4174; on failure runs ensure-dev-server --no-exec then captures.
  *
+ * Playwright pin: scripts/playwright-version.txt (CI + /tmp/pw-shot local install).
+ *
  *   npm run capture:340-title
  *   # or: node scripts/capture-340px-long-title.mjs
  */

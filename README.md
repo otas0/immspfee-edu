@@ -41,7 +41,11 @@ npm start
 npm run preview          # curl -sI …/4174/ ; start only on failure
 # or:
 curl -sI http://127.0.0.1:4174/ || npm start
+# Quiet escape hatch (restore banners): ENSURE_QUIET=0 npm start
+#   or: bash scripts/ensure-dev-server.sh --verbose
 ```
+
+`push-main` waits on the github-pages environment; override with `PAGES_WAITING_TIMEOUT=900` (seconds) if approval is slow.
 
 For a session that should outlive the terminal:
 
@@ -58,6 +62,7 @@ For chained scripts that must keep running after preview starts:
 ```bash
 bash scripts/ensure-dev-server.sh --no-exec   # or ENSURE_NO_EXEC=1
 bash scripts/ensure-dev-server.sh --quiet     # reuse tip only; no banner noise
+bash scripts/ensure-dev-server.sh --verbose   # undo quiet / ENSURE_QUIET for this run
 curl -sI http://127.0.0.1:4174/
 ```
 

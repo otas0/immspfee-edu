@@ -49,15 +49,25 @@ function truncateUnits(line, maxLen, units) {
  * Prefers grapheme clusters (Intl.Segmenter) so emoji ZWJ sequences stay intact;
  * falls back to Unicode code points (Array.from) when Segmenter is missing.
  */
-export function toastErrorDetail(err, maxLen = 120) {
+/**
+ * @param {unknown} err
+ * @param {number} [maxLen]
+ * @param {{ forceCodePoints?: boolean }} [opts] forceCodePoints → skip Segmenter (ZWJ strip tests)
+ */
+export function toastErrorDetail(err, maxLen = 120, opts = {}) {
   const raw = String(err?.message || err || '').trim();
   const line = raw.split(/\r?\n/)[0] || raw;
-  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+  if (!opts.forceCodePoints && typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
     const segs = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(line)]
       .map((s) => s.segment);
     return truncateUnits(line, maxLen, segs);
   }
   return truncateUnits(line, maxLen, Array.from(line));
+}
+
+/** Clear sticky double-slit width-bar hi when schema edits `a` (mirrors off-bar pointer down). */
+export function clearSlitWidthHiOnSchemaA(key, ui) {
+  if (key === 'a' && ui) ui._slitWidthHi = false;
 }
 
 /**
