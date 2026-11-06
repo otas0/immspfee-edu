@@ -612,7 +612,8 @@ export const simultaneitySim = {
     const b = Math.min(0.95, Math.max(0.05, d.beta));
     const hx = trackX0 + ((b - 0.05) / 0.9) * (trackX1 - trackX0);
     handle(ctx, hx, trackY, ui.drag === 'v');
-    text(ctx, `β (drag)  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY - 14, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'Drag v to change β / Δt', '拖动 v 改变 β / Δt'), w * 0.5, trackY - 14, MUTED, 11, 'center');
+    text(ctx, `β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY + 16, MUTED, 11, 'center');
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
   onParam(key, value) {

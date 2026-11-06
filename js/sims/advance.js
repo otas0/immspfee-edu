@@ -445,6 +445,10 @@ export const coupledPendulaSim = {
     ctx.stroke();
     const nowX = gx + (Math.min(1, d.t / tMax)) * gw;
     line(ctx, nowX, gy - gh, nowX, gy, MUTED, 1, [2, 2]);
+    // One beat period Tbeat = 2π / |ωa−ωs| within the 2-beat window (tMax = 2 Tbeat).
+    const beatX = gx + gw * 0.5;
+    line(ctx, beatX, gy - gh, beatX, gy, RAY2, 1, [3, 3]);
+    text(ctx, lab(ui, '1 beat', '1 拍频'), beatX, gy + 12, MUTED, 10, 'center');
     text(ctx, `now=${fmt(ui.wrong ? 0 : state.Pflow, 2)}`, gx + gw * 0.5, panelY + 28, MUTED, 11, 'center');
   },
   pointer() { return null; },

@@ -38,5 +38,15 @@ async function smoke(label, ids) {
 let failed = 0;
 failed += await smoke('core', core);
 failed += await smoke('university', university);
+// After a hard-boot style reload, registry entries must still resolve.
+for (const id of ['convex-lens', 'ising', 'finite-well']) {
+  const again = await getSim(id, { reload: true });
+  if (!again) {
+    failed += 1;
+    console.error('FAIL hard-boot reload missing', id);
+  } else {
+    console.log('ok hard-boot', id, '->', again.id);
+  }
+}
 if (failed) process.exit(1);
 console.log(`ok smoke core=[${core.join(', ')}] university=[${university.join(', ')}]`);

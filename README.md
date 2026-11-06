@@ -2,7 +2,7 @@
 
 Classroom edition of IMMSPFEE. Lessons follow a textbook, one section at a time. The standard lab stays in its own repository ([otas0/immspfee](https://github.com/otas0/immspfee)) and is not this site.
 
-This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)
+This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · live Pages [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/) (GitHub Pages from `main`). The older path `github.com/otas0/immspfee-education` should redirect to the renamed repo.
 
 Every mapped lesson in Shanghai junior, Shanghai senior, PEP junior grade 8, and University physics draws readouts, checks, and the mistake overlay from the governing equations in `js/physics/`. The chapter tree shows only lesson titles—no Ready, Exam, or N/N chips. A section that is only queued stays empty on the stage; this tree currently has no queued secondary lessons. Textbook edition notes live under About in the teach column, not in the header.
 
@@ -10,7 +10,7 @@ Every mapped lesson in Shanghai junior, Shanghai senior, PEP junior grade 8, and
 
 IMMSPFEE 教育版：按教材一节一节上课。标准实验室在独立仓库 [otas0/immspfee](https://github.com/otas0/immspfee)，不是本站。
 
-本版地址：[github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)
+本版地址：[github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · 线上 Pages [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/)（`main` 自动发布）。旧名 `immspfee-education` 应重定向到本仓。
 
 沪科初中、沪科高中、人教八年级，以及「大学物理」（地区标签「大学」）里已映射的节，读数、判定和排故叠层都来自 `js/physics/` 中的方程。章节树只显示节名；大学目录按学科折叠。仅排队的节舞台保持空白；当前树无排队的中学节。教材版次说明在授课栏的 About，不在顶栏。界面默认英文，可切中文。
 
@@ -21,7 +21,13 @@ npm test
 npm start
 ```
 
-Open http://127.0.0.1:4174/ . Deep link: `#/sh-junior/shj-4-4a/explore`.
+`npm start` reuses an already-listening process on port 4174 (PID file `.dev-server-4174.pid`) and exits 0 if the port is busy, so a second start does not fight the first. For a session that should outlive the terminal:
+
+```bash
+nohup node scripts/dev-server.mjs >/tmp/immspfee-edu-4174.log 2>&1 &
+```
+
+Open http://127.0.0.1:4174/ . Deep link: `#/sh-junior/shj-4-4a/explore`. Agents should probe that URL first and only start the server when it fails.
 
 Each new browser tab hard-boots once (clears this site’s Cache Storage and reopens with a fresh query) so a stale module cannot sit next to a newer curriculum. If the chapter list and the stage still disagree after a deploy, close the tab and open the site again, or hard-refresh once. When a new service worker is waiting, the page shows a bilingual “Site updated / Reload” bar instead of auto-reloading—click Reload rather than waiting for an automatic refresh. About (textbook edition notes, the separate standard-lab link, and the lab repository path as plain text) sits at the bottom of the teach column, not under the header. Add `?dev` to surface module import failures as a toast. Opening a lesson also prefetches the other simulations in that volume so Explore does not flash an empty stage.
 

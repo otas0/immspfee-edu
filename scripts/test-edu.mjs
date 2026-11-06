@@ -292,6 +292,7 @@ assert(tun.regime === 'tunnel' && tun.T > 0 && tun.T < 1, 'tunnel T');
 const scan = barrierScan({ m: 9.1e-31, a: 1e-10, V0: 1.6e-18, E: 2.4e-18, samples: 80 });
 assert(scan.curve.length > 40 && Array.isArray(scan.peaks), 'barrier scan');
 assert(scan.resonances.length >= 1 && scan.resonances[0].E > scan.V0, 'barrier k2a=nπ');
+assert(scan.Emax >= scan.resonances[0].E * 1.04, 'barrier scan past first En');
 const rad = hydrogenRadial({ n: 1, l: 0, r: 5.29177210903e-11 });
 assert(rad.dens > 0 && rad.R !== 0, 'hydrogen R10 dens');
 const a0 = 5.29177210903e-11;

@@ -36,6 +36,8 @@ export const isingSim = {
     let Tmin = next.Tmin;
     let Tmax = next.Tmax;
     let T = next.T;
+    // Large lattices default to paint step 2 so 320px stages stay responsive.
+    if (key === 'N' && value >= 16 && (next.paintStep ?? 1) < 2) patch.paintStep = 2;
     if (key === 'Tmin' && value >= Tmax - 0.2) {
       Tmax = value + 0.5;
       patch.Tmax = Tmax;

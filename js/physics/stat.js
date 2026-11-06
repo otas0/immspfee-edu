@@ -73,7 +73,8 @@ export function barrierScan(p) {
   const Emin = Math.max(p.Emin ?? Math.min(p.E, V0) * 0.2, 1e-40);
   // Default span covers at least the first k₂ a = π resonance above V0.
   const E1 = V0 + ((Math.PI * HBAR) / a) ** 2 / (2 * m);
-  const Emax = Math.max(p.Emax ?? Math.max(V0 * 3, E1 * 1.4), Emin * 1.1);
+  // Always sweep past the first k₂a=π resonance so the first Eₙ is on-stage by default.
+  const Emax = Math.max(p.Emax ?? Math.max(V0 * 3, E1 * 1.5), E1 * 1.05, Emin * 1.1);
   const curve = [];
   for (let i = 0; i <= samples; i += 1) {
     const E = Emin + ((Emax - Emin) * i) / samples;

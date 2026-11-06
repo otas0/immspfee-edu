@@ -331,12 +331,12 @@ function renderChrome() {
 const UNI_FOLD_KEY = 'immspfee-edu-uni-folds';
 
 function readUniFolds() {
-  try { return JSON.parse(sessionStorage.getItem(UNI_FOLD_KEY) || '{}'); }
+  try { return JSON.parse(localStorage.getItem(UNI_FOLD_KEY) || '{}'); }
   catch (_) { return {}; }
 }
 
 function writeUniFolds(map) {
-  try { sessionStorage.setItem(UNI_FOLD_KEY, JSON.stringify(map)); }
+  try { localStorage.setItem(UNI_FOLD_KEY, JSON.stringify(map)); }
   catch (_) { /* ignore */ }
 }
 
