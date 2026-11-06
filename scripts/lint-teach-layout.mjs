@@ -163,6 +163,44 @@ function lint420AreasOrInherit(block) {
     console.log('ok pages.yml: no OFFLINE_FIRST env key');
   }
 }
+
+// Agent-facing scripts must not run blind git-add-all (use git-stage-allow.sh).
+{
+  const agentFiles = [
+    'AGENTS.md',
+    ...fs.readdirSync(path.join(root, 'scripts'))
+      .filter((n) => n.endsWith('.sh') || n.endsWith('.mjs'))
+      .map((n) => path.join('scripts', n)),
+  ];
+  // Match real commands only; skip this lint file's own strings via warn-word gate below.
+  const cmdRe = /\bgit\s+add\s+(-A|--all|\.)\b/;
+  let addFails = 0;
+  for (const rel of agentFiles) {
+    const abs = path.join(root, rel);
+    if (!fs.existsSync(abs)) continue;
+    const lines = fs.readFileSync(abs, 'utf8').split(/\r?\n/);
+    lines.forEach((line, i) => {
+      const trimmed = line.trim();
+      // Allow prose / comments / lint diagnostics that warn against the pattern.
+      if (/^(#|\/\/|\*|<!--)/.test(trimmed)) return;
+      if (/never|forbid|勿|禁止|do not|don't|without|must not|blind|warn against|lint forbids/i.test(line)) {
+        return;
+      }
+      if (cmdRe.test(line)) {
+        addFails += 1;
+        console.error(`FAIL ${rel}:${i + 1}: agent script must not run blind git-add-all — use scripts/git-stage-allow.sh`);
+      }
+    });
+  }
+  if (!fs.existsSync(path.join(root, 'scripts/stage-allow.default.list'))) {
+    failed += 1;
+    console.error('FAIL missing scripts/stage-allow.default.list');
+  } else if (addFails) {
+    failed += addFails;
+  } else {
+    console.log('ok agent scripts: no blind git-add-all + default allowlist present');
+  }
+}
 if (block320) {
   const code320 = stripCssComments(block320);
   if (/grid-template-areas/.test(code320) && !hasTwoRowAreas(code320)) {

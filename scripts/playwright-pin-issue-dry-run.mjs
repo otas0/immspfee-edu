@@ -7,7 +7,8 @@
  *   node scripts/playwright-pin-issue-dry-run.mjs
  *   PIN_HASH=deadbeef node scripts/playwright-pin-issue-dry-run.mjs
  *   DRY_RUN_FIXTURE=closed node scripts/playwright-pin-issue-dry-run.mjs
- *     → fixture: pretend a closed issue owns this hash; must plan **create** (exit 1 if not).
+ *     → fixture: pretend a closed issue owns this hash; must plan **create-after-closed**.
+ *   DRY_RUN_FIXTURE=open … → plan **comment**; DRY_RUN_FIXTURE=create → plan **create** (no hits).
  *
  * Exit 0 on success / info. Fixture mode exits 1 if plan is wrong.
  */
@@ -63,6 +64,11 @@ if (fixture === 'closed') {
   openHit = { number: 999002, title, state: 'OPEN' };
   console.log('## Fixture: open issue #999002 with same hash title');
   console.log('');
+} else if (fixture === 'create') {
+  openHit = null;
+  closedHits = [];
+  console.log('## Fixture: no open/closed issue with this hash title');
+  console.log('');
 } else {
   const open = ghJson([
     'issue', 'list', '--repo', repo, '--search', `${title} in:title`, '--state', 'open',
@@ -108,6 +114,10 @@ if (fixture === 'closed' && plan !== 'create-after-closed') {
 }
 if (fixture === 'open' && plan !== 'comment') {
   console.error('FAIL fixture open: expected plan=comment');
+  process.exit(1);
+}
+if (fixture === 'create' && plan !== 'create') {
+  console.error('FAIL fixture create: expected plan=create');
   process.exit(1);
 }
 process.exit(0);

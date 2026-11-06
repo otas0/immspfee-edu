@@ -105,7 +105,7 @@ await browser.close();
 console.log(info);
 
 function writeCaptureFail(title, detail) {
-  const body = formatCaptureFailMarkdown(title, detail);
+  const body = formatCaptureFailMarkdown(title, detail, { kind: 'capture:340-title' });
   const failPath = path.join(root, '.local-shots', 'capture-last-fail.md');
   fs.mkdirSync(path.dirname(failPath), { recursive: true });
   fs.writeFileSync(failPath, body);

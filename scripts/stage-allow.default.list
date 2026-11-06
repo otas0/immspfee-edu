@@ -1,0 +1,15 @@
+# Default allowlist roots for education commits (intersected with dirty paths).
+# Use: bash scripts/git-stage-allow.sh --default
+# Never stage secrets; never blind `git add -A`.
+.github/workflows/
+scripts/
+js/
+css/
+docs/
+assets/
+README.md
+AGENTS.md
+package.json
+sw.js
+index.html
+favicon.ico

@@ -957,6 +957,7 @@ let failed = 0;
             });
           } else {
             // Product lock: γ / Δt must stay non-hi while β is sticky.
+            // To widen later: map keys in STICKY_READOUT_HI_BY_SCHEMA first, then relax this assert.
             const gammaRow = rowsAfterUp.find((r) => r.en === 'γ');
             const dtRow = rowsAfterUp.find((r) => r.en === 'Δt');
             if (gammaRow?.hi || dtRow?.hi) {

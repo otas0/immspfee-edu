@@ -357,12 +357,25 @@ print("upload:%s" % up_c)
   esac
 }
 
+# Mid-run: if any job already concluded failure/cancelled/timed_out, flip ISSUE_TITLE now.
+maybe_mid_fail_title() {
+  local mid
+  mid="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
+    [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
+    | length
+  ' 2>/dev/null || echo 0)"
+  if [[ "$mid" =~ ^[1-9] ]]; then
+    set_issue_title failure
+  fi
+}
+
 # Poll until the run leaves "waiting" (env approval), appending heartbeats.
 while true; do
   meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
   status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
   url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
   summary_heartbeat
+  maybe_mid_fail_title
   if [[ "$status" == "waiting" ]]; then
     now="$(date +%s)"
     if (( warned_waiting == 0 )); then

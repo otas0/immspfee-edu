@@ -1,10 +1,11 @@
 /**
  * Shared capture failure markdown (overflow / topH) for scripts + smoke.
- * Used by capture-340px-long-title.mjs and GITHUB_STEP_SUMMARY.
+ * Used by capture-340px-long-title.mjs, capture-1280-desktop.mjs, GITHUB_STEP_SUMMARY.
  */
-export function formatCaptureFailMarkdown(title, detail = {}) {
+export function formatCaptureFailMarkdown(title, detail = {}, opts = {}) {
+  const kind = opts.kind || 'capture';
   return [
-    '### capture:340-title assertion failed',
+    `### ${kind} assertion failed`,
     '',
     `**${title}**`,
     '',

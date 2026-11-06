@@ -68,10 +68,15 @@ export function toastErrorDetail(err, maxLen = 120, opts = {}) {
 /**
  * Schema key → ui sticky-hi flag. Double-slit width bar uses `_slitWidthHi`;
  * other sims can register here without new setParam branches.
+ *
+ * Minkowski product lock: **β only** (`beta → _betaHi`). γ / Δt stay plain.
+ * To widen sticky-hi later: add schema keys here (and ui flags), then extend
+ * smoke-layout Minkowski asserts — do not paint γ/Δt hi until product asks.
  */
 export const STICKY_READOUT_HI_BY_SCHEMA = Object.freeze({
   a: '_slitWidthHi',
   beta: '_betaHi',
+  // Product gate: do not map gamma / dt until sticky set is widened on purpose.
 });
 
 /** Clear sticky readout hi when a mapped schema key is edited (mirrors off-control pointer down). */

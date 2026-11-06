@@ -5,6 +5,8 @@
 
 **Decision:** Keep them off PRECACHE / REQUIRED. Cache-busting through stamped `app.js` is enough for GitHub Pages today.
 
+**Re-eval (2026-11-06):** Still **off** PRECACHE. Gates 1–3 unmet (no offline-first first-paint product ask; modules stay behind stamped `app.js`; no stale chrome/fold smoke). Do not add to `sw.js` until a flip PR ticks the template below.
+
 **Trigger to revisit (offline-first):** Add both to PRECACHE **and** stamp REQUIRED only if **all** of the following become true:
 
 1. The service worker must boot a usable shell **before** `app.js` is fetched (true offline-first first paint).
@@ -67,9 +69,24 @@ const REQUIRED = [
 
 Pages / local default: leave `OFFLINE_FIRST` unset. A flip PR sets it in CI only after ADR gates are checked.
 
-## CI comment template (offline-first switch)
+**Lint:** `scripts/lint-teach-layout.mjs` forbids `OFFLINE_FIRST:` as an env key in `.github/workflows/pages.yml`.
 
-Paste into the PR / issue that flips offline-first. Tick every box before merging the PRECACHE change:
+- [x] **pages.yml lint already forbids `OFFLINE_FIRST` env key** (keep this checked on `main`; flip PR must update the lint when wiring the switch).
+
+## Flip PR template (offline-first / `OFFLINE_FIRST=1`)
+
+Paste into the PR that flips offline-first. Tick every box before merging the PRECACHE change.
+
+### Env switch steps (required in the PR body)
+
+1. Confirm checklist gates 1–5 above are yes.
+2. Set workflow `env.OFFLINE_FIRST: '1'` **only** in the flip PR’s Pages job (or document the Actions variable); leave `main` unset/`0` until merge.
+3. In the **same commit**: add `js/ui-chrome.js` + `js/uni-fold.js` to `scripts/stamp-build.mjs` REQUIRED **and** `sw.js` PRECACHE; keep `index.html` modulepreload in lockstep.
+4. Update `scripts/lint-teach-layout.mjs` so the OFFLINE_FIRST env forbid becomes “must be `0` or `1` with gates”, or temporarily allow `OFFLINE_FIRST: '1'` with a comment pointing at this ADR.
+5. Run `npm test` + one-shot offline boot; paste results in the PR.
+6. After merge: watch Pages deploy; confirm first paint does not regress online path.
+
+### Gates
 
 - [ ] Offline-first first paint is a product requirement (shell usable with `app.js` unreachable).
 - [ ] Smoke/QA shows chrome or fold UI broken offline while `app.js` is current (or missing).
@@ -77,6 +94,6 @@ Paste into the PR / issue that flips offline-first. Tick every box before mergin
 - [ ] `index.html` modulepreload, `sw.js` PRECACHE, and `stamp-build.mjs` REQUIRED stay in lockstep.
 - [ ] `npm test` + one-shot offline boot stay green with both files listed.
 - [ ] `OFFLINE_FIRST=1` documented in the flip PR; default remains unset/`0` on `main` until then.
-- [ ] **Pages env must not set `OFFLINE_FIRST`** (repo / environment / workflow `env:` stay unset/`0` on `main` until the flip PR).
+- [ ] **Pages env must not set `OFFLINE_FIRST` on `main` before the flip** (repo / environment / workflow `env:` stay unset/`0` until this PR merges).
 
 When all boxes are checked: add `js/ui-chrome.js` and `js/uni-fold.js` to **both** stamp REQUIRED and `sw.js` PRECACHE in the same commit.

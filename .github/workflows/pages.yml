@@ -73,21 +73,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          fetch_artifact_names() {
-            local names="" i
-            for i in 1 2 3; do
+          # Retry 1s×5 only while the expected name is still missing (empty list or lag).
+          fetch_artifact_names_until() {
+            local want="$1" names="" i
+            for i in 1 2 3 4 5; do
               names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
                 --jq '.artifacts[].name' 2>/dev/null || true)"
-              if [ -n "$names" ]; then
+              if echo "$names" | grep -qx "$want"; then
                 printf '%s\n' "$names"
                 return 0
               fi
-              sleep 2
+              sleep 1
             done
             printf '%s\n' "$names"
           }
           redir="—"
           redir_api="not uploaded"
+          skip_reason=""
           if [ "${{ steps.redirect.outcome }}" = "failure" ]; then
             redir_api="—"
             if [ "${{ steps.up_redir.outcome }}" = "success" ] \
@@ -100,7 +102,7 @@ jobs:
             else
               redir="❌"
             fi
-            api_names="$(fetch_artifact_names)"
+            api_names="$(fetch_artifact_names_until "redirect-fail-headers-${SHORT}")"
             if echo "$api_names" | grep -qx "redirect-fail-headers-${SHORT}"; then
               redir_api="✅"
               redir="✅"
@@ -108,6 +110,7 @@ jobs:
           elif [ "${{ steps.redirect.outcome }}" = "success" ]; then
             redir="— (not expected)"
             redir_api="not uploaded"
+            skip_reason="skip reason: redirect green"
           fi
           {
             echo "### Redirect-fail artifact backfill"
@@ -115,6 +118,10 @@ jobs:
             echo "| Kind | Local/step | API |"
             echo "| --- | --- | --- |"
             echo "| redirect-fail (\`redirect-fail-headers-${SHORT}\`) | $redir | $redir_api |"
+            if [ -n "$skip_reason" ]; then
+              echo ""
+              echo "$skip_reason"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Guard against edition / ready-count chrome
         run: |
@@ -165,10 +172,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
-      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Checked 2026-11:
-      # latest release remains v5.0.1 — no v5.0.2+ yet. When #413 ships a patch, bump
-      # immediately and confirm DEP0040 gone from deploy logs. Do not suppress.
-      # upload-pages-artifact@v5 bundles upload-artifact@v7.
+      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06:
+      # latest release remains v5.0.1 — no v5.0.2+; DEP0040 still in deploy logs (soft).
+      # When #413 ships a patch, bump immediately and confirm DEP0040 gone before merge.
+      # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -404,31 +411,46 @@ jobs:
           }
           set +e
           CAPTURE_FORCE_FAIL=1 npm run capture:340-title
-          code=$?
+          code340=$?
           set -e
-          if [ "$code" -eq 0 ]; then
-            fail_summary "CAPTURE_FORCE_FAIL=1 exited 0 — expected non-zero so the overflow/topH template is exercised."
+          if [ "$code340" -eq 0 ]; then
+            fail_summary "CAPTURE_FORCE_FAIL=1 capture:340 exited 0 — expected non-zero so the overflow/topH template is exercised."
             exit 1
           fi
           if [ ! -f "$FAIL_MD" ] || ! grep -q 'overflow:' "$FAIL_MD" || ! grep -q 'topH:' "$FAIL_MD"; then
-            fail_summary "Verification failed: \`$FAIL_MD\` missing or lacks \`overflow:\` / \`topH:\`."
-            # Keep FAIL_MD for the upload step when present.
+            fail_summary "Verification failed (340): \`$FAIL_MD\` missing or lacks \`overflow:\` / \`topH:\`."
+            exit 1
+          fi
+          rm -f "$FAIL_MD"
+          # Same short-SHA force-fail template path for capture:1280.
+          set +e
+          CAPTURE_FORCE_FAIL=1 npm run capture:1280
+          code1280=$?
+          set -e
+          if [ "$code1280" -eq 0 ]; then
+            fail_summary "CAPTURE_FORCE_FAIL=1 capture:1280 exited 0 — expected non-zero so the overflow/topH template is exercised."
+            exit 1
+          fi
+          if [ ! -f "$FAIL_MD" ] || ! grep -q 'overflow:' "$FAIL_MD" || ! grep -q 'topH:' "$FAIL_MD"; then
+            fail_summary "Verification failed (1280): \`$FAIL_MD\` missing or lacks \`overflow:\` / \`topH:\`."
             exit 1
           fi
           {
             echo "### Force-fail capture summary template"
             echo ""
-            echo "Verified overflow/topH block (CAPTURE_FORCE_FAIL=1)."
+            echo "Verified overflow/topH block (CAPTURE_FORCE_FAIL=1) for **340** and **1280** (same short-SHA table)."
             echo ""
             echo "| Kind | Status | Retention |"
             echo "| --- | --- | --- |"
             echo "| force_fail | ok | — |"
+            echo "| capture PNG | \`capture-340px-zh-long-title-${SHORT}\` | 7-day |"
+            echo "| capture 1280 | \`capture-1280-desktop-${SHORT}\` | 7-day |"
             echo "| capture-fail (template) | verified | 7-day if uploaded |"
             echo ""
             cat "$FAIL_MD"
           } >> "$GITHUB_STEP_SUMMARY"
           rm -f "$FAIL_MD"
-          echo "force-fail summary template ok"
+          echo "force-fail summary template ok (340+1280)"
       - name: Run capture:340-title
         id: capture
         if: steps.pw.outputs.have == '1'
@@ -523,7 +545,7 @@ jobs:
           retention-days: 7
       - name: Upload capture-last-fail.md
         id: up_fail
-        if: always() && steps.pw.outputs.have == '1' && (steps.force_fail.outcome == 'failure' || steps.capture.outcome == 'failure')
+        if: always() && steps.pw.outputs.have == '1' && (steps.force_fail.outcome == 'failure' || steps.capture.outcome == 'failure' || steps.capture1280.outcome == 'failure')
         uses: actions/upload-artifact@v7
         with:
           name: capture-last-fail-${{ env.SHORT }}
@@ -560,21 +582,40 @@ jobs:
               fail="—"
             fi
           fi
-          # Secondary confirm via Actions Artifacts API (retry 3×2s if list empty/lag).
-          fetch_artifact_names() {
-            local names="" i
-            for i in 1 2 3; do
+          # Retry 1s×5 only while any expected short-SHA name is still missing.
+          fetch_until_names() {
+            local names="" i want
+            for i in 1 2 3 4 5; do
               names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
                 --jq '.artifacts[].name' 2>/dev/null || true)"
-              if [ -n "$names" ]; then
+              local missing=0
+              for want in "$@"; do
+                if ! echo "$names" | grep -qx "$want"; then
+                  missing=1
+                  break
+                fi
+              done
+              if [ "$missing" -eq 0 ]; then
                 printf '%s\n' "$names"
                 return 0
               fi
-              sleep 2
+              sleep 1
             done
             printf '%s\n' "$names"
           }
-          api_names="$(fetch_artifact_names)"
+          expect_names=()
+          [ "${{ steps.up_png.outcome }}" = "success" ] \
+            && expect_names+=("capture-340px-zh-long-title-${SHORT}")
+          [ "${{ steps.up_1280.outcome }}" = "success" ] \
+            && expect_names+=("capture-1280-desktop-${SHORT}")
+          [ "${{ steps.up_fail.outcome }}" = "success" ] \
+            && expect_names+=("capture-last-fail-${SHORT}")
+          if [ ${#expect_names[@]} -gt 0 ]; then
+            api_names="$(fetch_until_names "${expect_names[@]}")"
+          else
+            api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+              --jq '.artifacts[].name' 2>/dev/null || true)"
+          fi
           png_api="—"
           png1280_api="—"
           fail_api="—"
@@ -600,10 +641,10 @@ jobs:
             echo "| capture-fail (\`capture-last-fail-${SHORT}\`) | $fail | $fail_api |"
             echo "| redirect-fail | — (deploy job) | — |"
             if [ "${{ steps.force_fail.outcome }}" = "success" ]; then
-              echo "| force_fail | ok | — |"
+              echo "| force_fail (340+1280) | ok | — |"
             elif [ "${{ steps.force_fail.outcome }}" = "failure" ]; then
-              echo "| force_fail | ❌ | — |"
+              echo "| force_fail (340+1280) | ❌ | — |"
             else
-              echo "| force_fail | — | — |"
+              echo "| force_fail (340+1280) | — | — |"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
