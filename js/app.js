@@ -2,8 +2,13 @@ import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.
 import { getSim, prefetchSims, setImportErrorHandler } from './sims/registry.js?v=__BUILD__';
 import { fmt } from './fmt.js?v=__BUILD__';
 import { t, tx } from './i18n.js?v=__BUILD__';
-import { uniChapterOpen } from './uni-fold.js?v=__BUILD__';
-import { clearWrongLeavingHousehold, readoutClass } from './ui-chrome.js?v=__BUILD__';
+import { uniChapterOpen, uniAllFoldsMap } from './uni-fold.js?v=__BUILD__';
+import {
+  clearWrongLeavingHousehold,
+  clearWrongLeavingDebug,
+  readoutClass,
+  isCanvasBufferError,
+} from './ui-chrome.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
 const narrowMq = window.matchMedia('(max-width: 768px)');
@@ -227,7 +232,16 @@ function draw() {
     ? s.computeForUi(params, clock, ui)
     : s.compute(params, clock);
   ui.lang = lang;
-  s.draw(ctx, w, h, params, d, ui);
+  try {
+    s.draw(ctx, w, h, params, d, ui);
+  } catch (err) {
+    if (isCanvasBufferError(err)) {
+      showToast(t(lang, 'isingCanvasNeed'), { reload: true });
+      paintReadouts(d);
+      return;
+    }
+    throw err;
+  }
   paintReadouts(d);
 }
 
@@ -361,9 +375,7 @@ function pruneUniFolds(validIds) {
 
 function setAllUniFolds(open) {
   const book = getBook('university');
-  const map = {};
-  for (const ch of book.chapters) map[ch.id] = open;
-  writeUniFolds(map);
+  writeUniFolds(uniAllFoldsMap(book.chapters, open));
   if (bookId === 'university') renderTree();
 }
 
@@ -511,18 +523,33 @@ function renderTeach() {
     btn.setAttribute('aria-selected', phase === id ? 'true' : 'false');
     btn.textContent = `${i + 1} ${t(lang, id)}`;
     if (phase === id) btn.className = 'on';
-    btn.addEventListener('click', () => { phase = id; writeHash(); renderTeach(); draw(); });
+    btn.addEventListener('click', () => {
+      const prev = phase;
+      phase = id;
+      clearWrongLeavingDebug(prev, id, ui);
+      writeHash();
+      renderTeach();
+      draw();
+    });
     phases.appendChild(btn);
   });
   host.appendChild(phases);
 
   const body = document.createElement('div');
   body.className = 'phase-body';
-  if (phase === 'introduce') body.append(paragraph(tx(lang, current.lesson.intro)), primary(t(lang, 'toExplore'), () => { phase = 'explore'; writeHash(); renderTeach(); }));
+  const goPhase = (id) => {
+    const prev = phase;
+    phase = id;
+    clearWrongLeavingDebug(prev, id, ui);
+    writeHash();
+    renderTeach();
+    draw();
+  };
+  if (phase === 'introduce') body.append(paragraph(tx(lang, current.lesson.intro)), primary(t(lang, 'toExplore'), () => goPhase('explore')));
   if (phase === 'explore') {
-    body.append(bench(s), transport(s), primary(t(lang, 'toCheck'), () => { phase = 'check'; writeHash(); renderTeach(); }));
+    body.append(bench(s), transport(s), primary(t(lang, 'toCheck'), () => goPhase('check')));
   }
-  if (phase === 'check') body.append(paragraph(lang === 'zh' ? '下面的问题按画面上这一组参数计算。要换一组数，先回到探究。' : 'These questions are computed from the setup on the stage. Go back to Explore to change it.'), checkBlock(s), primary(t(lang, 'toDebug'), () => { phase = 'debug'; writeHash(); renderTeach(); draw(); }));
+  if (phase === 'check') body.append(paragraph(lang === 'zh' ? '下面的问题按画面上这一组参数计算。要换一组数，先回到探究。' : 'These questions are computed from the setup on the stage. Go back to Explore to change it.'), checkBlock(s), primary(t(lang, 'toDebug'), () => goPhase('debug')));
   if (phase === 'debug') body.append(debugBlock(s), transport(s));
   const back = document.createElement('button');
   back.type = 'button';

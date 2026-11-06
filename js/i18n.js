@@ -38,6 +38,7 @@ export const STR = {
     swUpdate: 'Site updated',
     swReload: 'Reload',
     importFail: 'A simulation module failed to load. Try Reload, or open with ?dev=1 for details.',
+    isingCanvasNeed: 'This lattice needs OffscreenCanvas (or a browser canvas). Try Reload, or open in a normal browser tab.',
   },
   zh: {
     kicker: '教育版',
@@ -78,6 +79,7 @@ export const STR = {
     swUpdate: '站点已更新',
     swReload: '刷新',
     importFail: '仿真模块加载失败。可点刷新，或加 ?dev=1 查看详情。',
+    isingCanvasNeed: '这张点阵需要 OffscreenCanvas（或浏览器 canvas）。请刷新，或在普通浏览器标签页打开。',
   },
 };
 

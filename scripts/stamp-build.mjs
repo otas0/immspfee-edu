@@ -19,6 +19,11 @@ const REQUIRED = [
  * Policy: only rewrite files that already contain the build opt-in token.
  * Do not blanket-edit every js/** file — physics/sim modules stay token-free and
  * get cache-busting via registry / curricula imports instead.
+ *
+ * ui-chrome.js / uni-fold.js stay off REQUIRED and off sw.js PRECACHE: app.js
+ * imports them with ?v=__BUILD__ (stamped in app.js). They ride the module graph
+ * like other token-free helpers; do not add them unless they gain their own token
+ * or must be offline-first without a prior app.js fetch.
  */
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {

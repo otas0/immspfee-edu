@@ -44,11 +44,13 @@ while (( i <= attempts )); do
   cat "$err_log" >&2 || true
   err_txt="$(cat "$err_log" 2>/dev/null || true)"
   rm -f "$err_log"
-  # Empty reply / CONNECT / port 443: drop proxy once, then keep backoff.
+  # Empty reply / CONNECT / port 443: drop proxy once and retry immediately (no backoff).
   if (( cleared_proxy == 0 )) && echo "$err_txt" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect'; then
-    echo "clearing proxy env (https_proxy/http_proxy/ALL_PROXY) for remaining attempts"
+    echo "clearing proxy env (https_proxy/http_proxy/ALL_PROXY); immediate retry"
     unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy || true
     cleared_proxy=1
+    i=$(( i + 1 ))
+    continue
   fi
   echo "push failed; sleeping ${delay}s"
   sleep "$delay"

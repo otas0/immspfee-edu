@@ -3,9 +3,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getSim } from '../js/sims/registry.js';
 import { CIRCUIT_LINKS, circuit } from '../js/physics/circuits.js';
-import { uniChapterOpen } from '../js/uni-fold.js';
-import { clearWrongLeavingHousehold, readoutClass } from '../js/ui-chrome.js';
+import { uniChapterOpen, uniAllFoldsMap } from '../js/uni-fold.js';
+import {
+  clearWrongLeavingHousehold,
+  clearWrongLeavingDebug,
+  readoutClass,
+  isCanvasBufferError,
+} from '../js/ui-chrome.js';
 import { getBook, flatten } from '../js/curricula/index.js';
+import { STR } from '../js/i18n.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -285,6 +291,23 @@ let failed = 0;
 }
 
 {
+  // Product: leaving Debug clears ui.wrong; re-enter household Debug forces it again in app.
+  const ui = { wrong: true };
+  clearWrongLeavingDebug('debug', 'explore', ui);
+  if (ui.wrong !== false) {
+    failed += 1;
+    console.error('FAIL leave debug: ui.wrong should be false');
+  } else {
+    ui.wrong = true;
+    clearWrongLeavingDebug('debug', 'debug', ui);
+    if (ui.wrong !== true) {
+      failed += 1;
+      console.error('FAIL stay on debug: ui.wrong must remain');
+    } else console.log('ok leave debug clears ui.wrong');
+  }
+}
+
+{
   // DOM class + CSS: Path warn → .readout.warn → #a33 (same as canvas fault ink).
   const bypass = circuit({
     layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn,a1-a2', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10,
@@ -322,6 +345,16 @@ let failed = 0;
       console.error('FAIL uni fold search/saved map', { searchOpen, savedKeepsClosed });
     } else console.log('ok uni fold default current-only + search/saved', { currentCh });
   }
+
+  // Expand all / collapse all tools ↔ uniChapterOpen.
+  const expandMap = uniAllFoldsMap(book.chapters, true);
+  const collapseMap = uniAllFoldsMap(book.chapters, false);
+  const allOpen = book.chapters.every((ch) => uniChapterOpen(ch.id, currentCh, expandMap, false));
+  const allClosed = book.chapters.every((ch) => uniChapterOpen(ch.id, currentCh, collapseMap, false) === false);
+  if (!allOpen || !allClosed || Object.keys(expandMap).length !== book.chapters.length) {
+    failed += 1;
+    console.error('FAIL uni fold expand/collapse all', { allOpen, allClosed, n: Object.keys(expandMap).length });
+  } else console.log('ok uni fold expand/collapse all ↔ uniChapterOpen');
 }
 
 {
@@ -360,8 +393,27 @@ let failed = 0;
           } else {
             const ctx2 = mockCtx();
             sim.draw(ctx2, 640, 400, p, d, ui);
-            sim.pointer({ type: 'up', x: g.barX, y: g.yLo }, p, d, ui);
-            console.log('ok double-slit envelope + width-bar drag', { a0, a1: p.a, useEnv: d.useEnv });
+            const g2 = ui._slit;
+            ui.drag = null;
+            sim.pointer({ type: 'down', x: g2.barX, y: g2.yLo }, p, d, ui);
+            if (ui.drag !== 'width') {
+              failed += 1;
+              console.error('FAIL double-slit: width bar must stay hittable after envelope on');
+            } else {
+              p = { ...p, envelope: false };
+              d = sim.compute(p);
+              sim.draw(mockCtx(), 640, 400, p, d, ui);
+              const g3 = ui._slit;
+              ui.drag = null;
+              sim.pointer({ type: 'down', x: g3.barX, y: (g3.yLo + g3.yHi) / 2 }, p, d, ui);
+              if (ui.drag !== 'width') {
+                failed += 1;
+                console.error('FAIL double-slit: width bar must stay hittable after envelope off');
+              } else {
+                sim.pointer({ type: 'up', x: g3.barX, y: g3.yLo }, p, d, ui);
+                console.log('ok double-slit envelope + width-bar drag/hit', { a0, a1: p.a });
+              }
+            }
           }
         }
       }
@@ -396,8 +448,8 @@ let failed = 0;
       failed += 1;
       console.error('FAIL minkowski pointer: β should snap to 0.05 grid', { patch, target });
     } else {
-      // Sequence along the track stays on 0.05 steps.
-      const steps = [0.1, 0.25, 0.55, 0.9];
+      // Sequence along the track stays on 0.05 steps, including endpoints.
+      const steps = [0.05, 0.1, 0.25, 0.55, 0.9, 0.95];
       let bad = null;
       for (const b of steps) {
         const x = tr.trackX0 + ((b - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
@@ -410,10 +462,19 @@ let failed = 0;
           break;
         }
       }
+      ui._betaLast = null;
+      ui._betaAt = 0;
+      const lo = sim.pointer({ type: 'move', x: tr.trackX0 - 20, y: tr.trackY }, p, d, ui);
+      ui._betaLast = null;
+      ui._betaAt = 0;
+      const hi = sim.pointer({ type: 'move', x: tr.trackX1 + 20, y: tr.trackY }, p, d, ui);
       if (bad) {
         failed += 1;
         console.error('FAIL minkowski β pointer sequence lockstep', bad);
-      } else console.log('ok minkowski β pointer + onParam 0.05 lockstep');
+      } else if (!lo || Math.abs(lo.beta - 0.05) > 1e-9 || !hi || Math.abs(hi.beta - 0.95) > 1e-9) {
+        failed += 1;
+        console.error('FAIL minkowski β endpoints 0.05/0.95', { lo, hi });
+      } else console.log('ok minkowski β pointer + endpoints 0.05/0.95 lockstep');
     }
   }
 }
@@ -435,10 +496,13 @@ let failed = 0;
   globalThis.OffscreenCanvas = saved;
   if (hadDoc) globalThis.document = savedDoc;
   else if ('document' in globalThis) delete globalThis.document;
-  if (!threw || !/OffscreenCanvas|document\.createElement/.test(String(threw.message || threw))) {
+  if (!threw || !isCanvasBufferError(threw)) {
     failed += 1;
     console.error('FAIL ising: N≥12 without canvas APIs should throw a clear Error', threw);
-  } else console.log('ok ising clear error without OffscreenCanvas/document');
+  } else if (!STR.en.isingCanvasNeed || !STR.zh.isingCanvasNeed) {
+    failed += 1;
+    console.error('FAIL ising: i18n isingCanvasNeed toast keys missing');
+  } else console.log('ok ising clear error + i18n toast keys');
 }
 
 if (failed) {

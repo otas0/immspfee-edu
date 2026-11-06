@@ -14,6 +14,8 @@ IMMSPFEE 教育版：按教材一节一节上课。标准实验室在独立仓�
 
 沪科初中、沪科高中、人教八年级，以及「大学物理」（地区标签「大学」）里已映射的节，读数、判定和排故叠层都来自 `js/physics/` 中的方程。章节树只显示节名；大学目录按学科折叠。仅排队的节舞台保持空白；当前树无排队的中学节。教材版次说明在授课栏的 About，不在顶栏。界面默认英文，可切中文。
 
+深链用**课** id，不是节 id。`live()` 生成的课会在节号后加 `a`，例如沪科高中「曲线运动」是 `#/sh-senior/shs-5-1a/introduce`，不要写成 `shs-5-1`。本地预览：`npm run preview` 或 `bash scripts/ensure-dev-server.sh --no-exec`。Safari 旧标签图标可用 `bash scripts/clear-favicons.sh`（需在终端完整磁盘访问权限下运行）或双击 `scripts/clear-favicons.command`。
+
 ## Run
 
 ```bash

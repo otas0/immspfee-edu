@@ -62,8 +62,22 @@ fi
 echo "probe failed; starting dev server on $PORT"
 cd "$ROOT"
 
+LOG_FILE="/tmp/immspfee-edu-${PORT}.log"
+
+tail_dev_log() {
+  local why="$1"
+  echo "$why" >&2
+  if [[ -f "$LOG_FILE" ]]; then
+    echo "---- tail $LOG_FILE ----" >&2
+    tail -n 40 "$LOG_FILE" >&2 || true
+    echo "---- end log ----" >&2
+  else
+    echo "(no log at $LOG_FILE)" >&2
+  fi
+}
+
 if (( NO_EXEC )); then
-  node scripts/dev-server.mjs >/tmp/immspfee-edu-${PORT}.log 2>&1 &
+  node scripts/dev-server.mjs >"$LOG_FILE" 2>&1 &
   START_PID=$!
   for _ in $(seq 1 50); do
     if probe_ok; then
@@ -71,12 +85,12 @@ if (( NO_EXEC )); then
       exit 0
     fi
     if ! kill -0 "$START_PID" 2>/dev/null; then
-      echo "dev server exited early; see /tmp/immspfee-edu-${PORT}.log" >&2
+      tail_dev_log "dev server exited early (pid $START_PID)"
       exit 1
     fi
     sleep 0.1
   done
-  echo "dev server did not answer within 5s; see /tmp/immspfee-edu-${PORT}.log" >&2
+  tail_dev_log "dev server did not answer within 5s (pid $START_PID)"
   exit 1
 fi
 
