@@ -586,7 +586,23 @@ let failed = 0;
             openCollapseSearch, openCollapseClear, afterCollapse,
           });
         } else {
-          console.log('ok uni details[open] expand/collapse + search-clear round-trips', hintCh.id);
+          // Third leg: after collapse-all, open only current chapter → clear search → only current open.
+          const onlyCurrent = uniAllFoldsMap(book.chapters, false);
+          onlyCurrent[hintCh.id] = true;
+          writeUniFoldsTo(foldStore, onlyCurrent);
+          const afterOnly = pruneUniFoldsIn(foldStore, new Set(book.chapters.map((ch) => ch.id)));
+          const openOnlySearch = uniOpenChapterIds(book.chapters, hintCh.id, afterOnly, true);
+          const openOnlyClear = uniOpenChapterIds(book.chapters, hintCh.id, afterOnly, false);
+          if (openOnlySearch.length !== book.chapters.length
+            || openOnlyClear.length !== 1 || openOnlyClear[0] !== hintCh.id
+            || afterOnly[hintCh.id] !== true) {
+            failed += 1;
+            console.error('FAIL uni details[open] collapse→only-current→clear search', {
+              openOnlySearch, openOnlyClear, afterOnly,
+            });
+          } else {
+            console.log('ok uni details[open] expand/collapse/only-current + search-clear', hintCh.id);
+          }
         }
       }
     }
@@ -819,7 +835,15 @@ let failed = 0;
               console.error('FAIL minkowski schema beta must clear _betaHi', {
                 sticky: ui._betaHi, row: afterSchema.find((r) => r.en === 'β'),
               });
-            } else console.log('ok minkowski β pointer + endpoints + sticky hi lockstep');
+            } else {
+              // Product lock: γ / Δt must stay non-hi while β is sticky.
+              const gammaRow = rowsAfterUp.find((r) => r.en === 'γ');
+              const dtRow = rowsAfterUp.find((r) => r.en === 'Δt');
+              if (gammaRow?.hi || dtRow?.hi) {
+                failed += 1;
+                console.error('FAIL minkowski: γ/Δt must not sticky-hi with β (product)', { gammaRow, dtRow });
+              } else console.log('ok minkowski β pointer + endpoints + sticky hi (β only) lockstep');
+            }
           }
         }
       }

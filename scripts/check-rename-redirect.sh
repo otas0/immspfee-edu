@@ -3,15 +3,27 @@
 # Soft-skips when offline unless REQUIRE_REDIRECT_CHECK=1.
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OLD_URL="${RENAME_CHECK_URL:-https://github.com/otas0/immspfee-education}"
 EXPECT="${RENAME_EXPECT_HOST_PATH:-otas0/immspfee-edu}"
+HEADERS_OUT="${REDIRECT_HEADERS_OUT:-$ROOT/.local-shots/redirect-fail-headers.txt}"
 
 hdr="$(mktemp)"
 cleanup() { rm -f "$hdr"; }
 trap cleanup EXIT
 
+save_headers_snippet() {
+  mkdir -p "$(dirname "$HEADERS_OUT")"
+  if [[ -f "$hdr" ]]; then
+    tr -d '\r' <"$hdr" | head -n 20 >"$HEADERS_OUT"
+  else
+    echo "(no headers captured)" >"$HEADERS_OUT"
+  fi
+}
+
 append_fail_summary() {
   local why="$1"
+  save_headers_snippet
   [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] || return 0
   {
     echo "### Rename redirect failed"
@@ -20,6 +32,12 @@ append_fail_summary() {
     echo "- Why: $why"
     echo "- HTTP: \`${status:-unknown}\`"
     echo "- Location: \`${loc:-empty}\`"
+    echo ""
+    echo "Curl response headers (first 20 lines):"
+    echo ""
+    echo '```'
+    if [[ -f "$HEADERS_OUT" ]]; then cat "$HEADERS_OUT"; else echo "(missing)"; fi
+    echo '```'
     echo ""
   } >> "$GITHUB_STEP_SUMMARY"
 }
@@ -55,4 +73,5 @@ if ! echo "$loc" | grep -q "$EXPECT"; then
   echo "FAIL rename redirect: Location missing $EXPECT (got: ${loc:-empty})" >&2
   exit 1
 fi
+rm -f "$HEADERS_OUT"
 echo "ok rename redirect $OLD_URL → $loc"

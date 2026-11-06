@@ -15,7 +15,8 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - Leaving Debug clears `ui.wrong` (`clearWrongLeavingDebug`); phase **上一步** from Debug uses the same helper via `goPhase`. Household Debug still forces bp–bn on enter. Leaving household layout also clears wrong.
 - **Reset vs 上一步 (product):** Introduce keeps a single **Reset** (reload lesson + params). Other phases use **上一步** (previous phase). Do not split Explore into a second “reset parameters” ghost — schema fields already edit params. **Explore one-click preset restore: explicitly not shipping** until product asks; then add a dedicated control + smoke.
 - University fold hint: idle → `foldCurrent` + chapter title; while searching → `foldSearchOpen` + same chapter title (`data-searching="1"`). Clearing search restores `foldCurrent` and drops `data-searching`. `data-chapter-id` must match the active chapter.
-- `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports (see `scripts/stamp-build.mjs` comment). **Re-eval (2026-11):** still keep them off PRECACHE/REQUIRED — the module graph load after stamped `app.js` is enough for Pages; only revisit if offline-first boot must work before `app.js` fetches.
+- `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports. **Re-eval (2026-11):** still off PRECACHE — triggers to add them are in `docs/adr/001-ui-chrome-precache.md`.
+- Minkowski sticky readout hi: **β only** while/after track drag (`_betaHi`). γ / Δt stay plain until product asks to widen the sticky set.
 
 ## Release
 

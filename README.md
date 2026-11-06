@@ -28,6 +28,7 @@ npm run smoke:book       # 仅 320px 人教书名 / clip 断言
 npm run preview          # 探测 4174，失败才启动
 npm start -- --verbose   # 复用 4174 时恢复双语横幅（默认 quiet）
 npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 --no-exec 再拍）
+CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow/topH 摘要模板
 ```
 
 ## Run
@@ -36,6 +37,8 @@ npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 -
 npm test
 npm start
 ```
+
+There is **no** `pretest` hook. Use `npm test` (includes rename redirect; soft-skips when GitHub is unreachable) or `npm run test:offline` when you want to skip redirect entirely.
 
 `npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 

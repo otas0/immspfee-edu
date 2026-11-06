@@ -92,9 +92,17 @@ if (!hasTwoRowAreas(block768)) {
   failed += 1;
   console.error('FAIL edu.css@768: .top grid-template-areas must be brand lang / nav nav (covers 340px)');
 }
-if (block420 && /grid-template-areas/.test(block420) && !hasTwoRowAreas(block420)) {
-  failed += 1;
-  console.error('FAIL edu.css@420: grid-template-areas must stay brand lang / nav nav (340 hit chain)');
+// @420: either set two-row areas, or document inherit from @768 (340 hit chain).
+if (block420) {
+  if (/grid-template-areas/.test(block420)) {
+    if (!hasTwoRowAreas(block420)) {
+      failed += 1;
+      console.error('FAIL edu.css@420: grid-template-areas must stay brand lang / nav nav (340 hit chain)');
+    }
+  } else if (!/inherit[\s\S]{0,80}@768|inherit[\s\S]{0,80}brand\s+lang|keeps?[\s\S]{0,40}two-row|inherit[\s\S]{0,40}areas/i.test(block420)) {
+    failed += 1;
+    console.error('FAIL edu.css@420: if grid-template-areas omitted, comment must document inherit of brand lang / nav nav from @768');
+  }
 }
 if (block320 && /grid-template-areas/.test(block320) && !hasTwoRowAreas(block320)) {
   failed += 1;

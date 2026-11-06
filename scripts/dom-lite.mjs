@@ -136,6 +136,27 @@ function matchSel(el, sel) {
   return el.tagName === s.toUpperCase();
 }
 
+/** Collect every descendant (not only children) matching a simple/compound sel. */
+function collectDeep(root, sel, out) {
+  for (const child of root.children || []) {
+    if (matchSel(child, sel)) out.push(child);
+    collectDeep(child, sel, out);
+  }
+}
+
+function queryDescendantChain(root, parts) {
+  if (!parts.length) return null;
+  const [head, ...rest] = parts;
+  const matches = [];
+  collectDeep(root, head, matches);
+  for (const el of matches) {
+    if (!rest.length) return el;
+    const hit = queryDescendantChain(el, rest);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 function queryIn(root, sel) {
   const raw = String(sel || '').trim();
   if (raw.includes(',')) {
@@ -145,6 +166,9 @@ function queryIn(root, sel) {
     }
     return null;
   }
+  // Descendant combinator: "div span.fold-hint" (spaces; no >/+ yet).
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length > 1) return queryDescendantChain(root, parts);
   for (const child of root.children || []) {
     if (matchSel(child, raw)) return child;
     const hit = queryIn(child, raw);
@@ -157,6 +181,23 @@ function collect(root, sel, out) {
   const raw = String(sel || '').trim();
   if (raw.includes(',')) {
     for (const part of raw.split(',')) collect(root, part.trim(), out);
+    return;
+  }
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length > 1) {
+    const hit = queryDescendantChain(root, parts);
+    if (hit) out.push(hit);
+    // Also collect all matching chains
+    const [head, ...rest] = parts;
+    const matches = [];
+    collectDeep(root, head, matches);
+    for (const el of matches) {
+      if (!rest.length) {
+        if (!out.includes(el)) out.push(el);
+      } else {
+        collect(el, rest.join(' '), out);
+      }
+    }
     return;
   }
   for (const child of root.children || []) {

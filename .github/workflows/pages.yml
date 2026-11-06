@@ -37,9 +37,19 @@ jobs:
       - name: Smoke 320px zh book-select CSSOM
         run: node scripts/smoke-book-select.mjs
       - name: Check immspfee-education → immspfee-edu redirect
+        id: redirect
         env:
           REQUIRE_REDIRECT_CHECK: '1'
         run: bash scripts/check-rename-redirect.sh
+      - name: Upload redirect fail headers
+        if: failure() && steps.redirect.outcome == 'failure'
+        uses: actions/upload-artifact@v6
+        with:
+          name: redirect-fail-headers-${{ github.sha }}
+          # full sha keeps deploy redirect failures unique across force-pushes
+          path: .local-shots/redirect-fail-headers.txt
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Guard against edition / ready-count chrome
         run: |
           ! grep -n 'id="edition"' index.html
@@ -189,26 +199,50 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Short SHA
+        run: echo "SHORT=$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_ENV"
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
       # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
       - name: Notice if Playwright pin changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BEFORE="${{ github.event.before }}"
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
             echo "No before SHA; skip pin diff"
             exit 0
           fi
-          if git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -qx 'scripts/playwright-version.txt'; then
-            {
-              echo "### Playwright pin changed"
-              echo ""
-              echo "@otas0 bump \`/tmp/pw-shot\` to match \`scripts/playwright-version.txt\` (see \`.local-shots/README.md\`)."
-              echo ""
-              echo '```'
-              git diff "$BEFORE" "${{ github.sha }}" -- scripts/playwright-version.txt || true
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "::notice title=Playwright pin changed::@otas0 reinstall /tmp/pw-shot to the new pin"
+          if ! git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -qx 'scripts/playwright-version.txt'; then
+            exit 0
+          fi
+          DIFF="$(git diff "$BEFORE" "${{ github.sha }}" -- scripts/playwright-version.txt || true)"
+          {
+            echo "### Playwright pin changed"
+            echo ""
+            echo "@otas0 bump \`/tmp/pw-shot\` to match \`scripts/playwright-version.txt\` (see \`.local-shots/README.md\`)."
+            echo ""
+            echo '```'
+            echo "$DIFF"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Playwright pin changed::@otas0 reinstall /tmp/pw-shot to the new pin"
+          TITLE="Playwright pin changed ($SHORT)"
+          BODY=$(printf '%s\n' \
+            "Playwright pin file changed on \`${{ github.sha }}\`." \
+            "" \
+            "@otas0 please reinstall \`/tmp/pw-shot\` to match \`scripts/playwright-version.txt\`." \
+            "" \
+            '```' \
+            "$DIFF" \
+            '```' \
+            "" \
+            "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+          EXISTING=$(gh issue list --search "$TITLE in:title" --state open --json number,title \
+            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n 1 || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY" || true
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --assignee otas0 || true
           fi
       - name: Install Playwright or skip
         id: pw
@@ -231,14 +265,40 @@ jobs:
             exit 0
           fi
           echo "have=1" >> "$GITHUB_OUTPUT"
+      - name: Ensure preview for capture
+        if: steps.pw.outputs.have == '1'
+        run: bash scripts/ensure-dev-server.sh --no-exec --quiet
+      - name: Force-fail capture summary template
+        id: force_fail
+        if: steps.pw.outputs.have == '1'
+        continue-on-error: true
+        run: |
+          set +e
+          CAPTURE_FORCE_FAIL=1 npm run capture:340-title
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "FORCE_FAIL should exit non-zero" >&2
+            exit 1
+          fi
+          test -f .local-shots/capture-last-fail.md
+          grep -q 'overflow:' .local-shots/capture-last-fail.md
+          grep -q 'topH:' .local-shots/capture-last-fail.md
+          {
+            echo "### Force-fail capture summary template"
+            echo ""
+            echo "Verified overflow/topH block (CAPTURE_FORCE_FAIL=1)."
+            echo ""
+            cat .local-shots/capture-last-fail.md
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f .local-shots/capture-last-fail.md
+          echo "force-fail summary template ok"
       - name: Run capture:340-title
         id: capture
         if: steps.pw.outputs.have == '1'
         continue-on-error: true
         # GITHUB_STEP_SUMMARY is injected by Actions; on assert fail the script appends overflow/topH.
-        run: |
-          bash scripts/ensure-dev-server.sh --no-exec --quiet
-          npm run capture:340-title
+        run: npm run capture:340-title
       - name: Capture step summary
         if: always()
         run: |
@@ -247,6 +307,11 @@ jobs:
             echo ""
             if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
               echo "Skipped (Playwright unavailable)."
+            elif [ "${{ steps.force_fail.outcome }}" = "failure" ]; then
+              echo "Force-fail template step failed (non-blocking)."
+            fi
+            if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
+              :
             elif [ "${{ steps.capture.outcome }}" = "success" ]; then
               echo "Succeeded."
               rm -f .local-shots/capture-last-fail.md
@@ -267,9 +332,9 @@ jobs:
           fi
       - name: Upload 340px capture PNG
         if: always() && steps.pw.outputs.have == '1'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: capture-340px-zh-long-title
+          name: capture-340px-zh-long-title-${{ env.SHORT }}
           path: .local-shots/340px-zh-long-title-ellipsis.png
           if-no-files-found: ignore
           retention-days: 7

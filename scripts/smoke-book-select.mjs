@@ -178,11 +178,15 @@ if (!hasTwoRowTop(block768)) {
       });
     } else {
       const byComma = document.querySelector('div.missing, span.fold-hint.extra');
+      const byDesc = document.querySelector('div span.fold-hint');
       if (!byComma || byComma !== hintEl) {
         failed += 1;
         console.error('FAIL dom-lite comma selector list', { byComma: !!byComma });
+      } else if (!byDesc || byDesc !== hintEl) {
+        failed += 1;
+        console.error('FAIL dom-lite descendant div span.fold-hint', { byDesc: !!byDesc });
       } else {
-        console.log('ok uniFoldHintFromQuery whitespace/blank DOM + span.fold-hint compound/attr/multi/comma');
+        console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant');
       }
     }
   }
