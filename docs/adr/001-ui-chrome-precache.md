@@ -26,3 +26,19 @@ Use this before editing `scripts/stamp-build.mjs` REQUIRED or `sw.js` PRECACHE f
 | 5 | `npm test` + a one-shot offline boot check stay green with both files listed. | |
 
 Only when **1–5** are all yes: add `js/ui-chrome.js` and `js/uni-fold.js` to BOTH stamp REQUIRED and `sw.js` PRECACHE in the same commit. Do not add one without the other.
+
+## CI comment template (offline-first switch)
+
+Paste into the PR / issue that flips offline-first. Tick every box before merging the PRECACHE change:
+
+```markdown
+### Offline-first PRECACHE gate (ADR 001)
+
+- [ ] Offline-first first paint is a product requirement (shell usable with `app.js` unreachable).
+- [ ] Smoke/QA shows chrome or fold UI broken offline while `app.js` is current (or missing).
+- [ ] `ui-chrome` / `uni-fold` need their own `__BUILD__` **or** load outside the stamped `app.js` graph.
+- [ ] `index.html` modulepreload, `sw.js` PRECACHE, and `stamp-build.mjs` REQUIRED stay in lockstep.
+- [ ] `npm test` + one-shot offline boot stay green with both files listed.
+
+When all five are checked: add `js/ui-chrome.js` and `js/uni-fold.js` to **both** stamp REQUIRED and `sw.js` PRECACHE in the same commit.
+```

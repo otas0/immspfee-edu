@@ -201,3 +201,17 @@ done
 
 gh run watch "$RID" --repo "$REPO" --exit-status
 echo "Pages ok for $SHORT"
+# After capture/deploy finish, print real artifact download URLs from the API.
+echo "artifact download URLs (short SHA $SHORT):"
+art_lines="$(gh api "repos/${REPO}/actions/runs/${RID}/artifacts" --paginate \
+  --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-last-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
+if [[ -z "$art_lines" ]]; then
+  echo "  (no matching capture/redirect artifacts for run $RID)"
+else
+  while IFS=$'\t' read -r name aid url; do
+    [[ -z "$name" ]] && continue
+    echo "  $name"
+    echo "    browse: https://github.com/${REPO}/actions/runs/${RID}/artifacts/${aid}"
+    [[ -n "$url" ]] && echo "    api:    $url"
+  done <<< "$art_lines"
+fi

@@ -21,13 +21,26 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      # Node 24 scan (2026-11): checkout@v7 + configure-pages@v6 + deploy-pages@v5
+      # all use node24. Last Pages run had no Node 20 deprecation on configure-pages.
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           package-manager-cache: false
       - name: Short SHA
         run: echo "SHORT=$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_ENV"
+      - name: Artifact name table
+        run: |
+          {
+            echo "### Fail artifact names (short SHA \`$SHORT\`)"
+            echo ""
+            echo "| Kind | Artifact name |"
+            echo "| --- | --- |"
+            echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` |"
+            echo "| capture-fail | \`capture-last-fail-$SHORT\` |"
+            echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
       - name: Smoke ready sim modules
@@ -99,8 +112,8 @@ jobs:
             echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
-      # Node 24 scan (2026-11): upload-pages-artifact@v5 bundles upload-artifact@v7;
-      # deploy-pages@v5 runs node24 (since v5.0.0). No newer major — stay on @v5.
+      # configure-pages@v6 already node24 (no Node 20 annotation on last run) — stay on @v6.
+      # upload-pages-artifact@v5 bundles upload-artifact@v7; deploy-pages@v5 is node24.
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -193,7 +206,7 @@ jobs:
     # Capture is advisory: never fail the Pages workflow on screenshot/Playwright issues.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 2
       - uses: actions/setup-node@v6
@@ -202,6 +215,17 @@ jobs:
           package-manager-cache: false
       - name: Short SHA
         run: echo "SHORT=$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_ENV"
+      - name: Artifact name table
+        run: |
+          {
+            echo "### Fail artifact names (short SHA \`$SHORT\`)"
+            echo ""
+            echo "| Kind | Artifact name |"
+            echo "| --- | --- |"
+            echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` |"
+            echo "| capture-fail | \`capture-last-fail-$SHORT\` |"
+            echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
       # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
       - name: Notice if Playwright pin changed
@@ -231,7 +255,8 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=Playwright pin changed::@otas0 reinstall /tmp/pw-shot to the new pin"
-          # Dedup by pin *content* hash so the same pin reuses one issue across SHAs.
+          # Dedup by pin *content* hash among OPEN issues only. A closed issue with the
+          # same hash must not be reused — bump again after close creates a fresh issue.
           TITLE="Playwright pin changed ($PIN_HASH)"
           BODY=$(printf '%s\n' \
             "Playwright pin file changed on \`${{ github.sha }}\` (short \`$SHORT\`)." \
@@ -245,11 +270,12 @@ jobs:
             '```' \
             "" \
             "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
-          EXISTING=$(gh issue list --search "$TITLE in:title" --state open --json number,title \
-            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n 1 || true)
+          EXISTING=$(gh issue list --search "$TITLE in:title" --state open --json number,title,state \
+            --jq "[.[] | select(.title == \"$TITLE\" and (.state | ascii_upcase) == \"OPEN\")] | .[0].number // empty" || true)
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --body "$BODY" || true
           else
+            # Closed/same-title matches are ignored on purpose (state=open filter above).
             gh issue create --title "$TITLE" --body "$BODY" --assignee otas0 || true
           fi
       - name: Install Playwright or skip
@@ -291,6 +317,14 @@ jobs:
               echo "$1"
               echo ""
               echo "Artifact (when uploaded): [\`$ART_NAME\`]($ART_URL) — open the run → Artifacts."
+              echo ""
+              if [ -f "$FAIL_MD" ]; then
+                echo "#### capture-last-fail.md"
+                echo ""
+                cat "$FAIL_MD"
+              else
+                echo "_(no \`$FAIL_MD\` on disk to paste)_"
+              fi
             } >> "$GITHUB_STEP_SUMMARY"
           }
           set +e
@@ -334,6 +368,12 @@ jobs:
               echo "### ❌ Force-fail template verification failed (non-blocking)."
               echo ""
               echo "See [\`capture-last-fail-${SHORT}\`]($ART_URL) artifact if uploaded."
+              echo ""
+              if [ -f .local-shots/capture-last-fail.md ]; then
+                echo "#### capture-last-fail.md"
+                echo ""
+                cat .local-shots/capture-last-fail.md
+              fi
             fi
             if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
               :

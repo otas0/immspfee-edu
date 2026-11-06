@@ -215,6 +215,27 @@ function queryChildChain(root, parts) {
   return null;
 }
 
+/** Adjacent-sibling: `span.fold-hint + em` (immediate next sibling only). */
+function queryAdjacentChain(root, parts) {
+  if (parts.length < 2) return null;
+  const lefts = [];
+  collectDeep(root, parts[0], lefts);
+  for (const el of lefts) {
+    let cur = el;
+    let ok = true;
+    for (let i = 1; i < parts.length; i += 1) {
+      const parent = cur.parentNode;
+      if (!parent?.children) { ok = false; break; }
+      const idx = parent.children.indexOf(cur);
+      const next = idx >= 0 ? parent.children[idx + 1] : null;
+      if (!next || !matchSel(next, parts[i])) { ok = false; break; }
+      cur = next;
+    }
+    if (ok) return cur;
+  }
+  return null;
+}
+
 function queryIn(root, sel) {
   const raw = String(sel || '').trim();
   if (raw.includes(',')) {
@@ -223,6 +244,11 @@ function queryIn(root, sel) {
       if (hit) return hit;
     }
     return null;
+  }
+  // Adjacent sibling before child: "span.fold-hint + em".
+  if (raw.includes('+')) {
+    const parts = raw.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) return queryAdjacentChain(root, parts);
   }
   // Child combinator before descendant: "div > span.fold-hint".
   if (raw.includes('>')) {
@@ -245,6 +271,14 @@ function collect(root, sel, out) {
   if (raw.includes(',')) {
     for (const part of raw.split(',')) collect(root, part.trim(), out);
     return;
+  }
+  if (raw.includes('+')) {
+    const parts = raw.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const hit = queryAdjacentChain(root, parts);
+      if (hit && !out.includes(hit)) out.push(hit);
+      return;
+    }
   }
   if (raw.includes('>')) {
     const parts = raw.split(/\s*>\s*/).map((p) => p.trim()).filter(Boolean);

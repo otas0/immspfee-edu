@@ -623,7 +623,31 @@ let failed = 0;
                 openSearchThen, openIdleAfter, openSearchAfter, afterSearchCollapse,
               });
             } else {
-              console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse', hintCh.id);
+              // collapse → search-open → only-current, with unknown chapter id pruned from saved map.
+              const dirtyOnly = uniAllFoldsMap(book.chapters, false);
+              dirtyOnly[hintCh.id] = true;
+              dirtyOnly['__unknown-ch__'] = true;
+              writeUniFoldsTo(foldStore, dirtyOnly);
+              const afterPruneUnknown = pruneUniFoldsIn(
+                foldStore, new Set(book.chapters.map((ch) => ch.id)),
+              );
+              const openSearchDirty = uniOpenChapterIds(
+                book.chapters, hintCh.id, afterPruneUnknown, true,
+              );
+              const openIdleDirty = uniOpenChapterIds(
+                book.chapters, hintCh.id, afterPruneUnknown, false,
+              );
+              if (afterPruneUnknown['__unknown-ch__'] != null
+                || openSearchDirty.length !== book.chapters.length
+                || openIdleDirty.length !== 1 || openIdleDirty[0] !== hintCh.id
+                || afterPruneUnknown[hintCh.id] !== true) {
+                failed += 1;
+                console.error('FAIL uni details[open] collapse→search→only-current prune unknown id', {
+                  afterPruneUnknown, openSearchDirty, openIdleDirty,
+                });
+              } else {
+                console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+              }
             }
           }
         }
@@ -874,7 +898,29 @@ let failed = 0;
                   clean: applied.clean, beta: p.beta, sticky: ui._betaHi,
                   row: afterExplore.find((r) => r.en === 'β'),
                 });
-              } else console.log('ok minkowski β pointer + endpoints + sticky hi (β only) + Explore clear');
+              } else {
+                // Re-drag track after Explore clear → sticky hi must light again.
+                const reTarget = 0.55;
+                const rx = tr.trackX0 + ((reTarget - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
+                ui._betaLast = null;
+                ui._betaAt = 0;
+                sim.pointer({ type: 'down', x: rx, y: tr.trackY }, p, d, ui);
+                const rePatch = sim.pointer({ type: 'move', x: rx, y: tr.trackY }, p, d, ui);
+                if (rePatch) Object.assign(p, rePatch);
+                d = sim.compute(p);
+                sim.pointer({ type: 'up', x: rx, y: tr.trackY }, p, d, ui);
+                const afterReDrag = sim.readouts(d, p, ui);
+                const betaRe = afterReDrag.find((r) => r.en === 'β');
+                if (!rePatch || Math.abs(rePatch.beta - reTarget) > 1e-9
+                  || !ui._betaHi || !betaRe?.hi) {
+                  failed += 1;
+                  console.error('FAIL minkowski re-drag after Explore clear must re-light β hi', {
+                    rePatch, sticky: ui._betaHi, betaRe,
+                  });
+                } else {
+                  console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi');
+                }
+              }
             }
           }
         }

@@ -191,6 +191,8 @@ if (!hasTwoRowTop(block768)) {
       host.appendChild(trailing);
       const byLastWrong = document.querySelector('span.fold-hint:last-child');
       const byLastEm = document.querySelector('em:last-child');
+      const byAdj = document.querySelector('span.fold-hint + em');
+      const byAdjMiss = document.querySelector('em + span.fold-hint');
       if (!byComma || byComma !== hintEl) {
         failed += 1;
         console.error('FAIL dom-lite comma selector list', { byComma: !!byComma });
@@ -205,8 +207,13 @@ if (!hasTwoRowTop(block768)) {
         console.error('FAIL dom-lite :first-child / :last-child', {
           byFirst: !!byFirst, byLastWrong: !!byLastWrong, byLastEm: !!byLastEm,
         });
+      } else if (!byAdj || byAdj !== trailing || byAdjMiss) {
+        failed += 1;
+        console.error('FAIL dom-lite adjacent sibling span.fold-hint + em', {
+          byAdj: !!byAdj, byAdjMiss: !!byAdjMiss,
+        });
       } else {
-        console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo');
+        console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent');
       }
     }
   }

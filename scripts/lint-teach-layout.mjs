@@ -97,16 +97,32 @@ if (!hasTwoRowAreas(block768)) {
 }
 // @420: either set two-row areas, or document inherit from @768 (340 hit chain).
 // Strip comments before detecting the property so inherit docs can name grid-template-areas.
-if (block420) {
-  const code420 = stripCssComments(block420);
-  if (/grid-template-areas/.test(code420)) {
-    if (!hasTwoRowAreas(code420)) {
-      failed += 1;
-      console.error('FAIL edu.css@420: grid-template-areas must stay brand lang / nav nav (340 hit chain)');
-    }
-  } else if (!/inherit[\s\S]{0,80}@768|inherit[\s\S]{0,80}brand\s+lang|keeps?[\s\S]{0,40}two-row|inherit[\s\S]{0,40}areas/i.test(block420)) {
+function lint420AreasOrInherit(block) {
+  if (!block) return null;
+  const code = stripCssComments(block);
+  if (/grid-template-areas/.test(code)) {
+    if (!hasTwoRowAreas(code)) return 'bad-areas';
+    return null;
+  }
+  if (!/inherit[\s\S]{0,80}@768|inherit[\s\S]{0,80}brand\s+lang|keeps?[\s\S]{0,40}two-row|inherit[\s\S]{0,40}areas/i.test(block)) {
+    return 'missing-inherit-doc';
+  }
+  return null;
+}
+{
+  const err420 = lint420AreasOrInherit(block420);
+  if (err420 === 'bad-areas') {
+    failed += 1;
+    console.error('FAIL edu.css@420: grid-template-areas must stay brand lang / nav nav (340 hit chain)');
+  } else if (err420 === 'missing-inherit-doc') {
     failed += 1;
     console.error('FAIL edu.css@420: if grid-template-areas omitted, comment must document inherit of brand lang / nav nav from @768');
+  }
+  // Reverse: bare @420 without areas and without inherit comment must be rejected.
+  const bareNoDoc = '  .top { grid-template-columns: minmax(0, 1fr) auto; justify-items: stretch; }\n';
+  if (lint420AreasOrInherit(bareNoDoc) !== 'missing-inherit-doc') {
+    failed += 1;
+    console.error('FAIL lint reverse: @420 without areas/inherit comment must return missing-inherit-doc');
   }
 }
 if (block320) {
