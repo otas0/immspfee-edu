@@ -2,6 +2,13 @@
 
 Classroom edition of IMMSPFEE. Lessons follow a textbook, one section at a time. The standard lab stays in its own repository ([otas0/immspfee](https://github.com/otas0/immspfee)) and is not this site.
 
+**Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) (stage allowlist, doctor, Minkowski sticky #1, offline-first ADR).
+
+| | |
+| --- | --- |
+| [中文说明](#中文说明镜像) | [Run](#run) |
+| [Contributing](CONTRIBUTING.md) | [Local shots / CI artifacts](.local-shots/README.md) |
+
 This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · live Pages [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/) (GitHub Pages from `main`). The older path `github.com/otas0/immspfee-education` should redirect to the renamed repo.
 
 Every mapped lesson in Shanghai junior, Shanghai senior, PEP junior grade 8, and University physics draws readouts, checks, and the mistake overlay from the governing equations in `js/physics/`. The chapter tree shows only lesson titles—no Ready, Exam, or N/N chips. A section that is only queued stays empty on the stage; this tree currently has no queued secondary lessons. Textbook edition notes live under About in the teach column, not in the header.
@@ -45,7 +52,7 @@ npm start
 
 There is **no** `pretest` hook. Use `npm test` (includes rename redirect; soft-skips when GitHub is unreachable) or `npm run test:offline` when you want to skip redirect entirely.
 
-CI artifact names (short SHA): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>`, `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
+CI artifact names (short SHA, 7-day): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>`, `capture-cols-fail-<sha>` (same retention as last-fail), `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
 
 `npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 

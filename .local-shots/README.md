@@ -32,7 +32,7 @@ npm run capture:340-title   # probes :4174; on failure runs ensure-dev --no-exec
 # Short-title stack band (manual): width 340 → #/sh-senior/shs-5-1a/introduce
 ```
 
-CI: optional `capture-340-title` job installs Playwright when available, otherwise skips. A `CAPTURE_FORCE_FAIL=1` step (continue-on-error) checks the overflow/topH summary template; verification failure marks the step summary red, pastes `capture-last-fail.md`, and links the run artifacts. Then the real capture runs (also non-blocking). Artifact names (short SHA, 7-day): `capture-340px-zh-long-title-<sha>`, `capture-last-fail-<sha>`, `redirect-fail-headers-<sha>`. Local: `CAPTURE_FORCE_FAIL=1 npm run capture:340-title`.
+CI: optional `capture-340-title` job installs Playwright when available, otherwise skips. A `CAPTURE_FORCE_FAIL=1` step (continue-on-error) checks the overflow/topH summary template; verification failure marks the step summary red, pastes `capture-last-fail.md`, and links the run artifacts. Then the real capture runs (also non-blocking). Artifact names (short SHA, **7-day** retention): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>`, `capture-cols-fail-<sha>`, `redirect-fail-headers-<sha>`. **`capture-cols-fail-<sha>` retention matches `capture-last-fail-<sha>` (both 7-day)** — three-column `CAPTURE_FORCE_COLS_FAIL` path uploads the cols artifact; deploy job short-SHA table lists the same name. Local: `CAPTURE_FORCE_FAIL=1 npm run capture:340-title` · `CAPTURE_FORCE_COLS_FAIL=1 npm run capture:1280`.
 
 ## Playwright pin
 

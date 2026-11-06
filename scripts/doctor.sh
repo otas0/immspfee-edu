@@ -35,6 +35,36 @@ clear_stale_sidecars() {
   fi
 }
 
+# Fixture: AUTO_ENSURE=0 clears dead sidecars without starting a server (no ensure, no fold/redirect).
+#   DOCTOR_FIXTURE=auto-ensure-0 bash scripts/doctor.sh
+if [[ "${DOCTOR_FIXTURE:-}" == "auto-ensure-0" ]]; then
+  PORT=4198
+  READY_FILE="$ROOT/.dev-server-${PORT}.ready"
+  PID_FILE="$ROOT/.dev-server-${PORT}.pid"
+  DOCTOR_AUTO_ENSURE=0
+  printf '%s\n' '{"pid":1}' >"$READY_FILE"
+  : >"$PID_FILE"
+  out="$(clear_stale_sidecars "fixture dead pid 1" 2>&1)"
+  if [[ -f "$READY_FILE" || -f "$PID_FILE" ]]; then
+    echo "FAIL doctor fixture: sidecars still present after clear" >&2
+    rm -f "$READY_FILE" "$PID_FILE"
+    exit 1
+  fi
+  # Tip may mention ensure-dev-server by name; the AUTO_ENSURE=1 invoke line must not appear.
+  if echo "$out" | grep -q 'DOCTOR_AUTO_ENSURE=1'; then
+    echo "FAIL doctor fixture: AUTO_ENSURE=0 must not take the ensure path" >&2
+    echo "$out" >&2
+    exit 1
+  fi
+  if ! echo "$out" | grep -q 'tip: restart with'; then
+    echo "FAIL doctor fixture: expected tip-only path" >&2
+    echo "$out" >&2
+    exit 1
+  fi
+  echo "ok doctor AUTO_ENSURE=0 fixture (clear sidecars, tip only, no server)"
+  exit 0
+fi
+
 echo "### doctor — local preview / university nav"
 echo ""
 

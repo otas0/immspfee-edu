@@ -10,6 +10,7 @@ assets/
 README.md
 AGENTS.md
 CONTRIBUTING.md
+.local-shots/README.md
 package.json
 sw.js
 index.html

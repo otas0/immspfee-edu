@@ -44,8 +44,7 @@ while (( i <= attempts )); do
     # Post-push fetch often flakes (Empty reply / 443). Never treat a landed push as failure —
     # soft-fetch, else confirm SHA via gh API and continue watch with that SHA.
     fetch_ok=0
-    if git fetch "$AUTH_URL" main:refs/remotes/origin/main 2>/dev/null \
-      || git fetch origin 2>/dev/null; then
+    if attempt_git_fetch "$AUTH_URL"; then
       fetch_ok=1
     else
       echo "post-push fetch timed out/failed; confirming SHA via gh API (resume watch)" >&2
@@ -388,26 +387,33 @@ print("upload:%s" % up_c)
 }
 
 # Mid-run (incl. env waiting): if any job already failed (e.g. capture red while deploy waits), flip ISSUE_TITLE.
+# Dedupe: console + summary share one identical string; noted at most once per watch.
 mid_fail_summary_noted=0
 maybe_mid_fail_title() {
-  local mid cap_note="" run_status="${1:-}"
+  local mid cap_note="" run_status="${1:-}" mid_line=""
   mid="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
     | length
   ' 2>/dev/null || echo 0)"
   if heartbeat_jobs_have_fail "$mid"; then
     set_issue_title failure
-    cap_note="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
+    cap_hit="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
       [.jobs[] | select((.name | test("capture"; "i")) and .conclusion == "failure") | .name]
-      | if length > 0 then " (capture already red while run status may still be waiting/in_progress)" else "" end
-    ' 2>/dev/null || true)"
-    if [[ -n "$cap_note" ]]; then
-      echo "mid-FAIL title${cap_note}"
-      if [[ "$run_status" == "waiting" && "$mid_fail_summary_noted" -eq 0 && -n "${SUMMARY_MD:-}" ]]; then
+      | length
+    ' 2>/dev/null || echo 0)"
+    if [[ "$cap_hit" =~ ^[1-9][0-9]*$ ]]; then
+      # Canonical string from heartbeat lib (console === summary).
+      mid_line="$(mid_fail_title_line)"
+      if [[ "$mid_fail_summary_noted" -eq 0 ]]; then
         mid_fail_summary_noted=1
-        summary_append "Mid-FAIL (waiting)" \
-          "mid-FAIL title${cap_note}" \
-          "Run was still \`waiting\` on github-pages while capture (or another job) already failed."
+        echo "$mid_line"
+        if [[ "$run_status" == "waiting" && -n "${SUMMARY_MD:-}" ]]; then
+          summary_append "Mid-FAIL (waiting)" \
+            "$mid_line" \
+            "Run was still \`waiting\` on github-pages while capture (or another job) already failed."
+        elif [[ -n "${SUMMARY_MD:-}" ]]; then
+          summary_append "Mid-FAIL" "$mid_line"
+        fi
       fi
     fi
   fi

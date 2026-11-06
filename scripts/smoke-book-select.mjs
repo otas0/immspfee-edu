@@ -409,7 +409,7 @@ if (!hasTwoRowTop(block768)) {
 }
 
 {
-  // Heartbeats FAIL mark + push-resume fixtures.
+  // Heartbeats FAIL mark + push-resume fixtures + doctor AUTO_ENSURE=0 (no server).
   const { spawnSync } = await import('node:child_process');
   const hb = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
     cwd: root,
@@ -422,7 +422,7 @@ if (!hasTwoRowTop(block768)) {
       status: hb.status, out: (hb.stdout || '').slice(0, 400), err: hb.stderr,
     });
   } else {
-    console.log('ok heartbeat FAIL fixture (**FAIL** prefix on failure conclusion)');
+    console.log('ok heartbeat FAIL fixture (**FAIL** prefix + mid-FAIL dedupe)');
   }
   const resume = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
     cwd: root,
@@ -435,7 +435,20 @@ if (!hasTwoRowTop(block768)) {
       status: resume.status, out: (resume.stdout || '').slice(0, 400), err: resume.stderr,
     });
   } else {
-    console.log('ok push-resume fixture (push ok + fetch fail + gh ok) + latest-SHA pick');
+    console.log('ok push-resume fixture (fetch mock + gh resume + latest-SHA pick)');
+  }
+  const doc = spawnSync('bash', ['scripts/doctor.sh'], {
+    cwd: root,
+    env: { ...process.env, DOCTOR_FIXTURE: 'auto-ensure-0' },
+    encoding: 'utf8',
+  });
+  if (doc.status !== 0 || !/ok doctor AUTO_ENSURE=0 fixture/.test(doc.stdout || '')) {
+    failed += 1;
+    console.error('FAIL doctor AUTO_ENSURE=0 fixture', {
+      status: doc.status, out: (doc.stdout || '').slice(0, 400), err: doc.stderr,
+    });
+  } else {
+    console.log('ok doctor AUTO_ENSURE=0 fixture (clear sidecars, tip only, no server)');
   }
 }
 

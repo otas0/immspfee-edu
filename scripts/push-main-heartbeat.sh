@@ -3,8 +3,15 @@
 # Sourced by push-main.sh; also runnable as fixtures:
 #   HEARTBEAT_FIXTURE=1 bash scripts/push-main-heartbeat.sh
 #   PUSH_RESUME_FIXTURE=1 bash scripts/push-main-heartbeat.sh
-#     → push ok + fetch fail + gh ok → resume watch
+#     → push ok + fetch fail (+ optional PUSH_FETCH_MOCK) + gh ok → resume watch
 set -euo pipefail
+
+# Canonical mid-FAIL line (console === summary; waiting-segment diff).
+# Cap note is fixed when any capture-named job is already red.
+MID_FAIL_CAPTURE_NOTE=' (capture already red while run status may still be waiting/in_progress)'
+mid_fail_title_line() {
+  echo "mid-FAIL title${MID_FAIL_CAPTURE_NOTE}"
+}
 
 # Format one Heartbeats bullet. fail_n: count of jobs with failure|cancelled|timed_out.
 heartbeat_format_row() {
@@ -19,6 +26,21 @@ heartbeat_format_row() {
 heartbeat_jobs_have_fail() {
   local fail_n="${1:-0}"
   [[ "$fail_n" =~ ^[1-9][0-9]*$ ]]
+}
+
+# Post-push git fetch (mockable). Real path: AUTH_URL then origin.
+#   PUSH_FETCH_MOCK=fail → return 1 (no network)
+#   PUSH_FETCH_MOCK=ok   → return 0 (no network)
+attempt_git_fetch() {
+  case "${PUSH_FETCH_MOCK:-}" in
+    fail) return 1 ;;
+    ok) return 0 ;;
+  esac
+  local auth_url="${1:-}"
+  if [[ -n "$auth_url" ]]; then
+    git fetch "$auth_url" main:refs/remotes/origin/main 2>/dev/null && return 0
+  fi
+  git fetch origin 2>/dev/null
 }
 
 # After a successful push: decide whether to continue watch.
@@ -73,16 +95,58 @@ if [[ "${HEARTBEAT_FIXTURE:-}" == "1" ]]; then
     echo "FAIL heartbeat fixture: heartbeat_jobs_have_fail" >&2
     exit 1
   fi
-  echo "ok heartbeat FAIL fixture (prefix + jobs_have_fail)"
+  # mid-FAIL: console and summary must share one identical string; dedupe once.
+  canon="$(mid_fail_title_line)"
+  if [[ "$canon" != "mid-FAIL title${MID_FAIL_CAPTURE_NOTE}" ]]; then
+    echo "FAIL heartbeat fixture: mid_fail_title_line drift" >&2
+    exit 1
+  fi
+  mid_fail_summary_noted=0
+  console_n=0
+  summary_n=0
+  last_console=""
+  last_summary=""
+  # Simulate two waiting-segment captures (would spam without flag).
+  for _ in 1 2; do
+    mid_line="$(mid_fail_title_line)"
+    if [[ "$mid_fail_summary_noted" -eq 0 ]]; then
+      mid_fail_summary_noted=1
+      last_console="$mid_line"
+      last_summary="$mid_line"
+      console_n=$((console_n + 1))
+      summary_n=$((summary_n + 1))
+    fi
+  done
+  if [[ "$console_n" -ne 1 || "$summary_n" -ne 1 || "$last_console" != "$last_summary" || "$last_console" != "$canon" ]]; then
+    echo "FAIL heartbeat fixture: mid-FAIL dedupe / console≠summary" >&2
+    echo "console_n=$console_n summary_n=$summary_n last_c=$last_console last_s=$last_summary" >&2
+    exit 1
+  fi
+  echo "ok heartbeat FAIL fixture (prefix + jobs_have_fail + mid-FAIL dedupe)"
   exit 0
 fi
 
 if [[ "${PUSH_RESUME_FIXTURE:-}" == "1" ]]; then
-  # push ok + fetch fail + gh ok → resume watch (do not treat as total failure).
-  out="$(post_push_confirm 'abc1234deadbeef' '' 0 1)" || rc=$?
+  # Real git-fetch mock (no network): fail then ok.
+  if PUSH_FETCH_MOCK=fail attempt_git_fetch 'https://example.invalid/immspfee-edu.git'; then
+    echo "FAIL push-resume fixture: PUSH_FETCH_MOCK=fail must return nonzero" >&2
+    exit 1
+  fi
+  if ! PUSH_FETCH_MOCK=ok attempt_git_fetch 'https://example.invalid/immspfee-edu.git'; then
+    echo "FAIL push-resume fixture: PUSH_FETCH_MOCK=ok must return 0" >&2
+    exit 1
+  fi
+  # Wire mock fail → fetch_ok=0 → gh_ok=1 → resume (same path as soft-fetch flake).
+  fetch_ok=0
+  if ! PUSH_FETCH_MOCK=fail attempt_git_fetch ''; then
+    fetch_ok=0
+  else
+    fetch_ok=1
+  fi
+  out="$(post_push_confirm 'abc1234deadbeef' '' "$fetch_ok" 1)" || rc=$?
   rc="${rc:-0}"
-  if [[ "$rc" -ne 0 || "$out" != "ok_gh_resume" ]]; then
-    echo "FAIL push-resume fixture: expected ok_gh_resume got rc=$rc out=$out" >&2
+  if [[ "$rc" -ne 0 || "$out" != "ok_gh_resume" || "$fetch_ok" != "0" ]]; then
+    echo "FAIL push-resume fixture: expected ok_gh_resume via fetch mock got rc=$rc out=$out fetch_ok=$fetch_ok" >&2
     exit 1
   fi
   out2="$(post_push_confirm 'abc1234deadbeef' 'abc1234deadbeef' 1 0)" || true
@@ -101,6 +165,6 @@ if [[ "${PUSH_RESUME_FIXTURE:-}" == "1" ]]; then
     echo "FAIL pick_latest_run_id_for_sha expected 99 got $picked" >&2
     exit 1
   fi
-  echo "ok push-resume fixture (push ok + fetch fail + gh ok) + latest-SHA pick"
+  echo "ok push-resume fixture (push ok + fetch fail + gh ok) + latest-SHA pick + PUSH_FETCH_MOCK"
   exit 0
 fi
