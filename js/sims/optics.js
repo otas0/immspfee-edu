@@ -332,7 +332,9 @@ export const refraction = {
 };
 
 function lensGeom(w, h, p, image) {
-  const midY = h * 0.56;
+  // Narrow (≤360): optical bench in the upper band; readout panel stacks below.
+  const narrow = w <= 360;
+  const midY = narrow ? h * 0.28 : h * 0.56;
   const cx = w * 0.48;
   const reach = Math.max(
     p.u, p.f * 2.3, p.screen,
@@ -340,7 +342,7 @@ function lensGeom(w, h, p, image) {
     20,
   );
   const px = Math.min((cx - 28) / reach, (w - 28 - cx) / reach);
-  return { midY, cx, px };
+  return { midY, cx, px, narrow };
 }
 
 export const convexLens = {
@@ -401,14 +403,16 @@ export const convexLens = {
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
     const g = lensGeom(w, h, p, d);
-    const { midY, cx, px } = g;
+    const { midY, cx, px, narrow } = g;
+    const lensH = narrow ? 42 : 78;
+    const scrH = narrow ? 36 : 70;
     line(ctx, 16, midY, w - 16, midY, '#cfc6b8', 1);
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(cx, midY - 78);
-    ctx.quadraticCurveTo(cx + 16, midY, cx, midY + 78);
-    ctx.quadraticCurveTo(cx - 16, midY, cx, midY - 78);
+    ctx.moveTo(cx, midY - lensH);
+    ctx.quadraticCurveTo(cx + 16, midY, cx, midY + lensH);
+    ctx.quadraticCurveTo(cx - 16, midY, cx, midY - lensH);
     ctx.stroke();
     const markF = (xCm, label) => {
       const x = cx + xCm * px;
@@ -426,7 +430,7 @@ export const convexLens = {
       markF(2 * p.f, '2F');
       markF(-2 * p.f, '2F');
     }
-    const limit = h * 0.42;
+    const limit = narrow ? h * 0.18 : h * 0.42;
     const yOf = (cm) => {
       if (!Number.isFinite(cm)) return midY;
       const drawn = Math.max(-limit, Math.min(limit, cm * px));
@@ -437,8 +441,8 @@ export const convexLens = {
     arrow(ctx, ox, midY, ox, oy, RAY, 3);
     const scrX = cx + p.screen * px;
     if (d.kind !== 'virtual' || ui.wrong) {
-      line(ctx, scrX, midY - 70, scrX, midY + 70, d.aligned && d.catchesImage ? '#2a6b3a' : MUTED, 3);
-      text(ctx, lab(ui, 'screen', '光屏'), scrX, midY - 80, MUTED, 11, 'center');
+      line(ctx, scrX, midY - scrH, scrX, midY + scrH, d.aligned && d.catchesImage ? '#2a6b3a' : MUTED, 3);
+      text(ctx, lab(ui, 'screen', '光屏'), scrX, midY - scrH - 10, MUTED, 11, 'center');
     }
     if (Number.isFinite(d.v)) {
       const ix = cx + d.v * px;
@@ -455,7 +459,7 @@ export const convexLens = {
         line(ctx, ox, oy, ix, iy, RAY2, 1.25);
       }
       if (d.catchesImage && !d.aligned) {
-        const blur = Math.min(36, Math.abs(d.blurCm) * px);
+        const blur = Math.min(narrow ? 22 : 36, Math.abs(d.blurCm) * px);
         ctx.strokeStyle = 'rgba(196,73,29,0.7)';
         ctx.strokeRect(scrX - 8, midY - blur, 16, blur * 2);
       }
@@ -466,6 +470,27 @@ export const convexLens = {
     }
     handle(ctx, ox, oy, ui.drag === 'obj');
     handle(ctx, scrX, midY, ui.drag === 'scr');
+    if (narrow) {
+      const panelX = w * 0.06;
+      const panelY = h * 0.52;
+      const panelW = w * 0.88;
+      const panelH = h * 0.44;
+      teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'image / screen', '像 · 光屏'));
+      const vText = Number.isFinite(d.v) ? `v=${fmt(d.v, 1)} cm` : 'v=∞';
+      const mText = Number.isFinite(d.m) ? `m=${fmt(d.m, 2)}` : 'm=—';
+      const zhKind = { real: '实像', virtual: '虚像', none: '不成像' };
+      text(ctx, `${vText}  ${mText}`, panelX + panelW / 2, panelY + panelH * 0.38, INK, 13, 'center');
+      text(ctx, zhKind[d.kind] || d.kind, panelX + panelW / 2, panelY + panelH * 0.58, MUTED, 12, 'center');
+      text(
+        ctx,
+        d.catchesImage ? (d.aligned ? '光屏：清晰' : `光屏：模糊 ${fmt(d.blurCm, 1)} cm`) : '光屏：无实像',
+        panelX + panelW / 2,
+        panelY + panelH * 0.78,
+        MUTED,
+        11,
+        'center',
+      );
+    }
     ui._geo = { ...g, ox, oy, scrX };
   },
   pointer(ev, _p, _d, ui) {

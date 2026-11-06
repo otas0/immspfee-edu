@@ -52,6 +52,21 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
+      - name: Audit physics closed-forms + ready computes
+        run: node scripts/audit-physics.mjs
+      - name: Bench university first-frame (subject volumes)
+        run: |
+          out=$(node scripts/bench-uni-first-frame.mjs)
+          echo "$out"
+          {
+            echo "### University first-frame bench"
+            echo ""
+            echo '```json'
+            echo "$out" | sed -n '/^{/,/^}/p'
+            echo '```'
+            echo ""
+            echo "_Node cold import; browser network differs. Subject volumes cut idle prefetch vs one uni blob._"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Smoke ready sim modules
         run: node scripts/smoke-sims.mjs
       - name: Lint teach dual-view layout
@@ -188,7 +203,7 @@ jobs:
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
       # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
-      # (post-volume-split): latest release still v5.0.1 — no v5.0.2+ tag; hold pin, do not bump.
+      # (post-audit batch): latest release still v5.0.1 — no v5.0.2+; #433 PR open upstream; hold pin.
       # When #413 ships a patch (v5.0.2+), bump immediately and confirm DEP0040 gone before merge.
       # Keep this bump track separate from push-main watch-flake soft-ok work.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
@@ -434,6 +449,20 @@ jobs:
       - name: Ensure preview for capture
         if: steps.pw.outputs.have == '1'
         run: bash scripts/ensure-dev-server.sh --no-exec --quiet
+      - name: Probe uni-cm first-open prefetch surface
+        if: steps.pw.outputs.have == '1'
+        run: |
+          out=$(PREVIEW_BASE=http://127.0.0.1:4174 node scripts/probe-uni-prefetch.mjs)
+          echo "$out"
+          {
+            echo "### University uni-cm Network prefetch"
+            echo ""
+            echo '```json'
+            echo "$out" | sed -n '/^{/,/^}/p'
+            echo '```'
+            echo ""
+            echo "_Cold open \`#/university/uni-cm-1\` — expect \`advance.js\` only among lesson groups (no optics/stat/phase)._"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Force-fail capture summary template
         id: force_fail
         if: steps.pw.outputs.have == '1'

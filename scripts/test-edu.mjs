@@ -429,6 +429,8 @@ assert(flatten(pep).some((row) => row.section.title.zh.includes('机械效率'))
 assert(flatten(pep).some((row) => row.section.title.zh.includes('同一直线上二力的合成')), 'pep collinear section');
 const pepWatch = flatten(pep).find((row) => row.lesson.id === 'pep-1-1b');
 assert(pepWatch?.lesson.sim === 'stopwatch' && pepWatch.lesson.preset?.t === 12.5, 'pep stopwatch beside ruler');
+assert(!flatten(pep).some((row) => row.section.id === 'pep-1-1' && (row.lesson.sim === 'balance' || row.lesson.sim === 'thermometer')), 'pep-1-1 stays length/time only');
+assert(flatten(junior).some((row) => row.lesson.preset?.blockHousehold === true && (row.lesson.preset?.layout === 'series' || row.lesson.preset?.layout === 'parallel')), 'series/parallel half-lock blockHousehold');
 const uniBook = getBook('university');
 assert(uniBook.volumes.length >= 7 && uniBook.volumes.every((v) => v.id.startsWith('uni-')), 'university subject volumes');
 assert(uniBook.chapters.every((ch) => uniBook.volumes.some((v) => v.id === ch.volume)), 'each uni chapter maps a subject volume');

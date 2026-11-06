@@ -328,13 +328,13 @@ export const shanghaiJunior = {
         R('shj-11-4a', 'circuit', '通路、断路、短路', 'Closed, open, short',
           '从一个接线柱拖到另一个接线柱来连线。开关断开是断路。把电源正负极直接连上是短路，电流变为 E/r。',
           'Drag from one terminal to another to connect them. An open switch is an open circuit. A wire across the battery is a short, and the current becomes E/r.',
-          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 }, true),
+          { blockHousehold: true, layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 }, true),
       ]),
       S('shj-11-5', '串联电路和并联电路中电流、电压的特点', 'Current and voltage rules', [
         R('shj-11-5a', 'circuit', '电流电压分配', 'How I and U split',
           '串联时各电阻电流相同。改成并联后，各支路电压相同，电流按电阻分配。',
           'In series the resistors carry the same current. Rewire them in parallel and they share the voltage, while the currents split by resistance.',
-          { layout: 'parallel', links: 'bp-s1,s2-a1,s2-b1,a2-bn,b2-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 }),
+          { blockHousehold: true, layout: 'parallel', links: 'bp-s1,s2-a1,s2-b1,a2-bn,b2-bn', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10 }),
       ]),
     ]),
     C('shj-12', 'g9v1', '欧姆定律', 'Ohm’s law', [
@@ -361,7 +361,7 @@ export const shanghaiJunior = {
         R('shj-12-4a', 'circuit', '串并联电阻', 'Series and parallel resistors',
           '串联时电流相同、电阻相加；并联时电压相同、电导相加。用初始接法切换串并联，看 I 和 U 怎么分。',
           'In series the current is shared and resistances add; in parallel the voltage is shared and conductances add. Switch the starter wiring and watch how I and U split.',
-          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 4, R2: 12, Rs: 10 }),
+          { blockHousehold: true, layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 4, R2: 12, Rs: 10 }),
       ]),
     ]),
     C('shj-13', 'g9v1', '电功率', 'Electric power', [
@@ -369,19 +369,19 @@ export const shanghaiJunior = {
         R('shj-13-1a', 'circuit', '电功', 'Electrical work',
           '同一稳态电路上，R1 的电功是 W = U I t。改时间 t，W 按比例变。',
           'On the same steady circuit, the work in R1 is W = U I t. Change t and W scales with it.',
-          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 10 }),
+          { blockHousehold: true, layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 10 }),
       ]),
       S('shj-13-2', '电功率', 'Electric power', [
         R('shj-13-2a', 'circuit', '电功率', 'Electric power',
           'P = U I。功率不依赖 t；焦耳热才乘时间。',
           'P = U I. Power does not depend on t; Joule heat does.',
-          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 5 }),
+          { blockHousehold: true, layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 6, R2: 0, Rs: 0, t: 5 }),
       ]),
       S('shj-13-3', '焦耳定律', 'Joule heating', [
         R('shj-13-3a', 'circuit', '焦耳定律', 'Joule’s law',
           '纯电阻上 Q = I² R t，并且等于 W = U I t。暖色块跟着 Q 加深。',
           'On a pure resistor Q = I² R t, and that equals W = U I t. The warm fill tracks Q.',
-          { layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 8, R2: 0, Rs: 0, t: 20 }, true),
+          { blockHousehold: true, layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn', closed: true, E: 6, r: 0.5, R1: 8, R2: 0, Rs: 0, t: 20 }, true),
       ]),
       S('shj-13-4', '家庭电路', 'Household circuits', [
         R('shj-13-4a', 'circuit', '家庭电路', 'Household circuit',

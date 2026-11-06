@@ -13,6 +13,12 @@ const LAYOUTS = [
   { value: 'household', en: 'Household', zh: '家庭电路' },
 ];
 
+/** Series/parallel lessons: allow rewiring among lab starters, but never jump to household. */
+function layoutChoices(p) {
+  if (p?.blockHousehold) return LAYOUTS.filter((row) => row.value !== 'household');
+  return LAYOUTS;
+}
+
 /** Schematic ports live in the upper band only; the I–U panel is drawn below. */
 function portsOf(w, h) {
   const yTop = h * 0.2;
@@ -46,13 +52,14 @@ export const circuitSim = {
     R2: 6,
     Rs: 10,
     t: 0,
-    // Curricula set lockLayout: true on ohm/household so Explore cannot jump to another starter.
+    // Curricula: lockLayout on ohm/household; blockHousehold on series/parallel (half-lock).
     lockLayout: false,
+    blockHousehold: false,
   },
   schema: (p) => [
     ...(p.lockLayout
       ? []
-      : [sel('layout', 'Starter wiring', '初始接法', LAYOUTS)]),
+      : [sel('layout', 'Starter wiring', '初始接法', layoutChoices(p))]),
     tog('closed', 'Switch closed', '开关闭合'),
     num('E', 'Emf E', '电动势 E', 'V', 0.5, 12, 0.1),
     num('r', 'Internal r', '内阻 r', 'Ω', 0.1, 5, 0.1),
@@ -63,6 +70,7 @@ export const circuitSim = {
   ],
   onParam(key, value, next) {
     if (key === 'layout' && next?.lockLayout) return {};
+    if (key === 'layout' && value === 'household' && next?.blockHousehold) return {};
     if (key === 'layout' && CIRCUIT_LINKS[value]) return { links: CIRCUIT_LINKS[value] };
     return {};
   },

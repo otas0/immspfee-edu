@@ -117,9 +117,14 @@ export const isingSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cell = Math.min((w * 0.32) / d.N, (h * 0.55) / d.N);
-    const x0 = w * 0.06;
-    const y0 = h * 0.22;
+    // Wide: lattice left / |M|(T) right. Narrow (≤360): lattice on top, curve below.
+    const narrow = w <= 360;
+    const cell = Math.min(
+      (narrow ? w * 0.7 : w * 0.32) / d.N,
+      (narrow ? h * 0.32 : h * 0.55) / d.N,
+    );
+    const x0 = narrow ? (w - cell * d.N) / 2 : w * 0.06;
+    const y0 = narrow ? h * 0.08 : h * 0.22;
     const side = Math.ceil(cell * d.N);
     const spins = ui.wrong ? d.playSpins.map(() => 1) : d.playSpins;
     const step = d.paintStep || 1;
@@ -151,11 +156,11 @@ export const isingSim = {
     } else {
       paint(ctx, x0, y0);
     }
-    // |M|(T) panel on the right, clear of the lattice.
-    const panelX = w * 0.44;
-    const panelY = h * 0.16;
-    const panelW = w * 0.52;
-    const panelH = h * 0.72;
+    // |M|(T) panel: right on wide, under lattice on narrow.
+    const panelX = narrow ? w * 0.06 : w * 0.44;
+    const panelY = narrow ? h * 0.44 : h * 0.16;
+    const panelW = narrow ? w * 0.88 : w * 0.52;
+    const panelH = narrow ? h * 0.52 : h * 0.72;
     teachPanel(ctx, panelX, panelY, panelW, panelH);
     const gx = panelX + panelW * 0.1;
     const gy = panelY + panelH * 0.88;

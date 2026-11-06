@@ -314,6 +314,51 @@ let failed = 0;
     failed += 1;
     console.error('FAIL circuit lockLayout: onParam must no-op when locked', { blocked, allowed });
   } else console.log('ok circuit lockLayout hides starter + blocks onParam');
+
+  const half = { ...sim.params, blockHousehold: true, layout: 'series' };
+  const halfSchema = typeof sim.schema === 'function' ? sim.schema(half) : sim.schema;
+  const layoutField = halfSchema.find((f) => f.key === 'layout');
+  const opts = layoutField?.options || layoutField?.choices || [];
+  const values = opts.map((o) => o.value ?? o);
+  const halfBlock = sim.onParam?.('layout', 'household', half) || {};
+  const halfOk = sim.onParam?.('layout', 'parallel', half) || {};
+  if (!layoutField || values.includes('household') || !values.includes('series')) {
+    failed += 1;
+    console.error('FAIL circuit blockHousehold: schema must omit household', { values });
+  } else if (halfBlock.links || !halfOk.links) {
+    failed += 1;
+    console.error('FAIL circuit blockHousehold: onParam must block household only', { halfBlock, halfOk });
+  } else console.log('ok circuit blockHousehold half-lock');
+}
+
+{
+  const { ctx, w, h } = await runDraw('ising', 320, 480);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1) {
+    failed += 1;
+    console.error('FAIL ising@320: no |M| teachPanel');
+  } else {
+    const [, x, y, pw] = panels[0];
+    if (!(y >= h * 0.35 && x <= w * 0.15 && pw >= w * 0.7)) {
+      failed += 1;
+      console.error('FAIL ising@320: |M| panel should stack under lattice', { x, y, pw, w, h });
+    } else console.log('ok ising@320 stacked |M| panel', { y: y.toFixed(0), pw: pw.toFixed(0) });
+  }
+}
+
+{
+  const { ctx, w, h } = await runDraw('convex-lens', 320, 480);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1) {
+    failed += 1;
+    console.error('FAIL convex-lens@320: expected stacked image/screen panel');
+  } else {
+    const [, x, y, pw] = panels[0];
+    if (!(y >= h * 0.45 && x <= w * 0.15 && pw >= w * 0.7)) {
+      failed += 1;
+      console.error('FAIL convex-lens@320: readout panel under bench', { x, y, pw, w, h });
+    } else console.log('ok convex-lens@320 stacked panel', { y: y.toFixed(0), pw: pw.toFixed(0) });
+  }
 }
 
 {
