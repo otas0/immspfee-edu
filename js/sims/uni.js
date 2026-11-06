@@ -281,15 +281,16 @@ export const finiteWellSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    // Left: ψ on each bound level. Right: energy ladder vs ∞ well.
+    // Wide: ψ left / E ladder right. Narrow (≤360): ψ on top, ladder below.
+    const narrow = w <= 360;
     const leftX = w * 0.04;
-    const leftY = h * 0.12;
-    const leftW = w * 0.48;
-    const leftH = h * 0.8;
-    const rightX = w * 0.54;
-    const rightY = h * 0.12;
-    const rightW = w * 0.42;
-    const rightH = h * 0.8;
+    const leftY = narrow ? h * 0.1 : h * 0.12;
+    const leftW = narrow ? w * 0.92 : w * 0.48;
+    const leftH = narrow ? h * 0.42 : h * 0.8;
+    const rightX = narrow ? w * 0.04 : w * 0.54;
+    const rightY = narrow ? h * 0.54 : h * 0.12;
+    const rightW = narrow ? w * 0.92 : w * 0.42;
+    const rightH = narrow ? h * 0.42 : h * 0.8;
     teachPanel(ctx, leftX, leftY, leftW, leftH, lab(ui, 'ψ on levels', '能级上的 ψ'));
     teachPanel(ctx, rightX, rightY, rightW, rightH, lab(ui, 'E ladder', '能级梯子'));
     text(ctx, `T=${fmt(d.T, 3)}`, w * 0.5, h * 0.06, INK, 13, 'center');

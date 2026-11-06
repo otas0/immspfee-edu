@@ -6,6 +6,7 @@ const PATHS = {
   machines: './machines.js',
   circuits: './circuits.js',
   motion: './motion.js',
+  phase: './phase.js',
   advance: './advance.js',
   thermal: './thermal.js',
   measure: './measure.js',
@@ -16,6 +17,7 @@ const PATHS = {
   modern: './modern.js',
   uni: './uni.js',
   stat: './stat.js',
+  rel: './rel.js',
 };
 
 const MAP = {
@@ -57,9 +59,9 @@ const MAP = {
   'vt-area': ['motion', 'vtSim'],
   projectile: ['motion', 'projectileSim'],
   energy: ['motion', 'energySim'],
-  melting: ['motion', 'meltSim'],
-  boiling: ['motion', 'boilSim'],
-  sublimation: ['motion', 'sublimeSim'],
+  melting: ['phase', 'meltSim'],
+  boiling: ['phase', 'boilSim'],
+  sublimation: ['phase', 'sublimeSim'],
   oscillator: ['advance', 'oscillatorSim'],
   'rigid-disk': ['advance', 'rotorSim'],
   'pendulum-pair': ['advance', 'pendulumSim'],
@@ -120,7 +122,7 @@ const MAP = {
   membrane: ['stat', 'membraneSim'],
   'bell-singlet': ['stat', 'bellSim'],
   'stern-gerlach': ['stat', 'sternSim'],
-  'length-contraction': ['stat', 'lengthSim'],
+  'length-contraction': ['rel', 'lengthSim'],
   'laser-cavity': ['stat', 'cavitySim'],
   'thin-film': ['stat', 'filmSim'],
   'hydrogen-radial': ['stat', 'hydrogenRadialSim'],

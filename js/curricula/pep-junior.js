@@ -25,10 +25,14 @@ export const pepJunior = {
   chapters: [
     chapter('pep-1', 'g8a', '机械运动', 'Mechanical motion', [
       S('pep-1-1', '长度和时间的测量', 'Length and time', [
-        R('pep-1-1a', 'ruler', '刻度尺与停表', 'Ruler and stopwatch',
+        R('pep-1-1a', 'ruler', '刻度尺', 'Ruler',
           '刻度尺读数估到分度值下一位。同一测量方程挂在沪科第 1 章。',
           'Estimate one digit past the division. The same reading equation as Shanghai junior chapter 1.',
           { trueCm: 3.64, division: 0.1 }),
+        R('pep-1-1b', 'stopwatch', '停表', 'Stopwatch',
+          '停表读累计时间。预设与沪科「停表」课相同。',
+          'A stopwatch reads elapsed time. Same preset as Shanghai junior stopwatch.',
+          { t: 12.5 }),
       ]),
       S('pep-1-2', '运动的描述', 'Describing motion', [
         R('pep-1-2a', 'frames', '参照物', 'Reference frame',

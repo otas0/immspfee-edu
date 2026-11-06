@@ -5,20 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IMMSPFEE Education</title>
   <script>
-    // Once per tab session: drop Cache Storage and reopen with a fresh query so
-    // disk-cached modules cannot sit next to a newer curriculum.
+    // Per stamped build: drop Cache Storage once when __BUILD__ changes so
+    // disk-cached modules cannot sit next to a newer curriculum. Same build
+    // skips the wipe for the rest of the tab session.
     (function () {
       var KEY = 'immspfee-edu-hard-boot';
+      var BUILD = '__BUILD__';
       var u = new URL(location.href);
       try {
-        if (sessionStorage.getItem(KEY) === '1') {
+        if (sessionStorage.getItem(KEY) === BUILD) {
           if (u.searchParams.has('boot')) {
             u.searchParams.delete('boot');
             history.replaceState(null, '', u.pathname + u.search + u.hash);
           }
           return;
         }
-        sessionStorage.setItem(KEY, '1');
+        sessionStorage.setItem(KEY, BUILD);
       } catch (e) {
         return;
       }

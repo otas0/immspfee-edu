@@ -13,9 +13,17 @@ export const university = {
     zh: '不按“第四册”平铺。力学、电磁、热统、量子、波动、光学均已挂上公开教学关系仿真。',
     en: 'Not a fourth textbook. Mechanics, EM, thermal/stat, quantum, waves, and optics all mount public teaching simulations.',
   },
-  volumes: [{ id: 'uni', zh: '学科', en: 'Subjects' }],
+  volumes: [
+    { id: 'uni-cm', zh: '力学', en: 'Mechanics' },
+    { id: 'uni-em', zh: '电磁', en: 'EM' },
+    { id: 'uni-th', zh: '热统', en: 'Thermal' },
+    { id: 'uni-qm', zh: '量子', en: 'Quantum' },
+    { id: 'uni-wv', zh: '波动', en: 'Waves' },
+    { id: 'uni-op', zh: '光学', en: 'Optics' },
+    { id: 'uni-rel', zh: '相对论', en: 'Relativity' },
+  ],
   chapters: [
-    chapter('uni-cm', 'uni', '经典力学进阶', 'Classical mechanics', [
+    chapter('uni-cm', 'uni-cm', '经典力学进阶', 'Classical mechanics', [
       section('uni-cm-s', '经典力学进阶', 'Classical mechanics', [
         R('uni-cm-1', 'oscillator', '拉格朗日与哈密顿', 'Lagrangian and Hamiltonian',
           '弹簧振子 L = T − V，H = T + V。x = A cos(ωt) 同时满足牛顿第二定律和欧拉–拉格朗日方程，H 保持 ½kA²。',
@@ -39,7 +47,7 @@ export const university = {
           { m: 1, k: 4, A1: 0.4, A2: 0.25 }),
       ]),
     ]),
-    chapter('uni-em', 'uni', '电磁学进阶', 'Electromagnetism', [
+    chapter('uni-em', 'uni-em', '电磁学进阶', 'Electromagnetism', [
       section('uni-em-s', '电磁学进阶', 'Electromagnetism', [
         R('uni-em-1', 'maxwell-wave', '麦克斯韦方程组', 'Maxwell’s equations',
           '真空平面波：c = 1/√(μ0 ε0) = f λ，|B| = |E|/c。位移电流密度 Jd = ε0 ∂E/∂t。',
@@ -63,7 +71,7 @@ export const university = {
           { a: 0.05, f: 4e9 }),
       ]),
     ]),
-    chapter('uni-th', 'uni', '热与统计物理', 'Thermal and statistical physics', [
+    chapter('uni-th', 'uni-th', '热与统计物理', 'Thermal and statistical physics', [
       section('uni-th-s', '热与统计物理', 'Thermal and statistical physics', [
         R('uni-th-1', 'ideal-gas', '理想气体', 'Ideal gas',
           'pV = n R T，R = 8.314 J/(mol·K)。动理学压强见麦克斯韦分布课旁的 p = (1/3) ρ v_rms² 对照。',
@@ -87,7 +95,7 @@ export const university = {
           { W: 40, Q: -10 }),
       ]),
     ]),
-    chapter('uni-qm', 'uni', '量子物理', 'Quantum physics', [
+    chapter('uni-qm', 'uni-qm', '量子物理', 'Quantum physics', [
       section('uni-qm-s', '量子物理', 'Quantum physics', [
         R('uni-qm-1', 'wave-packet', '波包', 'Wave packet',
           '自由高斯波包：中心以 ℏ k0 / m 运动，宽度 σ(t) = σ0 √(1 + (ℏ t /(2 m σ0²))²) 展宽。',
@@ -119,7 +127,7 @@ export const university = {
           { alpha: 0, beta: 60 }, true),
       ]),
     ]),
-    chapter('uni-wv', 'uni', '振动与波进阶', 'Waves', [
+    chapter('uni-wv', 'uni-wv', '振动与波进阶', 'Waves', [
       section('uni-wv-s', '振动与波进阶', 'Waves', [
         R('uni-wv-1', 'coupled-pendula', '耦合摆', 'Coupled pendula',
           '两等长摆经弹簧耦合：能量在两摆之间交换；对称/反对称角频率差决定拍频。',
@@ -143,7 +151,7 @@ export const university = {
           { omega0: 2, c: 1, k: 1.5 }, true),
       ]),
     ]),
-    chapter('uni-op', 'uni', '光学进阶', 'Optics', [
+    chapter('uni-op', 'uni-op', '光学进阶', 'Optics', [
       section('uni-op-s', '光学进阶', 'Optics', [
         R('uni-op-1', 'double-slit', '双缝的定量', 'Double slit, quantitative',
           '杨氏双缝加单缝包络：I ∝ cos²(β) sinc²(α)，中央极大宽 ≈ 2 λ D / a，可拖宽条改 a。',
@@ -167,7 +175,7 @@ export const university = {
           { L: 0.5 }, true),
       ]),
     ]),
-    chapter('uni-rel', 'uni', '相对论初步', 'Relativity', [
+    chapter('uni-rel', 'uni-rel', '相对论初步', 'Relativity', [
       section('uni-rel-s', '相对论初步', 'Relativity', [
         R('uni-rel-1', 'time-dilation', '时间膨胀', 'Time dilation',
           'Δt = γ Δτ，γ = 1/√(1 − v²/c²)。',

@@ -322,7 +322,7 @@ export const shanghaiJunior = {
         R('shj-11-3a', 'circuit', '电压', 'Voltage',
           '电压表要并联在待测两端。读 U1，它等于 R1 上的电压。',
           'A voltmeter goes in parallel across the part you measure. Read U1, the voltage on R1.',
-          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }),
+          { lockLayout: true, layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }),
       ]),
       S('shj-11-4', '串联电路和并联电路', 'Series and parallel', [
         R('shj-11-4a', 'circuit', '通路、断路、短路', 'Closed, open, short',
@@ -342,20 +342,20 @@ export const shanghaiJunior = {
         R('shj-12-1a', 'circuit', '滑动变阻器', 'Rheostat',
           '拖动变阻器的滑片改变 Rs。定值电阻上的点沿着 U = I R1 移动。',
           'Drag the rheostat slider to change Rs. The point for the fixed resistor moves along U = I R1.',
-          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }),
+          { lockLayout: true, layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }),
       ]),
       S('shj-12-2', '电流与电压、电阻的关系', 'Current, voltage, resistance', [
         R('shj-12-2a', 'circuit', '欧姆定律', 'Ohm’s law',
           'I = U / R。图上的直线是定值电阻的 U = I R，圆点是当前读数。',
           'I = U / R. The line is U = I R for the fixed resistor, and the dot is the present reading.',
-          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }, true),
+          { lockLayout: true, layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }, true),
       ]),
 
       S('shj-12-3', '电阻的测量', 'Measuring resistance', [
         R('shj-12-3a', 'circuit', '伏安法', 'Voltmeter–ammeter',
           '闭合欧姆电路上 R = U / I。读 R1 两端的 U1 和 I1，它们的比就是电阻。',
           'On the closed Ohm circuit R = U / I. Read U1 and I1 across R1; their ratio is the resistance.',
-          { layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }, true),
+          { lockLayout: true, layout: 'ohm', links: 'bp-s1,s2-h1,h2-a1,a2-bn', closed: true, E: 6, r: 1, R1: 10, R2: 10, Rs: 10 }, true),
       ]),
       S('shj-12-4', '电阻的串联和并联', 'Combining resistors', [
         R('shj-12-4a', 'circuit', '串并联电阻', 'Series and parallel resistors',
@@ -387,7 +387,7 @@ export const shanghaiJunior = {
         R('shj-13-4a', 'circuit', '家庭电路', 'Household circuit',
           '火线、零线、地线。正常通路电流由用电器电阻决定；火零直接短接时 I = E/r。',
           'Live, neutral, and earth. On a closed path the load sets the current; a live–neutral short draws I = E/r.',
-          { layout: 'household', links: 'bp-s1,s2-a1,a2-bn', closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0, t: 1 }),
+          { lockLayout: true, layout: 'household', links: 'bp-s1,s2-a1,a2-bn', closed: true, E: 220, r: 2, R1: 484, R2: 0, Rs: 0, t: 1 }),
       ]),
     ]),
     C('shj-14', 'g9v2', '电与磁', 'Electricity and magnetism', [

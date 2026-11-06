@@ -31,7 +31,9 @@ When a finished-task push lands while a prior Pages run is still `queued` / `in_
 
 ### Check log (2026-11-06)
 
-- Scanned last 30 `pages.yml` runs on `otas0/immspfee-edu`: **no** `headSha` with 2+ runs (no live cancelled+queued pair in that window). Re-scanned post-`93d85fc`: still empty. Fixture coverage remains the authority until a real race appears — paste **both** run URLs here when it does (cancelled sibling + newest queued/in_progress).
+- Scanned last 30 `pages.yml` runs on `otas0/immspfee-edu`: **no** `headSha` with 2+ runs (no live cancelled+queued pair in that window). Re-scanned post-`93d85fc`: still empty. Re-scanned again after subject-volume / hard-boot batch (last 40 runs): still **pair_count 0**. Fixture coverage remains the authority until a real race appears — paste **both** run URLs here when it does (cancelled sibling + newest queued/in_progress), e.g.:
+  - cancelled: `https://github.com/otas0/immspfee-edu/actions/runs/<idA>`
+  - queued/newest: `https://github.com/otas0/immspfee-edu/actions/runs/<idB>`
 - Redirect retries diag on [run 42227103682](https://github.com/otas0/immspfee-edu/actions/runs/42227103682) (`a1f7c89`): `RR="0"` (numeric, non-empty) — empty-string `::warning` did **not** fire. Good wiring check for the non-empty path.
 - Soft-ok jobs-miss demo (local): `PUSH_WATCH_FLAKE_FIXTURE=1` writes `.local-shots/push-main-soft-ok-demo.md` containing `soft_ok_jobs_flake`.
 

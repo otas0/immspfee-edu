@@ -61,7 +61,7 @@ function scheduleIdle(fn, timeoutMs = 2500) {
   }
 }
 
-/** Prefetch current chapter sims first; remainder of the volume on idle (uni is one volume — avoid eager whole-book download). */
+/** Prefetch current chapter sims first; remainder of that volume on idle (university is split into subject volumes). */
 function prefetchOpenVolume() {
   const book = getBook(bookId);
   const current = findLesson(bookId, lessonId);

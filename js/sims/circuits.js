@@ -46,9 +46,13 @@ export const circuitSim = {
     R2: 6,
     Rs: 10,
     t: 0,
+    // Curricula set lockLayout: true on ohm/household so Explore cannot jump to another starter.
+    lockLayout: false,
   },
-  schema: [
-    sel('layout', 'Starter wiring', '初始接法', LAYOUTS),
+  schema: (p) => [
+    ...(p.lockLayout
+      ? []
+      : [sel('layout', 'Starter wiring', '初始接法', LAYOUTS)]),
     tog('closed', 'Switch closed', '开关闭合'),
     num('E', 'Emf E', '电动势 E', 'V', 0.5, 12, 0.1),
     num('r', 'Internal r', '内阻 r', 'Ω', 0.1, 5, 0.1),
@@ -57,7 +61,8 @@ export const circuitSim = {
     num('Rs', 'Rheostat Rs', '变阻器 Rs', 'Ω', 0, 40, 0.5),
     num('t', 'Time t', '时间 t', 's', 0, 60, 0.5),
   ],
-  onParam(key, value) {
+  onParam(key, value, next) {
+    if (key === 'layout' && next?.lockLayout) return {};
     if (key === 'layout' && CIRCUIT_LINKS[value]) return { links: CIRCUIT_LINKS[value] };
     return {};
   },

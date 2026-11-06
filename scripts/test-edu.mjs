@@ -427,8 +427,15 @@ assert(pep.tocConfidence === 'grade8-2024', 'pep 2024 tree');
 assert(!pep.edition.zh.includes('2011'), 'pep edition no longer says 2011');
 assert(flatten(pep).some((row) => row.section.title.zh.includes('机械效率')), 'pep efficiency section');
 assert(flatten(pep).some((row) => row.section.title.zh.includes('同一直线上二力的合成')), 'pep collinear section');
-const uni = flatten(getBook('university')).filter((row) => row.chapter.id === 'uni-cm');
+const pepWatch = flatten(pep).find((row) => row.lesson.id === 'pep-1-1b');
+assert(pepWatch?.lesson.sim === 'stopwatch' && pepWatch.lesson.preset?.t === 12.5, 'pep stopwatch beside ruler');
+const uniBook = getBook('university');
+assert(uniBook.volumes.length >= 7 && uniBook.volumes.every((v) => v.id.startsWith('uni-')), 'university subject volumes');
+assert(uniBook.chapters.every((ch) => uniBook.volumes.some((v) => v.id === ch.volume)), 'each uni chapter maps a subject volume');
+assert(new Set(uniBook.chapters.map((ch) => ch.volume)).size >= 7, 'uni chapters span subject volumes (not one uni blob)');
+const uni = flatten(uniBook).filter((row) => row.chapter.id === 'uni-cm');
 assert(uni.length >= 5 && uni.every((row) => row.lesson.status === 'ready'), 'classical mechanics entrance');
+assert(uni.every((row) => row.chapter.volume === 'uni-cm'), 'uni-cm lessons stay in mechanics volume');
 
 const pepLens = flatten(getBook('pep-junior')).find((r) => r.lesson.sim === 'convex-lens');
 const shLens = flatten(junior).find((r) => r.lesson.sim === 'convex-lens');
@@ -436,6 +443,18 @@ assert(pepLens && shLens && pepLens.lesson.sim === shLens.lesson.sim, 'one lens 
 
 const indexHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 assert(!indexHtml.includes('id="edition"'), 'index has no edition strip');
+assert(indexHtml.includes("sessionStorage.getItem(KEY) === BUILD"), 'hard-boot keyed by stamped BUILD');
+assert(indexHtml.includes("var BUILD = '__BUILD__'"), 'hard-boot BUILD token stamped');
+assert(!/sessionStorage\.getItem\(KEY\) === '1'/.test(indexHtml), 'hard-boot no longer once-per-tab literal 1');
+const registryJs = readFileSync(new URL('../js/sims/registry.js', import.meta.url), 'utf8');
+assert(registryJs.includes("phase: './phase.js'"), 'phase sims live in phase.js group');
+assert(registryJs.includes("rel: './rel.js'"), 'relativity length-contraction lives in rel.js group');
+assert(registryJs.includes("melting: ['phase'"), 'melting maps to phase group');
+assert(registryJs.includes("'length-contraction': ['rel'"), 'length-contraction maps to rel group');
+const motionSimSrc = readFileSync(new URL('../js/sims/motion.js', import.meta.url), 'utf8');
+assert(!motionSimSrc.includes('meltSim'), 'motion.js no longer exports phase sims');
+const statSimSrc = readFileSync(new URL('../js/sims/stat.js', import.meta.url), 'utf8');
+assert(!statSimSrc.includes('lengthSim'), 'stat.js no longer exports length-contraction');
 const appJs = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
 assert(!appJs.includes('readyCount'), 'app has no readyCount');
 assert(!/t\(lang,\s*['"]exam['"]\)/.test(appJs), 'app has no exam chip');

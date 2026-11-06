@@ -14,6 +14,7 @@
     "capture:340-title": "node scripts/capture-340px-long-title.mjs",
     "capture:1280": "node scripts/capture-1280-desktop.mjs",
     "smoke:live-getsim": "node scripts/smoke-live-getsim.mjs",
+    "bench:uni-first": "node scripts/bench-uni-first-frame.mjs",
     "pw:pin-dry-run": "node scripts/playwright-pin-issue-dry-run.mjs",
     "doctor": "bash scripts/doctor.sh",
     "offline-first:dry-run": "node scripts/offline-first-lockstep-dry-run.mjs",

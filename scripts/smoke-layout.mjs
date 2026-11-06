@@ -166,6 +166,37 @@ let failed = 0;
 }
 
 {
+  const { ctx, w, h } = await runDraw('finite-well', 320, 480);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 2) {
+    failed += 1;
+    console.error('FAIL finite-well@320: expected two stacked teachPanels', panels.length);
+  } else {
+    const top = panels[0];
+    const bot = panels[1];
+    if (!(top[1] <= w * 0.1 && bot[1] <= w * 0.1 && top[3] >= w * 0.7 && bot[2] > top[2] + h * 0.25)) {
+      failed += 1;
+      console.error('FAIL finite-well@320: panels should stack full-width', { top, bot, w, h });
+    } else console.log('ok finite-well@320 stacked panels', { topY: top[2].toFixed(0), botY: bot[2].toFixed(0) });
+  }
+}
+
+{
+  const { ctx, w, h } = await runDraw('double-slit', 320, 480);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1) {
+    failed += 1;
+    console.error('FAIL double-slit@320: no teachPanel');
+  } else {
+    const [, x, y, pw] = panels[0];
+    if (!(y >= h * 0.2 && x <= w * 0.15 && pw >= w * 0.7)) {
+      failed += 1;
+      console.error('FAIL double-slit@320: intensity panel should sit under slits', { x, y, pw, w, h });
+    } else console.log('ok double-slit@320 stacked panel', { y: y.toFixed(0), pw: pw.toFixed(0) });
+  }
+}
+
+{
   const { ctx, w } = await runDraw('finite-well', 640, 400, { wrong: true });
   const tags = ctx.ops.filter((o) => o[0] === 'fillText' && /^∞\d+$/.test(o[1]));
   const clipped = tags.filter((o) => o[2] > w * 0.96);
@@ -265,6 +296,24 @@ let failed = 0;
     failed += 1;
     console.error('FAIL load-bypassed: Path readout should warn (#a33) to match canvas');
   } else console.log('ok load-bypassed EN/ZH + warn', val);
+}
+
+{
+  const sim = await getSim('circuit');
+  const locked = { ...sim.params, lockLayout: true, layout: 'ohm' };
+  const schema = typeof sim.schema === 'function' ? sim.schema(locked) : sim.schema;
+  const hasLayout = schema.some((f) => f.key === 'layout');
+  const unlocked = typeof sim.schema === 'function' ? sim.schema({ ...sim.params, lockLayout: false }) : sim.schema;
+  const hasUnlocked = unlocked.some((f) => f.key === 'layout');
+  const blocked = sim.onParam?.('layout', 'household', locked) || {};
+  const allowed = sim.onParam?.('layout', 'series', { ...sim.params, lockLayout: false }) || {};
+  if (hasLayout || !hasUnlocked) {
+    failed += 1;
+    console.error('FAIL circuit lockLayout: schema should hide layout when locked', { hasLayout, hasUnlocked });
+  } else if (blocked.links || !allowed.links) {
+    failed += 1;
+    console.error('FAIL circuit lockLayout: onParam must no-op when locked', { blocked, allowed });
+  } else console.log('ok circuit lockLayout hides starter + blocks onParam');
 }
 
 {
