@@ -1,9 +1,9 @@
-import { fmt } from '../fmt.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
 import {
   vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell, finiteWell,
   transmissionLine, imageCharge, waveguideCutoff, dipolePattern,
-} from '../physics/uni.js';
-import { num, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+} from '../physics/uni.js?v=__BUILD__';
+import { num, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

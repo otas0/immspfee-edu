@@ -17,16 +17,29 @@ const REQUIRED = [
 
 /**
  * Policy: only rewrite files that already contain the build opt-in token.
- * Do not blanket-edit every js/** file — physics/sim modules stay token-free and
- * get cache-busting via registry / curricula imports instead.
+ * Do not blanket-edit every js/** file — physics modules stay token-free;
+ * sims import them with ?v=<TOKEN> (stamped in each js/sims/*.js).
+ *
+ * Never stamp scripts/ (especially test-edu.mjs). A dry-run that rewrote
+ * assert('?v=__BUILD__') into assert('?v=testdev') already bit once.
  *
  * ui-chrome.js / uni-fold.js stay off REQUIRED and off sw.js PRECACHE: app.js
- * imports them with ?v=__BUILD__ (stamped in app.js). Revisit triggers:
+ * imports them with ?v=<TOKEN> (stamped in app.js). Revisit triggers:
  * docs/adr/001-ui-chrome-precache.md.
  */
+function shouldScan(rel) {
+  const n = rel.replace(/\\/g, '/');
+  if (n.startsWith('scripts/')) return false;
+  if (n.startsWith('_site/')) return false;
+  if (n.startsWith('.local-shots/')) return false;
+  if (n.startsWith('node_modules/')) return false;
+  if (n.includes('test-edu') || /(^|\/)test[^/]*$/i.test(n)) return false;
+  return true;
+}
+
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name === '.git') continue;
+    if (name === 'node_modules' || name === '.git' || name === '_site') continue;
     const p = join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) walk(p, out);
@@ -37,8 +50,10 @@ function walk(dir, out = []) {
 
 const found = new Set(REQUIRED);
 for (const file of walk('.')) {
+  const rel = file.replace(/^\.\//, '');
+  if (!shouldScan(rel)) continue;
   const text = readFileSync(file, 'utf8');
-  if (text.includes(TOKEN)) found.add(file.replace(/^\.\//, ''));
+  if (text.includes(TOKEN)) found.add(rel);
 }
 
 let stamped = 0;

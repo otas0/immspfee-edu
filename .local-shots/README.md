@@ -4,7 +4,7 @@
 
 PNGs here are **not** committed (see `.gitignore`). Regenerate after chrome or projectile layout changes.
 
-Local `push-main` writes a paste-ready run summary to `push-main-last-summary.md` in this folder (gitignored).
+Local `push-main` writes a paste-ready run summary to `push-main-last-summary.md` in this folder (gitignored). The file opens with a **Copy to issue title** line and appends job-status heartbeats while the Pages run is watched.
 
 ## Book title strategy (321–360 vs ≤320)
 

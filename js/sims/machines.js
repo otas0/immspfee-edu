@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { lever, pulley, workPower } from '../physics/machines.js';
-import { num, clear, line, arrow, text, handle, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { lever, pulley, workPower } from '../physics/machines.js?v=__BUILD__';
+import { num, clear, line, arrow, text, handle, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

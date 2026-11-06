@@ -132,9 +132,17 @@ function matchPseudo(el, name) {
   return false;
 }
 
+/** Explicitly reject unsupported selectors (minimal surface — no :not()). */
+function assertSupportedSel(sel) {
+  const s = String(sel || '');
+  if (/:not\s*\(/i.test(s)) {
+    throw new Error('dom-lite does not support :not()');
+  }
+}
+
 /**
  * Supports tag, .class, [attr], compounds, and :first-child / :last-child
- * (e.g. span.fold-hint:first-child).
+ * (e.g. span.fold-hint:first-child). :not() is rejected — see assertSupportedSel.
  */
 function matchSel(el, sel) {
   let s = String(sel || '').trim();
@@ -284,6 +292,7 @@ function splitCombinators(raw) {
 
 function queryIn(root, sel) {
   const raw = String(sel || '').trim();
+  assertSupportedSel(raw);
   if (raw.includes(',')) {
     for (const part of raw.split(',')) {
       const hit = queryIn(root, part.trim());
@@ -321,6 +330,7 @@ function queryIn(root, sel) {
 
 function collect(root, sel, out) {
   const raw = String(sel || '').trim();
+  assertSupportedSel(raw);
   if (raw.includes(',')) {
     for (const part of raw.split(',')) collect(root, part.trim(), out);
     return;

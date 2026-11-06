@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { circuit, electricalEnergy, toggleLink, CIRCUIT_LINKS, acPeakRms, transformer } from '../physics/circuits.js';
-import { num, sel, tog, clear, line, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { circuit, electricalEnergy, toggleLink, CIRCUIT_LINKS, acPeakRms, transformer } from '../physics/circuits.js?v=__BUILD__';
+import { num, sel, tog, clear, line, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

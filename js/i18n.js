@@ -35,7 +35,7 @@ export const STR = {
     about: 'About',
     sources: 'This edition is separate from the standard lab. The lab keeps its own site and repository.',
     labLink: 'Open the standard lab (separate site)',
-    labRepo: 'Lab repository: github.com/otas0/immspfee (not this project\'s remote).',
+    labRepo: 'Lab repository: github.com/otas0/immspfee (not this project’s remote).',
     swUpdate: 'Site updated',
     swReload: 'Reload',
     importFail: 'A simulation module failed to load. Try Reload, or open with ?dev=1 for details.',

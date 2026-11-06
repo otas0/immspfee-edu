@@ -30,9 +30,9 @@ Pages uses `concurrency.cancel-in-progress: true` so the latest main wins. Keep 
 
 After each push, watch the Pages workflow until it succeeds (`push-main.sh` does this), or report the failure. If the run stays in `waiting`, the github-pages environment needs approval—`push-main.sh` prints the Actions URL and keeps waiting.
 
-`scripts/stamp-build.mjs` rewrites only files that opt in with a `__BUILD__` token (plus a small required entry list). Do not blanket-stamp every `js/**` module; physics/sim code stays token-free and is busted through `registry` / curricula imports (`?v=__BUILD__`). Keep `sw.js` PRECACHE aligned with `index.html` modulepreload and that required stamp set.
+`scripts/stamp-build.mjs` rewrites only files that opt in with a `__BUILD__` token (plus a small required entry list). Never stamp `scripts/` (especially `test-edu.mjs` asserts). Physics modules stay token-free; `js/sims/*.js` import `kit.js` / `physics/*` / `fmt.js` with `?v=__BUILD__`. Keep `sw.js` PRECACHE aligned with `index.html` modulepreload and that required stamp set.
 
-Pages runs on `ubuntu-latest`. GitHub is migrating that label toward Ubuntu 26; pin or re-test when the runner image changes so Node 24 and the Pages actions stay green.
+Pages runners are pinned to `ubuntu-24.04` (not the floating `ubuntu-latest` label). When GitHub moves the default image toward Ubuntu 26, re-run a green Pages deploy on a dry branch first so Node 24 and the Pages actions stay green.
 
 Lesson commits contain equations, simulations, curricula, and tests only. Logo commits contain only the logo asset, header CSS, and README URL lines. Never mix them.
 

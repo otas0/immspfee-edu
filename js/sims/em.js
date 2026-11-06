@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { barMagnet, solenoidField, ampereForce, inductionRod, lorentzForce, cyclotronRadius } from '../physics/em.js';
-import { num, tog, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { barMagnet, solenoidField, ampereForce, inductionRod, lorentzForce, cyclotronRadius } from '../physics/em.js?v=__BUILD__';
+import { num, tog, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

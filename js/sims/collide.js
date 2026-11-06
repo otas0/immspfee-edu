@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { collide1d } from '../physics/collide.js';
-import { num, sel, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { collide1d } from '../physics/collide.js?v=__BUILD__';
+import { num, sel, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

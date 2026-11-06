@@ -29,9 +29,10 @@ npm run preview          # 探测 4174，失败才启动
 npm start -- --verbose   # 复用 4174 时恢复双语横幅（默认 quiet）
 npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 --no-exec 再拍）
 CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow/topH 摘要模板
+npm run pw:pin-dry-run     # Playwright pin → issue 逻辑 dry-run（不建 issue；见 package.json scripts）
 ```
 
-无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。CI 另有一步 `CAPTURE_FORCE_FAIL=1`（`continue-on-error`）专门校验 capture 摘要模板。
+无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。CI 另有一步 `CAPTURE_FORCE_FAIL=1`（`continue-on-error`）专门校验 capture 摘要模板。`pw:pin-dry-run`（`package.json` scripts）只打印会 comment 还是 create，可用 `DRY_RUN_FIXTURE=closed` 测关闭后同 hash 新建。
 
 CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`（详见 [`.local-shots/README.md`](.local-shots/README.md)）。
 
@@ -44,7 +45,7 @@ npm start
 
 There is **no** `pretest` hook. Use `npm test` (includes rename redirect; soft-skips when GitHub is unreachable) or `npm run test:offline` when you want to skip redirect entirely.
 
-CI artifact names (short SHA): `capture-340px-zh-long-title-<sha>`, `capture-last-fail-<sha>`, `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md).
+CI artifact names (short SHA): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>`, `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
 
 `npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 
@@ -80,7 +81,7 @@ curl -sI http://127.0.0.1:4174/
 
 Safari still shows an old tab icon after a favicon rotate: quit browsers and run `bash scripts/clear-favicons.sh` from Terminal.app (needs Full Disk Access), or double-click `scripts/clear-favicons.command`.
 
-Each new browser tab hard-boots once (clears this site’s Cache Storage and reopens with a fresh query) so a stale module cannot sit next to a newer curriculum. If the chapter list and the stage still disagree after a deploy, close the tab and open the site again, or hard-refresh once. When a new service worker is waiting, the page shows a bilingual “Site updated / Reload” bar instead of auto-reloading—click Reload rather than waiting for an automatic refresh. About (textbook edition notes, the separate standard-lab link, and the lab repository path as plain text) sits at the bottom of the teach column, not under the header. Add `?dev` to surface module import failures as a toast. Opening a lesson also prefetches the other simulations in that volume so Explore does not flash an empty stage.
+Each new browser tab hard-boots once (clears this site’s Cache Storage and reopens with a fresh query) so a stale module cannot sit next to a newer curriculum. If the first screen fails to load a simulation after a deploy, click the bilingual “Site updated / Reload” bar (or hard-refresh once), then open the lesson again—do not keep retrying on a stale module graph. When a new service worker is waiting, that bar appears instead of auto-reloading. About (textbook edition notes, the separate standard-lab link, and the lab repository path as plain text) sits at the bottom of the teach column, not under the header. Add `?dev` to surface module import failures as a toast. Opening a lesson also prefetches the other simulations in that volume so Explore does not flash an empty stage.
 
 Switch the textbook in the header (narrow screens use a one-line book dropdown). Shanghai junior and PEP junior share one simulation pool; only the chapter order changes. Language is English by default, with 中文 for the same chrome.
 

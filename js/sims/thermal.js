@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { specificHeat, ottoCycle, STROKES } from '../physics/thermal.js';
-import { num, clear, line, text, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { specificHeat, ottoCycle, STROKES } from '../physics/thermal.js?v=__BUILD__';
+import { num, clear, line, text, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

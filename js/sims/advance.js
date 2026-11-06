@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes, coupledPendula } from '../physics/advance.js';
-import { num, clear, line, text, handle, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { oscillator, rigidDisk, pendulumPair, centralOrbit, normalModes, coupledPendula } from '../physics/advance.js?v=__BUILD__';
+import { num, clear, line, text, handle, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

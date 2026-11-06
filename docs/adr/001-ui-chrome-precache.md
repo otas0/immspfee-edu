@@ -77,5 +77,6 @@ Paste into the PR / issue that flips offline-first. Tick every box before mergin
 - [ ] `index.html` modulepreload, `sw.js` PRECACHE, and `stamp-build.mjs` REQUIRED stay in lockstep.
 - [ ] `npm test` + one-shot offline boot stay green with both files listed.
 - [ ] `OFFLINE_FIRST=1` documented in the flip PR; default remains unset/`0` on `main` until then.
+- [ ] **Pages env must not set `OFFLINE_FIRST`** (repo / environment / workflow `env:` stay unset/`0` on `main` until the flip PR).
 
 When all boxes are checked: add `js/ui-chrome.js` and `js/uni-fold.js` to **both** stamp REQUIRED and `sw.js` PRECACHE in the same commit.

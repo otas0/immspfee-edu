@@ -1,9 +1,9 @@
-import { fmt } from '../fmt.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
 import {
   DENSITIES, densityOf, densityLab, solidPressure, hydrostatics, torricelli,
   bernoulliPipe, wingLift, buoyancyOrigin, weighingBuoyancy, archimedes, floatState,
-} from '../physics/fluids.js';
-import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2, WATER, WATER_EDGE } from './kit.js';
+} from '../physics/fluids.js?v=__BUILD__';
+import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2, WATER, WATER_EDGE } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { tuningFork, emWave, soundAbsorb, echoRange, doppler, beats, dispersion } from '../physics/waves.js';
-import { num, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { tuningFork, emWave, soundAbsorb, echoRange, doppler, beats, dispersion } from '../physics/waves.js?v=__BUILD__';
+import { num, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

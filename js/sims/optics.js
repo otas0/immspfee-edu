@@ -1,9 +1,9 @@
-import { fmt } from '../fmt.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
 import {
   pinholeImage, reflectionLaw, planeMirrorImage, snell, thinLens, lensScreen, spectacle,
   doubleSlit, doubleSlitIntensity, malus, telescope, singleSlit,
-} from '../physics/optics.js';
-import { num, sel, tog, clear, line, arrow, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+} from '../physics/optics.js?v=__BUILD__';
+import { num, sel, tog, clear, line, arrow, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) {
   return { id, en, zh, options, answer };

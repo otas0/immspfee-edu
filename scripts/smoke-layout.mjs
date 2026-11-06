@@ -694,7 +694,18 @@ let failed = 0;
                       beforeOpen, afterOpen, afterMixed,
                     });
                   } else {
-                    console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                    // Byte-level round-trip: prune wrote storage; write same map again → identical bytes.
+                    const bytes1 = foldStore.getItem(UNI_FOLD_KEY);
+                    writeUniFoldsTo(foldStore, afterMixed);
+                    const bytes2 = foldStore.getItem(UNI_FOLD_KEY);
+                    if (bytes1 == null || bytes1 !== bytes2) {
+                      failed += 1;
+                      console.error('FAIL uni fold prune→write byte round-trip', {
+                        bytes1, bytes2,
+                      });
+                    } else {
+                      console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                    }
                   }
                 }
               }
@@ -989,7 +1000,18 @@ let failed = 0;
                       sticky: ui._betaHi, L0: p.L0, row: afterL0.find((r) => r.en === 'β'),
                     });
                   } else {
-                    console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi + L0 keeps sticky');
+                    // Unknown schema key (not L0/beta) must also leave sticky alone.
+                    clearStickyReadoutHiOnSchema('notASchemaKey', ui);
+                    clearStickyReadoutHiOnSchema('gamma', ui);
+                    const afterUnknown = sim.readouts(sim.compute(p), p, ui);
+                    if (!ui._betaHi || !afterUnknown.find((r) => r.en === 'β')?.hi) {
+                      failed += 1;
+                      console.error('FAIL minkowski unknown schema key must not clear _betaHi', {
+                        sticky: ui._betaHi, row: afterUnknown.find((r) => r.en === 'β'),
+                      });
+                    } else {
+                      console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi + L0/unknown keep sticky');
+                    }
                   }
                 }
               }

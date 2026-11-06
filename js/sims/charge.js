@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { twoCharges, currentFromCharge, pointField, fieldPotential } from '../physics/charge.js';
-import { num, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { twoCharges, currentFromCharge, pointField, fieldPotential } from '../physics/charge.js?v=__BUILD__';
+import { num, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

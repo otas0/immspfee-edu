@@ -137,6 +137,12 @@ function lint420AreasOrInherit(block) {
     failed += 1;
     console.error('FAIL lint reverse: inherit comment + wrong areas must prefer bad-areas');
   }
+  // Reverse: correct two-row areas with no inherit comment → ok (property path).
+  const goodAreasNoInherit = '  .top {\n    grid-template-areas:\n      "brand lang"\n      "nav nav";\n  }\n';
+  if (lint420AreasOrInherit(goodAreasNoInherit) !== null) {
+    failed += 1;
+    console.error('FAIL lint reverse: correct areas without inherit comment must pass');
+  }
 }
 if (block320) {
   const code320 = stripCssComments(block320);

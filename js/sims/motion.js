@@ -1,8 +1,8 @@
-import { fmt } from '../fmt.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
 import {
   frames, segmentMotion, uniformAccel, vtArea, projectile, energyTrack, melting, boiling, sublimation, circularMotion,
-} from '../physics/motion.js';
-import { num, sel, tog, clear, line, text, handle, hit, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+} from '../physics/motion.js?v=__BUILD__';
+import { num, sel, tog, clear, line, text, handle, hit, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

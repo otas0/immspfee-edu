@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { forceElements, hooke, weight, collinearResultant, twoForce, friction, inertiaCart } from '../physics/mech.js';
-import { num, tog, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { forceElements, hooke, weight, collinearResultant, twoForce, friction, inertiaCart } from '../physics/mech.js?v=__BUILD__';
+import { num, tog, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

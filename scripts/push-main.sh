@@ -133,14 +133,21 @@ fi
 
 echo "watching Pages run $RID"
 SUMMARY_MD="${ROOT}/.local-shots/push-main-last-summary.md"
+ISSUE_TITLE="[pages] push-main ${SHORT} — run ${RID}"
 mkdir -p "${ROOT}/.local-shots"
 {
   echo "# push-main summary"
+  echo ""
+  echo "> **Copy to issue title:** \`$ISSUE_TITLE\`"
+  echo ">"
+  echo "> Paste this whole file into the issue body."
   echo ""
   echo "- short SHA: \`$SHORT\`"
   echo "- full SHA: \`$SHA\`"
   echo "- run: $RID"
   echo "- run URL: https://github.com/${REPO}/actions/runs/${RID}"
+  echo ""
+  echo "## Heartbeats"
   echo ""
 } > "$SUMMARY_MD"
 summary_append() {
@@ -152,7 +159,17 @@ summary_append() {
     printf '%s\n' "$@"
   } >> "$SUMMARY_MD"
 }
+summary_heartbeat() {
+  local ts line
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
+    [.jobs[] | "\(.name)=\(.status)/\(.conclusion // "-")"] | join(" · ")
+  ' 2>/dev/null || echo "(jobs unavailable)")"
+  echo "heartbeat $ts $line"
+  echo "- \`$ts\` $line" >> "$SUMMARY_MD"
+}
 echo "local summary: $SUMMARY_MD (paste into issues)"
+echo "issue title: $ISSUE_TITLE"
 # Capture job may still be running; print short-SHA artifact deep links early.
 RUN_URL="https://github.com/${REPO}/actions/runs/${RID}"
 echo "capture artifacts (short SHA $SHORT; upload when capture job finishes):"
@@ -308,10 +325,12 @@ print("upload:%s" % up_c)
   esac
 }
 
+# Poll until the run leaves "waiting" (env approval), appending heartbeats.
 while true; do
   meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
   status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
   url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
+  summary_heartbeat
   if [[ "$status" == "waiting" ]]; then
     now="$(date +%s)"
     if (( warned_waiting == 0 )); then
@@ -327,19 +346,27 @@ while true; do
       print_env_protection_summary "$url"
       exit 1
     fi
+    sleep 5
+    continue
   fi
   if [[ "$status" == "completed" ]]; then
     break
   fi
-  # gh run watch blocks until done once the run is in progress / queued.
+  # in_progress / queued: keep polling with heartbeats (replaces blocking gh run watch).
   if [[ "$status" == "in_progress" || "$status" == "queued" || "$status" == "requested" || "$status" == "pending" ]]; then
-    break
+    sleep 8
+    continue
   fi
   sleep 5
 done
 
+# Final heartbeat + exit status from conclusion (no separate gh run watch).
+summary_heartbeat
 watch_rc=0
-gh run watch "$RID" --repo "$REPO" --exit-status || watch_rc=$?
+concl="$(gh run view "$RID" --repo "$REPO" --json conclusion --jq '.conclusion // empty' 2>/dev/null || true)"
+if [[ "$concl" != "success" ]]; then
+  watch_rc=1
+fi
 print_deploy_conclusion() {
   local line
   line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '

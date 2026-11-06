@@ -1,6 +1,6 @@
-import { fmt } from '../fmt.js';
-import { rulerReading, stopwatchReading, balanceReading, thermometerReading } from '../physics/measure.js';
-import { num, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
+import { rulerReading, stopwatchReading, balanceReading, thermometerReading } from '../physics/measure.js?v=__BUILD__';
+import { num, clear, line, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

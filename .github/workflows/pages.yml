@@ -41,6 +41,7 @@ jobs:
             echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` | 7-day |"
             echo "| capture-fail | \`capture-last-fail-$SHORT\` | 7-day |"
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
+            echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
             echo "| force_fail | mirrored — see **Optional capture** job (\`force_fail=ok\` when template passes) | — |"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Test equations and curricula
@@ -59,6 +60,7 @@ jobs:
           REQUIRE_REDIRECT_CHECK: '1'
         run: bash scripts/check-rename-redirect.sh
       - name: Upload redirect fail headers
+        id: up_redir
         if: failure() && steps.redirect.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
@@ -66,6 +68,40 @@ jobs:
           path: .local-shots/redirect-fail-headers.txt
           if-no-files-found: ignore
           retention-days: 7
+      - name: Redirect-fail artifact backfill
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          redir="—"
+          redir_api="—"
+          if [ "${{ steps.redirect.outcome }}" = "failure" ]; then
+            if [ "${{ steps.up_redir.outcome }}" = "success" ] \
+              && [ -f .local-shots/redirect-fail-headers.txt ]; then
+              redir="✅"
+            elif [ "${{ steps.up_redir.outcome }}" = "failure" ]; then
+              redir="❌"
+            elif [ -f .local-shots/redirect-fail-headers.txt ]; then
+              redir="✅"
+            else
+              redir="❌"
+            fi
+          elif [ "${{ steps.redirect.outcome }}" = "success" ]; then
+            redir="— (not expected)"
+          fi
+          api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            --jq '.artifacts[].name' 2>/dev/null || true)"
+          if echo "$api_names" | grep -qx "redirect-fail-headers-${SHORT}"; then
+            redir_api="✅"
+            redir="✅"
+          fi
+          {
+            echo "### Redirect-fail artifact backfill"
+            echo ""
+            echo "| Kind | Local/step | API |"
+            echo "| --- | --- | --- |"
+            echo "| redirect-fail (\`redirect-fail-headers-${SHORT}\`) | $redir | $redir_api |"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Guard against edition / ready-count chrome
         run: |
           ! grep -n 'id="edition"' index.html
@@ -114,10 +150,12 @@ jobs:
             echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
-      # Node 24 re-scan (2026-11, run 1ef64de): configure-pages@v6 + deploy-pages@v5 both
-      # using:node24; no "Node.js 20 actions are deprecated" annotation (only unrelated
-      # punycode DEP0040 from deploy-pages). Stay on @v6 / @v5. upload-pages-artifact@v5
-      # bundles upload-artifact@v7.
+      # Node 24 re-scan (2026-11): configure-pages@v6 + deploy-pages@v5 both using:node24;
+      # no "Node.js 20 actions are deprecated". deploy-pages still logs soft punycode
+      # DEP0040 (upstream actions/deploy-pages#413 / #434 — needs @actions/artifact bump;
+      # latest tag still v5.0.1). Stay on @v5 until a patch lands. If DEP0040 becomes a
+      # hard error, bump deploy-pages patch/major per those issues — do not suppress.
+      # upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -139,12 +177,22 @@ jobs:
             js/sims/uni.js \
             js/sims/stat.js \
             js/sims/optics.js \
-            js/sims/advance.js
+            js/sims/advance.js \
+            js/sims/kit.js \
+            js/physics/optics.js \
+            js/physics/uni.js
           do
-            code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/$path")
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/$path?v=$SHORT")
             echo "$path -> $code"
             test "$code" = "200"
           done
+      - name: Smoke live getSim (convex-lens, finite-well)
+        if: success()
+        env:
+          PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
+          SHORT: ${{ env.SHORT }}
+          LIVE_GETSIM_IDS: convex-lens,finite-well
+        run: node --experimental-network-imports scripts/smoke-live-getsim.mjs
       - name: Smoke home HTML build stamp
         id: stamp_smoke
         if: success()
@@ -229,6 +277,7 @@ jobs:
             echo "| redirect-fail | \`redirect-fail-headers-$SHORT\` | 7-day |"
             echo "| capture-fail | \`capture-last-fail-$SHORT\` | 7-day |"
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
+            echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
             echo "| force_fail | ok when template step passes (authoritative here; deploy job mirrors this row) | — |"
           } >> "$GITHUB_STEP_SUMMARY"
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
@@ -450,6 +499,8 @@ jobs:
           retention-days: 7
       - name: Artifact upload backfill
         if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           png="—"
           fail="—"
@@ -469,19 +520,32 @@ jobs:
               fail="—"
             fi
           fi
+          # Secondary confirm via Actions Artifacts API (not only local files).
+          api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            --jq '.artifacts[].name' 2>/dev/null || true)"
+          png_api="—"
+          fail_api="—"
+          if echo "$api_names" | grep -qx "capture-340px-zh-long-title-${SHORT}"; then
+            png_api="✅"
+            png="✅"
+          fi
+          if echo "$api_names" | grep -qx "capture-last-fail-${SHORT}"; then
+            fail_api="✅"
+            fail="✅"
+          fi
           {
             echo "### Artifact upload backfill"
             echo ""
-            echo "| Kind | Uploaded |"
-            echo "| --- | --- |"
-            echo "| capture PNG (\`capture-340px-zh-long-title-${SHORT}\`) | $png |"
-            echo "| capture-fail (\`capture-last-fail-${SHORT}\`) | $fail |"
-            echo "| redirect-fail | — (deploy job only) |"
+            echo "| Kind | Local/step | API |"
+            echo "| --- | --- | --- |"
+            echo "| capture PNG (\`capture-340px-zh-long-title-${SHORT}\`) | $png | $png_api |"
+            echo "| capture-fail (\`capture-last-fail-${SHORT}\`) | $fail | $fail_api |"
+            echo "| redirect-fail | — (deploy job) | — |"
             if [ "${{ steps.force_fail.outcome }}" = "success" ]; then
-              echo "| force_fail | ok |"
+              echo "| force_fail | ok | — |"
             elif [ "${{ steps.force_fail.outcome }}" = "failure" ]; then
-              echo "| force_fail | ❌ |"
+              echo "| force_fail | ❌ | — |"
             else
-              echo "| force_fail | — |"
+              echo "| force_fail | — | — |"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,10 +1,10 @@
-import { fmt } from '../fmt.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
 import {
   bohrLevels, internalEnergy, energyShare, efficiency, scaleLength,
   massEnergy, halfLife, photoelectric, capacitance, resistivity, timeDilation,
   simultaneity,
-} from '../physics/modern.js';
-import { num, clear, line, text, lab, handle, hit, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+} from '../physics/modern.js?v=__BUILD__';
+import { num, clear, line, text, lab, handle, hit, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }

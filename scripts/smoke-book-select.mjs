@@ -227,10 +227,39 @@ if (!hasTwoRowTop(block768)) {
             byMixedPseudo: !!byMixedPseudo,
           });
         } else {
-          console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed');
+          let notThrew = false;
+          try {
+            document.querySelector('span:not(.fold-hint)');
+          } catch (e) {
+            notThrew = /:not\(\)/.test(String(e && e.message));
+          }
+          if (!notThrew) {
+            failed += 1;
+            console.error('FAIL dom-lite must reject :not() with an Error');
+          } else {
+            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not-reject');
+          }
         }
       }
     }
+  }
+}
+
+{
+  // Playwright pin dry-run fixture: closed same-hash → create-after-closed (no API write).
+  const { spawnSync } = await import('node:child_process');
+  const dry = spawnSync(process.execPath, ['scripts/playwright-pin-issue-dry-run.mjs'], {
+    cwd: root,
+    env: { ...process.env, DRY_RUN_FIXTURE: 'closed', PIN_HASH: 'fixture01' },
+    encoding: 'utf8',
+  });
+  if (dry.status !== 0 || !/plan=create-after-closed/.test(dry.stdout || '')) {
+    failed += 1;
+    console.error('FAIL pw pin dry-run fixture closed', {
+      status: dry.status, out: (dry.stdout || '').slice(0, 400), err: dry.stderr,
+    });
+  } else {
+    console.log('ok pw pin dry-run fixture closed → create-after-closed');
   }
 }
 

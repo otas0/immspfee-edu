@@ -1,12 +1,12 @@
-import { fmt } from '../fmt.js';
+import { fmt } from '../fmt.js?v=__BUILD__';
 import {
   isingMetropolis, barrierTunnel, barrierScan, hydrogenRadial, isingTempSweep,
   gaussianPacket, gaussianPacketPsi2,
   maxwellHistogram, maxwellSpeed, fourierSquare, membraneMode, bellSinglet, sternGerlach,
   lengthContraction, laserCavity,
-} from '../physics/stat.js';
-import { thinFilm } from '../physics/optics.js';
-import { num, sel, tog, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
+} from '../physics/stat.js?v=__BUILD__';
+import { thinFilm } from '../physics/optics.js?v=__BUILD__';
+import { num, sel, tog, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 const KB = 1.380649e-23;
 let isingBuf = null;
