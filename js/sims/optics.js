@@ -417,8 +417,11 @@ export const convexLens = {
     };
     markF(p.f, 'F');
     markF(-p.f, 'F');
-    markF(2 * p.f, '2F');
-    markF(-2 * p.f, '2F');
+    // Show 2F only when the object is near that classroom landmark (cuts idle clutter).
+    if (Math.abs(p.u - 2 * p.f) < Math.max(4, 0.35 * p.f) || Math.abs(p.u - p.f) < 1.5) {
+      markF(2 * p.f, '2F');
+      markF(-2 * p.f, '2F');
+    }
     const limit = h * 0.42;
     const yOf = (cm) => {
       if (!Number.isFinite(cm)) return midY;

@@ -304,9 +304,11 @@ export const projectileSim = {
   },
   draw(ctx, w, h, _p, d, ui) {
     clear(ctx, w, h);
-    const ox = w * 0.08;
-    const floor = h * 0.62;
-    const px = Math.min((w * 0.48) / Math.max(d.range, 0.5), (floor - 24) / Math.max(d.H, 0.5));
+    // Left: trajectory strobe. Right: opaque x–t / y–t teaching panel.
+    const ox = w * 0.06;
+    const floor = h * 0.72;
+    const px = Math.min((w * 0.42) / Math.max(d.range, 0.5), (floor - 36) / Math.max(d.H, 0.5));
+    text(ctx, lab(ui, 'strobe path', '频闪轨迹'), ox + w * 0.2, h * 0.08, MUTED, 12, 'center');
     line(ctx, ox, floor, ox + d.range * px + 16, floor, '#cfc6b8', 2);
     ctx.beginPath();
     for (let i = 0; i <= 40; i += 1) {
@@ -331,11 +333,18 @@ export const projectileSim = {
     const yNow = floor - d.y * px;
     ctx.strokeStyle = RAY;
     ctx.strokeRect(xNow - 5, yNow - 5, 10, 10);
-    const graph = (label, x, y, series, now, color) => {
-      const gw = w * 0.28;
-      const gh = h * 0.22;
+
+    const panelX = w * 0.52;
+    const panelY = h * 0.1;
+    const panelW = w * 0.44;
+    const panelH = h * 0.82;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'x–t · y–t', 'x–t · y–t'));
+    const graph = (label, x, y, series, color) => {
+      const gw = panelW * 0.78;
+      const gh = panelH * 0.32;
       line(ctx, x, y + gh, x + gw, y + gh, INK, 1);
       line(ctx, x, y, x, y + gh, INK, 1);
+      text(ctx, label, x, y - 8, MUTED, 11);
       const max = Math.max(0.5, ...series.map((v) => Math.abs(v)));
       ctx.beginPath();
       series.forEach((v, i) => {
@@ -346,7 +355,6 @@ export const projectileSim = {
       });
       ctx.strokeStyle = color;
       ctx.stroke();
-      text(ctx, label, x, y - 8, MUTED, 11);
       const mark = x + (d.t / Math.max(d.tLand, 1e-6)) * gw;
       line(ctx, mark, y, mark, y + gh, color, 1);
     };
@@ -357,9 +365,9 @@ export const projectileSim = {
       xs.push(d.v0 * tt);
       ys.push(d.H - 0.5 * d.g * tt * tt);
     }
-    graph('x–t', w * 0.64, h * 0.16, xs, d.x, RAY);
-    graph('y–t', w * 0.64, h * 0.55, ys, d.y, RAY2);
-    text(ctx, lab(ui, 'strobe', '频闪'), ox, h * 0.1, MUTED, 12);
+    const gx = panelX + panelW * 0.1;
+    graph('x–t', gx, panelY + panelH * 0.14, xs, RAY);
+    graph('y–t', gx, panelY + panelH * 0.55, ys, RAY2);
   },
 };
 

@@ -3,7 +3,7 @@ import {
   vacuumPlaneWave, idealGas, carnotEta, kineticGas, infiniteWell, finiteWell,
   transmissionLine, imageCharge, waveguideCutoff, dipolePattern,
 } from '../physics/uni.js';
-import { num, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -281,31 +281,49 @@ export const finiteWellSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.78;
-    const gw = w * 0.76;
-    const gh = h * 0.5;
-    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
-    line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
+    // Left: ψ on each bound level. Right: energy ladder vs ∞ well.
+    const leftX = w * 0.04;
+    const leftY = h * 0.12;
+    const leftW = w * 0.48;
+    const leftH = h * 0.8;
+    const rightX = w * 0.54;
+    const rightY = h * 0.12;
+    const rightW = w * 0.42;
+    const rightH = h * 0.8;
+    teachPanel(ctx, leftX, leftY, leftW, leftH, lab(ui, 'ψ on levels', '能级上的 ψ'));
+    teachPanel(ctx, rightX, rightY, rightW, rightH, lab(ui, 'E ladder', '能级梯子'));
+    text(ctx, `T=${fmt(d.T, 3)}`, w * 0.5, h * 0.06, INK, 13, 'center');
+
     const Emax = Math.max(d.V0, d.E1inf * 4, d.E);
-    const yOf = (E) => gy - (E / Emax) * gh;
-    line(ctx, gx, yOf(d.V0), gx + gw, yOf(d.V0), MUTED, 1, [3, 3]);
-    text(ctx, 'V0', gx + gw + 4, yOf(d.V0), MUTED, 11);
+    const gyL = leftY + leftH * 0.88;
+    const ghL = leftH * 0.68;
+    const gyR = rightY + rightH * 0.88;
+    const ghR = rightH * 0.68;
+    const yL = (E) => gyL - (E / Emax) * ghL;
+    const yR = (E) => gyR - (E / Emax) * ghR;
+    line(ctx, leftX + leftW * 0.08, gyL, leftX + leftW * 0.92, gyL, MUTED, 1);
+    line(ctx, leftX + leftW * 0.08, gyL, leftX + leftW * 0.08, gyL - ghL, MUTED, 1);
+    line(ctx, leftX + leftW * 0.08, yL(d.V0), leftX + leftW * 0.92, yL(d.V0), MUTED, 1, [3, 3]);
+    text(ctx, 'V0', leftX + leftW * 0.94, yL(d.V0), MUTED, 10);
+    line(ctx, rightX + rightW * 0.12, gyR, rightX + rightW * 0.88, gyR, MUTED, 1);
+    line(ctx, rightX + rightW * 0.12, gyR, rightX + rightW * 0.12, gyR - ghR, MUTED, 1);
+    line(ctx, rightX + rightW * 0.12, yR(d.V0), rightX + rightW * 0.88, yR(d.V0), MUTED, 1, [3, 3]);
+
     const a = d.a || d.L / 2;
     const xMax = a * 2.4;
     const levels = ui.wrong ? d.Einf.map((E, i) => ({ E, tag: `∞${i + 1}` }))
       : d.bound.map((b, i) => ({ E: b.E, tag: `${i + 1}${b.parity === 'even' ? 'e' : 'o'}`, samples: b.samples }));
     levels.forEach((lv, i) => {
-      const y = yOf(lv.E);
-      line(ctx, gx + gw * 0.02, y, gx + gw * 0.58, y, RAY2, 1);
+      const yPsi = yL(lv.E);
+      line(ctx, leftX + leftW * 0.1, yPsi, leftX + leftW * 0.9, yPsi, RAY2, 1);
       if (!ui.wrong && lv.samples?.length) {
-        const amp = Math.min(gh * 0.07, h * 0.045);
-        const x0 = gx + gw * 0.05;
-        const xw = gw * 0.5;
+        const amp = Math.min(ghL * 0.1, h * 0.05);
+        const x0 = leftX + leftW * 0.12;
+        const xw = leftW * 0.72;
         ctx.beginPath();
         lv.samples.forEach((s, j) => {
           const X = x0 + ((s.x + xMax) / (2 * xMax)) * xw;
-          const Y = y - s.psi * amp;
+          const Y = yPsi - s.psi * amp;
           if (j === 0) ctx.moveTo(X, Y);
           else ctx.lineTo(X, Y);
         });
@@ -313,13 +331,18 @@ export const finiteWellSim = {
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
-      text(ctx, lv.tag, gx + gw * 0.6, y, INK, 11);
+      text(ctx, lv.tag, leftX + leftW * 0.92, yPsi, INK, 10, 'left');
+      const yLad = yR(lv.E);
+      line(ctx, rightX + rightW * 0.18, yLad, rightX + rightW * 0.55, yLad, RAY2, 2);
+      text(ctx, lv.tag, rightX + rightW * 0.58, yLad, INK, 11);
       if (!ui.wrong && d.Einf[i] != null) {
-        line(ctx, gx + gw * 0.72, yOf(d.Einf[i]), gx + gw * 0.95, yOf(d.Einf[i]), MUTED, 1, [2, 2]);
+        line(ctx, rightX + rightW * 0.18, yR(d.Einf[i]), rightX + rightW * 0.55, yR(d.Einf[i]), MUTED, 1, [2, 2]);
+        text(ctx, `∞${i + 1}`, rightX + rightW * 0.78, yR(d.Einf[i]), MUTED, 10);
       }
     });
-    line(ctx, gx, yOf(d.E), gx + gw, yOf(d.E), RAY, 1, [4, 2]);
-    text(ctx, `T=${fmt(d.T, 3)}`, w * 0.5, h * 0.1, INK, 14, 'center');
+    line(ctx, leftX + leftW * 0.08, yL(d.E), leftX + leftW * 0.92, yL(d.E), RAY, 1, [4, 2]);
+    line(ctx, rightX + rightW * 0.12, yR(d.E), rightX + rightW * 0.88, yR(d.E), RAY, 1, [4, 2]);
+    text(ctx, 'E', rightX + rightW * 0.9, yR(d.E), RAY, 10);
   },
   pointer() { return null; },
 };

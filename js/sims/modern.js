@@ -4,7 +4,7 @@ import {
   massEnergy, halfLife, photoelectric, capacitance, resistivity, timeDilation,
   simultaneity,
 } from '../physics/modern.js';
-import { num, clear, line, text, lab, handle, hit, INK, MUTED, RAY, RAY2 } from './kit.js';
+import { num, clear, line, text, lab, handle, hit, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -565,11 +565,16 @@ export const simultaneitySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    // Minkowski sketch: x horizontal, ct upward; flashes at A,B on a t=const line in the rod frame.
-    const ox = w * 0.12;
-    const oy = h * 0.7;
-    const sx = w * 0.76;
-    const sy = h * 0.48;
+    // Minkowski sketch (axes + rod line + A/B). Light cones stay faint so the slope is readable.
+    const panelX = w * 0.06;
+    const panelY = h * 0.08;
+    const panelW = w * 0.88;
+    const panelH = h * 0.72;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Minkowski (x, ct)', '闵可夫斯基 (x, ct)'));
+    const ox = panelX + panelW * 0.08;
+    const oy = panelY + panelH * 0.82;
+    const sx = panelW * 0.78;
+    const sy = panelH * 0.62;
     line(ctx, ox, oy, ox + sx, oy, MUTED, 1);
     line(ctx, ox, oy, ox, oy - sy, MUTED, 1);
     text(ctx, 'x', ox + sx + 8, oy, MUTED, 11, 'left');
@@ -579,24 +584,16 @@ export const simultaneitySim = {
     const xB = xA + Lpix;
     const tRod = oy - sy * 0.35;
     line(ctx, xA, tRod, xB, tRod, INK, 2);
-    // Lab frame: rod-simultaneous line through A has Minkowski slope ct/x = β (from t = (v/c²)x).
     const beta = ui.wrong ? 0 : d.beta;
     const dx = sx * 0.42;
     const dct = beta * dx;
     line(ctx, xA - dx, tRod + dct, xA + dx, tRod - dct, RAY, 1.5, [4, 3]);
-    text(ctx, `β=${fmt(d.beta, 2)}`, xA + dx * 0.55, tRod - dct * 0.55 - 10, RAY, 11, 'left');
-    text(ctx, `v/c²=${d.slope.toExponential(2)}`, xA + dx * 0.55, tRod - dct * 0.55 + 6, RAY, 10, 'left');
-    // Light cones (±45°) from A and B.
-    const cone = sy * 0.45;
-    line(ctx, xA, tRod, xA + cone, tRod - cone, RAY2, 1, [3, 3]);
-    line(ctx, xA, tRod, xA - cone * 0.4, tRod - cone * 0.4, RAY2, 1, [3, 3]);
-    line(ctx, xB, tRod, xB - cone, tRod - cone, RAY2, 1, [3, 3]);
-    line(ctx, xB, tRod, xB + cone * 0.4, tRod - cone * 0.4, RAY2, 1, [3, 3]);
-    // Worldlines of the ends (vertical in the rod frame).
+    // One soft light-cone arm from A (teaching cue only).
+    const cone = sy * 0.28;
+    line(ctx, xA, tRod, xA + cone, tRod - cone, '#b7b0a4', 1, [3, 3]);
     line(ctx, xA, oy, xA, oy - sy * 0.85, MUTED, 1);
     line(ctx, xB, oy, xB, oy - sy * 0.85, MUTED, 1);
     const dtShow = ui.wrong ? 0 : d.dt;
-    // In the lab frame the B event is shifted in t by Δt (teaching offset on the sketch).
     const tShift = Math.min(sy * 0.25, 8 + Math.abs(dtShow) * 1e8);
     const yB = ui.wrong ? tRod : tRod - tShift;
     ctx.fillStyle = RAY;
@@ -607,8 +604,7 @@ export const simultaneitySim = {
     line(ctx, xB - 8, yB, xB + 8, yB, RAY, 1);
     text(ctx, 'A', xA, tRod + 14, MUTED, 11, 'center');
     text(ctx, 'B', xB, yB + 14, MUTED, 11, 'center');
-    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s`, w * 0.5, h * 0.08, ui.wrong ? '#a33' : INK, 14, 'center');
-    // Draggable v handle — live β / Δt / cone offset.
+    text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s · β=${fmt(d.beta, 2)} · v/c²=${d.slope.toExponential(2)}`, panelX + panelW / 2, panelY + 28, ui.wrong ? '#a33' : INK, 12, 'center');
     const trackX0 = w * 0.18;
     const trackX1 = w * 0.82;
     const trackY = h * 0.9;
@@ -616,7 +612,7 @@ export const simultaneitySim = {
     const b = Math.min(0.95, Math.max(0.05, d.beta));
     const hx = trackX0 + ((b - 0.05) / 0.9) * (trackX1 - trackX0);
     handle(ctx, hx, trackY, ui.drag === 'v');
-    text(ctx, `β (drag ↔ slider)  β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY - 14, MUTED, 11, 'center');
+    text(ctx, `β (drag)  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY - 14, MUTED, 11, 'center');
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
   onParam(key, value) {
