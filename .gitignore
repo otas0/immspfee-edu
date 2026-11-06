@@ -5,3 +5,4 @@ node_modules/
 *.log
 .local-shots/*
 !.local-shots/README.md
+.tmp-offline-sidebranch/

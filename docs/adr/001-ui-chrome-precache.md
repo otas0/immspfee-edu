@@ -7,7 +7,7 @@
 
 **Re-eval (2026-11-06):** Still **off** PRECACHE. Gates 1–3 unmet (no offline-first first-paint product ask; modules stay behind stamped `app.js`; no stale chrome/fold smoke). Do not add to `sw.js` until a flip PR ticks the template below. Lockstep dry-run: `npm run offline-first:dry-run`.
 
-**Green without touching `main`:** `OFFLINE_FIRST_FIXTURE=1` (minimal temp tree) and `OFFLINE_FIRST_REALTREE=1` (copy of real stamp/sw/index with chrome/fold injected) stand in for a true `OFFLINE_FIRST=1` side branch. When you need a real flip dry-run, open a branch, edit stamp REQUIRED + `sw.js` PRECACHE (+ modulepreload), set `OFFLINE_FIRST=1`, and run the dry-run there — do not merge until the Flip PR template below is fully checked.
+**Green without touching `main`:** `OFFLINE_FIRST_FIXTURE=1` (minimal temp tree) and `OFFLINE_FIRST_REALTREE=1` (copy of real stamp/sw/index with chrome/fold injected) stand in for a true `OFFLINE_FIRST=1` side branch. Local disposable worktree (not pushed): `bash scripts/offline-first-sidebranch-dry-run.sh`. When you need a reviewable flip PR, open a real branch, edit stamp REQUIRED + `sw.js` PRECACHE (+ modulepreload), set `OFFLINE_FIRST=1`, and run the dry-run there — do not merge until the Flip PR template below is fully checked.
 
 **Trigger to revisit (offline-first):** Add both to PRECACHE **and** stamp REQUIRED only if **all** of the following become true:
 

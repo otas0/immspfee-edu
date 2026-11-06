@@ -463,6 +463,31 @@ if (!hasTwoRowTop(block768)) {
   } else {
     console.log('ok doctor AUTO_ENSURE=0 fixture (clear sidecars, tip only, no server)');
   }
+  const doc1 = spawnSync('bash', ['scripts/doctor.sh'], {
+    cwd: root,
+    env: { ...process.env, DOCTOR_FIXTURE: 'auto-ensure-1' },
+    encoding: 'utf8',
+  });
+  if (doc1.status !== 0 || !/ok doctor AUTO_ENSURE=1 fixture/.test(doc1.stdout || '')) {
+    failed += 1;
+    console.error('FAIL doctor AUTO_ENSURE=1 fixture', {
+      status: doc1.status, out: (doc1.stdout || '').slice(0, 400), err: doc1.stderr,
+    });
+  } else {
+    console.log('ok doctor AUTO_ENSURE=1 fixture (mock ensure, no server)');
+  }
+  const side = spawnSync('bash', ['scripts/offline-first-sidebranch-dry-run.sh'], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  if (side.status !== 0 || !/ok offline-first sidebranch dry-run/.test(side.stdout || '')) {
+    failed += 1;
+    console.error('FAIL offline-first sidebranch dry-run', {
+      status: side.status, out: (side.stdout || '').slice(0, 500), err: (side.stderr || '').slice(0, 400),
+    });
+  } else {
+    console.log('ok offline-first sidebranch dry-run (local worktree; not pushed)');
+  }
 }
 
 {

@@ -11,6 +11,7 @@ README.md
 AGENTS.md
 CONTRIBUTING.md
 .local-shots/README.md
+.gitignore
 package.json
 sw.js
 index.html

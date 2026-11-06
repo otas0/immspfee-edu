@@ -20,6 +20,7 @@
     "heartbeat:fixture": "HEARTBEAT_FIXTURE=1 bash scripts/push-main-heartbeat.sh",
     "push-resume:fixture": "PUSH_RESUME_FIXTURE=1 bash scripts/push-main-heartbeat.sh",
     "push-watch-flake:fixture": "PUSH_WATCH_FLAKE_FIXTURE=1 bash scripts/push-main-heartbeat.sh",
+    "offline-first:sidebranch": "bash scripts/offline-first-sidebranch-dry-run.sh",
     "push:main": "bash scripts/push-main.sh"
   }
 }

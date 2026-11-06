@@ -62,12 +62,28 @@ while (( i <= attempts )); do
       echo "gh confirms $local_head on remote; continuing watch without local origin/main update"
       git update-ref refs/remotes/origin/main "$local_head" 2>/dev/null || true
     elif echo "$err_txt" | grep -qi 'Everything up-to-date'; then
-      echo "Ignoring false Everything up-to-date; will retry push." >&2
-      i=$(( i + 1 ))
-      sleep "$delay"
-      delay=$(( delay * 2 ))
-      if (( delay > 60 )); then delay=60; fi
-      continue
+      # Clean up-to-date + HEAD already on remote → land. Do not retry-noise.
+      # If stderr also has RPC/connect flake text, ignore the up-to-date string.
+      if push_stderr_is_connect_flake "$err_txt"; then
+        echo "push exit 0 but stderr mixes Everything up-to-date with connect/RPC flake; retrying" >&2
+        i=$(( i + 1 ))
+        sleep "$delay"
+        delay=$(( delay * 2 ))
+        if (( delay > 60 )); then delay=60; fi
+        continue
+      fi
+      # Re-probe gh once: tip already matches → treat as landed (no false retry loop).
+      if gh api "repos/${REPO}/git/ref/heads/main" --jq .object.sha 2>/dev/null | grep -qx "$local_head"; then
+        echo "Everything up-to-date and gh tip matches HEAD; treating as landed"
+        git update-ref refs/remotes/origin/main "$local_head" 2>/dev/null || true
+      else
+        echo "Ignoring unverified Everything up-to-date (HEAD not tip); will retry push." >&2
+        i=$(( i + 1 ))
+        sleep "$delay"
+        delay=$(( delay * 2 ))
+        if (( delay > 60 )); then delay=60; fi
+        continue
+      fi
     else
       echo "push exited 0 but cannot confirm HEAD ($local_head) on origin/main (${remote_main:-missing})" >&2
       i=$(( i + 1 ))
@@ -89,12 +105,16 @@ while (( i <= attempts )); do
   err_txt="$(cat "$err_log" 2>/dev/null || true)"
   rm -f "$err_log"
   # Empty reply / CONNECT / port 443: drop proxy once and retry immediately (no backoff).
-  if (( cleared_proxy == 0 )) && echo "$err_txt" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect|Operation timed out|Recv failure'; then
+  # "Everything up-to-date" beside RPC noise is still a connect flake (not a clean land).
+  if (( cleared_proxy == 0 )) && push_stderr_is_connect_flake "$err_txt"; then
     echo "clearing proxy env (https_proxy/http_proxy/ALL_PROXY); immediate retry (was attempt $i/$attempts)"
     unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy || true
     cleared_proxy=1
     i=$(( i + 1 ))
     continue
+  fi
+  if echo "$err_txt" | grep -qi 'Everything up-to-date' && push_stderr_is_connect_flake "$err_txt"; then
+    echo "note: ignoring Everything up-to-date next to connect/RPC failure (not landed)" >&2
   fi
   echo "push failed; sleeping ${delay}s"
   sleep "$delay"
@@ -235,8 +255,11 @@ except Exception:
   LAST_GOOD_HEARTBEAT_LINE="$line"
   LAST_GOOD_HEARTBEAT_FAIL_N="$fail_n"
   # Cap noise: identical line while already completed — skip duplicate summary rows.
+  # Debug-only console (PUSH_MAIN_DEBUG=1); default stays quiet.
   if (( COMPLETED_SEEN )) && [[ "$line" == "$LAST_EMITTED_HEARTBEAT_LINE" ]]; then
-    echo "heartbeat (unchanged while completed; suppressed)"
+    if [[ "${PUSH_MAIN_DEBUG:-}" == "1" ]]; then
+      echo "heartbeat (unchanged while completed; suppressed)" >&2
+    fi
     return 0
   fi
   LAST_EMITTED_HEARTBEAT_LINE="$line"
@@ -324,7 +347,7 @@ print_run_artifacts() {
   echo "artifact download URLs (short SHA $SHORT):"
   local art_lines
   art_lines="$(gh api "repos/${REPO}/actions/runs/${RID}/artifacts" --paginate \
-    --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-last-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
+    --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-1280-desktop-|capture-last-fail-|capture-cols-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
   local listed=""
   if [[ -z "$art_lines" ]]; then
     echo "  (no matching capture/redirect artifacts for run $RID)"
@@ -332,7 +355,7 @@ print_run_artifacts() {
   else
     while IFS=$'\t' read -r name aid url; do
       [[ -z "$name" ]] && continue
-      if [[ "$prefer_fail" == "1" ]] && [[ "$name" != capture-last-fail-* && "$name" != redirect-fail-headers-* ]]; then
+      if [[ "$prefer_fail" == "1" ]] && [[ "$name" != capture-last-fail-* && "$name" != capture-cols-fail-* && "$name" != redirect-fail-headers-* ]]; then
         continue
       fi
       echo "  $name"
@@ -466,8 +489,18 @@ maybe_mid_fail_title() {
 }
 
 # Poll run conclusion a few times (final authority before hard exit 1).
+# Env: PAGES_CONCL_POLLS="tries delay_s" (default "5 2").
+# Optional args: poll_run_conclusion [tries] [delay_s] override env for that call.
 poll_run_conclusion() {
-  local tries="${1:-5}" delay_s="${2:-2}" c="" n=1
+  local arg_tries="${1:-}" arg_delay="${2:-}" tries=5 delay_s=2 c="" n=1
+  if [[ -n "${PAGES_CONCL_POLLS:-}" ]]; then
+    # shellcheck disable=SC2086
+    set -- ${PAGES_CONCL_POLLS}
+    tries="${1:-5}"
+    delay_s="${2:-2}"
+  fi
+  [[ -n "$arg_tries" ]] && tries="$arg_tries"
+  [[ -n "$arg_delay" ]] && delay_s="$arg_delay"
   while (( n <= tries )); do
     c="$(gh run view "$RID" --repo "$REPO" --json conclusion --jq '.conclusion // empty' 2>/dev/null || true)"
     if [[ -n "$c" ]]; then
@@ -555,7 +588,7 @@ jobs_flake=0
 if (( JOBS_UNAVAILABLE_STREAK > 0 )); then
   jobs_flake=1
 fi
-concl="$(poll_run_conclusion 5 2 || true)"
+concl="$(poll_run_conclusion || true)"
 # Final authority: polled conclusion; soft-ok if empty but last-good saw deploy success.
 watch_kind="$(watch_exit_decision "$concl" "$LAST_GOOD_HEARTBEAT_LINE" "$jobs_flake" || true)"
 case "$watch_kind" in
@@ -609,18 +642,11 @@ if (( watch_rc != 0 )); then
   fi
   exit "$watch_rc"
 fi
-if [[ "$watch_kind" == "soft_ok_jobs_flake" ]]; then
-  echo "Pages ok for $SHORT (soft-ok after jobs API flake; last-good preserved)"
-else
-  echo "Pages ok for $SHORT"
-fi
+watch_ok_line="$(watch_ok_summary_line "${watch_kind:-ok}" "$SHORT")"
+echo "$watch_ok_line"
 print_run_artifacts 0
 print_deploy_conclusion
 if [[ -n "${SUMMARY_MD:-}" ]]; then
-  if [[ "$watch_kind" == "soft_ok_jobs_flake" ]]; then
-    summary_append "Watch ok" "Pages ok for $SHORT (soft_ok_jobs_flake — API flake ≠ cancel)"
-  else
-    summary_append "Watch ok" "Pages ok for $SHORT"
-  fi
+  summary_append "Watch ok" "$watch_ok_line"
   echo "summary written: $SUMMARY_MD"
 fi

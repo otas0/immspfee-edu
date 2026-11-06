@@ -29,4 +29,9 @@ When a finished-task push lands while a prior Pages run is still `queued` / `in_
 2. Confirm `push-main.sh` watches the **newest** run id for `HEAD` (not the cancelled sibling).
 3. A cancelled intermediate SHA is a concurrency race, not a content failure — do not open a fix issue solely for `cancelled`.
 
+### Check log (2026-11-06)
+
+- Scanned last 30 `pages.yml` runs on `otas0/immspfee-edu`: **no** `headSha` with 2+ runs (no live cancelled+queued pair in that window). Fixture coverage remains the authority until a real race appears — paste run URLs here when it does.
+- Redirect retries diag on [run 42227103682](https://github.com/otas0/immspfee-edu/actions/runs/42227103682) (`a1f7c89`): `RR="0"` (numeric, non-empty) — empty-string `::warning` did **not** fire. Good wiring check for the non-empty path.
+
 Do not change `cancel-in-progress` to `false` unless a release explicitly needs every intermediate SHA’s live smoke to finish.

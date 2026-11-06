@@ -49,6 +49,22 @@ watch_exit_decision() {
   return 1
 }
 
+# Canonical Watch-ok summary line (must appear in push-main-last-summary.md on soft-ok).
+watch_ok_summary_line() {
+  local kind="${1:-ok}" short="${2:-SHORT}"
+  if [[ "$kind" == "soft_ok_jobs_flake" ]]; then
+    echo "Pages ok for ${short} (soft_ok_jobs_flake — API flake ≠ cancel)"
+  else
+    echo "Pages ok for ${short}"
+  fi
+}
+
+# True when push stderr is a connection/RPC flake (not a clean Everything up-to-date land).
+push_stderr_is_connect_flake() {
+  local err="${1:-}"
+  echo "$err" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect|Operation timed out|Recv failure|RPC failed|unexpected disconnect|remote end hung up'
+}
+
 # Whether a heartbeat jobs line is a transient API miss (do not wipe last-good).
 jobs_line_is_unavailable() {
   local line="${1:-}"
@@ -247,6 +263,35 @@ if [[ "${PUSH_WATCH_FLAKE_FIXTURE:-}" == "1" ]]; then
   fi
   if ! last_good_shows_deploy_success "$last"; then
     echo "FAIL watch-flake fixture: last_good_shows_deploy_success" >&2
+    exit 1
+  fi
+  # Soft-ok summary must carry soft_ok_jobs_flake (simulates push-main-last-summary.md).
+  kind="$(watch_exit_decision '' "$last" 1)"
+  sum_line="$(watch_ok_summary_line "$kind" 'deadbee')"
+  tmp_sum="$(mktemp)"
+  {
+    echo "# push-main summary"
+    echo "## Watch ok"
+    echo "$sum_line"
+  } >"$tmp_sum"
+  if ! grep -q 'soft_ok_jobs_flake' "$tmp_sum"; then
+    echo "FAIL watch-flake fixture: summary missing soft_ok_jobs_flake" >&2
+    cat "$tmp_sum" >&2
+    rm -f "$tmp_sum"
+    exit 1
+  fi
+  rm -f "$tmp_sum"
+  if [[ "$sum_line" != *"soft_ok_jobs_flake"* ]]; then
+    echo "FAIL watch-flake fixture: watch_ok_summary_line drift: $sum_line" >&2
+    exit 1
+  fi
+  # Everything up-to-date next to RPC noise is a connect flake, not a clean land.
+  if ! push_stderr_is_connect_flake $'RPC failed\nEverything up-to-date'; then
+    echo "FAIL watch-flake fixture: RPC+up-to-date must count as connect flake" >&2
+    exit 1
+  fi
+  if push_stderr_is_connect_flake 'Everything up-to-date'; then
+    echo "FAIL watch-flake fixture: clean Everything up-to-date must not be connect flake" >&2
     exit 1
   fi
   echo "ok push-watch flake fixture (jobs miss after success → soft exit 0)"

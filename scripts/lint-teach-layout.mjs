@@ -164,6 +164,32 @@ function lint420AreasOrInherit(block) {
   }
 }
 
+// Watch / doctor / offline-first fixtures must stay present (static assert; no network).
+{
+  const fixtures = [
+    ['scripts/push-main-heartbeat.sh', /PUSH_WATCH_FLAKE_FIXTURE|watch_exit_decision|soft_ok_jobs_flake/],
+    ['scripts/doctor.sh', /DOCTOR_FIXTURE=auto-ensure-0|DOCTOR_FIXTURE=auto-ensure-1/],
+    ['scripts/offline-first-sidebranch-dry-run.sh', /OFFLINE_FIRST=1/],
+  ];
+  let fxOk = true;
+  for (const [rel, re] of fixtures) {
+    const abs = path.join(root, rel);
+    if (!fs.existsSync(abs)) {
+      failed += 1;
+      fxOk = false;
+      console.error(`FAIL missing fixture script: ${rel}`);
+      continue;
+    }
+    const src = fs.readFileSync(abs, 'utf8');
+    if (!re.test(src)) {
+      failed += 1;
+      fxOk = false;
+      console.error(`FAIL ${rel}: missing expected fixture marker ${re}`);
+    }
+  }
+  if (fxOk) console.log('ok watch/doctor/offline-first fixture scripts present');
+}
+
 // Agent-facing scripts must not run blind git-add-all (use git-stage-allow.sh).
 {
   const agentFiles = [

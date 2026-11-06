@@ -19,13 +19,16 @@ URL="http://127.0.0.1:${PORT}/"
 fail=0
 DOCTOR_AUTO_ENSURE="${DOCTOR_AUTO_ENSURE:-1}"
 
+# Override in fixtures: ENSURE_DEV_SERVER_SH=/path/to/mock (never starts a real server).
+ENSURE_DEV_SERVER_SH="${ENSURE_DEV_SERVER_SH:-$ROOT/scripts/ensure-dev-server.sh}"
+
 clear_stale_sidecars() {
   local why="$1"
   echo "clearing stale sidecars ($why): $READY_FILE $PID_FILE"
   rm -f "$READY_FILE" "$PID_FILE"
   if [[ "$DOCTOR_AUTO_ENSURE" == "1" ]]; then
-    echo "DOCTOR_AUTO_ENSURE=1 → bash scripts/ensure-dev-server.sh --no-exec --quiet"
-    if bash scripts/ensure-dev-server.sh --no-exec --quiet; then
+    echo "DOCTOR_AUTO_ENSURE=1 → bash ${ENSURE_DEV_SERVER_SH#$ROOT/} --no-exec --quiet"
+    if bash "$ENSURE_DEV_SERVER_SH" --no-exec --quiet; then
       echo "ok ensure-dev-server after clear"
     else
       echo "ensure-dev-server failed after clear — try \`npm start\` manually" >&2
@@ -65,6 +68,55 @@ if [[ "${DOCTOR_FIXTURE:-}" == "auto-ensure-0" ]]; then
   exit 0
 fi
 
+# Fixture: AUTO_ENSURE=1 takes ensure path via mock script (no real server).
+#   DOCTOR_FIXTURE=auto-ensure-1 bash scripts/doctor.sh
+if [[ "${DOCTOR_FIXTURE:-}" == "auto-ensure-1" ]]; then
+  PORT=4199
+  READY_FILE="$ROOT/.dev-server-${PORT}.ready"
+  PID_FILE="$ROOT/.dev-server-${PORT}.pid"
+  DOCTOR_AUTO_ENSURE=1
+  mock_dir="$(mktemp -d "${TMPDIR:-/tmp}/doctor-ensure-mock.XXXXXX")"
+  mock_sh="$mock_dir/ensure-dev-server.sh"
+  marker="$mock_dir/called"
+  cat >"$mock_sh" <<'EOF'
+#!/usr/bin/env bash
+# Mock ensure — records argv; never binds a port.
+printf '%s\n' "$*" >"${DOCTOR_ENSURE_MARKER:?}"
+exit 0
+EOF
+  chmod +x "$mock_sh"
+  ENSURE_DEV_SERVER_SH="$mock_sh"
+  export DOCTOR_ENSURE_MARKER="$marker"
+  printf '%s\n' '{"pid":1}' >"$READY_FILE"
+  : >"$PID_FILE"
+  out="$(clear_stale_sidecars "fixture dead pid 1" 2>&1)"
+  if [[ -f "$READY_FILE" || -f "$PID_FILE" ]]; then
+    echo "FAIL doctor fixture: sidecars still present after AUTO_ENSURE=1 clear" >&2
+    rm -rf "$mock_dir"
+    exit 1
+  fi
+  if ! echo "$out" | grep -q 'DOCTOR_AUTO_ENSURE=1'; then
+    echo "FAIL doctor fixture: expected AUTO_ENSURE=1 ensure path" >&2
+    echo "$out" >&2
+    rm -rf "$mock_dir"
+    exit 1
+  fi
+  if ! echo "$out" | grep -q 'ok ensure-dev-server after clear'; then
+    echo "FAIL doctor fixture: mock ensure did not report ok" >&2
+    echo "$out" >&2
+    rm -rf "$mock_dir"
+    exit 1
+  fi
+  if [[ ! -f "$marker" ]] || ! grep -q -- '--no-exec' "$marker"; then
+    echo "FAIL doctor fixture: mock ensure not invoked with --no-exec" >&2
+    rm -rf "$mock_dir"
+    exit 1
+  fi
+  rm -rf "$mock_dir"
+  echo "ok doctor AUTO_ENSURE=1 fixture (mock ensure, no server)"
+  exit 0
+fi
+
 echo "### doctor — local preview / university nav"
 echo ""
 
@@ -73,8 +125,8 @@ echo "## 1. .dev-server-${PORT}.ready"
 if [[ ! -f "$READY_FILE" ]]; then
   echo "FAIL: missing $READY_FILE — run npm start / npm run preview first"
   if [[ "$DOCTOR_AUTO_ENSURE" == "1" ]]; then
-    echo "DOCTOR_AUTO_ENSURE=1 → bash scripts/ensure-dev-server.sh --no-exec --quiet"
-    bash scripts/ensure-dev-server.sh --no-exec --quiet || true
+    echo "DOCTOR_AUTO_ENSURE=1 → bash ${ENSURE_DEV_SERVER_SH#$ROOT/} --no-exec --quiet"
+    bash "$ENSURE_DEV_SERVER_SH" --no-exec --quiet || true
   else
     echo "tip: \`bash scripts/ensure-dev-server.sh\`"
   fi
