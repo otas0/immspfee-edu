@@ -437,6 +437,19 @@ if (!hasTwoRowTop(block768)) {
   } else {
     console.log('ok push-resume fixture (fetch mock + gh resume + latest-SHA pick)');
   }
+  const watchFlake = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
+    cwd: root,
+    env: { ...process.env, PUSH_WATCH_FLAKE_FIXTURE: '1' },
+    encoding: 'utf8',
+  });
+  if (watchFlake.status !== 0 || !/ok push-watch flake fixture/.test(watchFlake.stdout || '')) {
+    failed += 1;
+    console.error('FAIL push-watch flake fixture (jobs miss after success → soft exit 0)', {
+      status: watchFlake.status, out: (watchFlake.stdout || '').slice(0, 400), err: watchFlake.stderr,
+    });
+  } else {
+    console.log('ok push-watch flake fixture (jobs miss after success → soft exit 0)');
+  }
   const doc = spawnSync('bash', ['scripts/doctor.sh'], {
     cwd: root,
     env: { ...process.env, DOCTOR_FIXTURE: 'auto-ensure-0' },

@@ -4,6 +4,8 @@
 #   HEARTBEAT_FIXTURE=1 bash scripts/push-main-heartbeat.sh
 #   PUSH_RESUME_FIXTURE=1 bash scripts/push-main-heartbeat.sh
 #     → push ok + fetch fail (+ optional PUSH_FETCH_MOCK) + gh ok → resume watch
+#   PUSH_WATCH_FLAKE_FIXTURE=1 bash scripts/push-main-heartbeat.sh
+#     → jobs API miss after deploy success → soft exit 0
 set -euo pipefail
 
 # Canonical mid-FAIL line (console === summary; waiting-segment diff).
@@ -11,6 +13,46 @@ set -euo pipefail
 MID_FAIL_CAPTURE_NOTE=' (capture already red while run status may still be waiting/in_progress)'
 mid_fail_title_line() {
   echo "mid-FAIL title${MID_FAIL_CAPTURE_NOTE}"
+}
+
+JOBS_UNAVAILABLE_LINE='(jobs unavailable)'
+
+# True when a jobs heartbeat line shows deploy already completed/success.
+last_good_shows_deploy_success() {
+  local line="${1:-}"
+  echo "$line" | grep -qiE '(^|[· ])deploy[^=]*=completed/success'
+}
+
+# Watch exit from run conclusion + last-good jobs line (API flake ≠ content red).
+# Args: concl last_good_jobs_line jobs_flake(0|1)  — jobs_flake is informational;
+# empty concl + deploy success in last-good soft-oks even when flake bit is 0
+# (conclusion poll empty after a green heartbeat).
+# Prints: ok | soft_ok_jobs_flake | fail
+# Exit 0 for ok/soft_ok; 1 for fail.
+watch_exit_decision() {
+  local concl="${1:-}" last_good="${2:-}" _jobs_flake="${3:-0}"
+  if [[ "$concl" == "success" ]]; then
+    echo "ok"
+    return 0
+  fi
+  # Empty / unknown conclusion: soft-ok if last-good already saw deploy success.
+  if [[ -z "$concl" || "$concl" == "unknown" ]]; then
+    if last_good_shows_deploy_success "$last_good"; then
+      echo "soft_ok_jobs_flake"
+      return 0
+    fi
+    echo "fail"
+    return 1
+  fi
+  # Known non-success conclusions stay hard fail.
+  echo "fail"
+  return 1
+}
+
+# Whether a heartbeat jobs line is a transient API miss (do not wipe last-good).
+jobs_line_is_unavailable() {
+  local line="${1:-}"
+  [[ "$line" == "$JOBS_UNAVAILABLE_LINE" ]] || [[ "$line" == *'(jobs unavailable)'* ]]
 }
 
 # Format one Heartbeats bullet. fail_n: count of jobs with failure|cancelled|timed_out.
@@ -166,5 +208,47 @@ if [[ "${PUSH_RESUME_FIXTURE:-}" == "1" ]]; then
     exit 1
   fi
   echo "ok push-resume fixture (push ok + fetch fail + gh ok) + latest-SHA pick + PUSH_FETCH_MOCK"
+  exit 0
+fi
+
+if [[ "${PUSH_WATCH_FLAKE_FIXTURE:-}" == "1" ]]; then
+  last='Optional capture 340px title=completed/success · deploy=completed/success · Redirect retries diag=completed/success'
+  # jobs miss / empty concl after success → soft exit 0 (flake bit optional)
+  out="$(watch_exit_decision '' "$last" 1)" || rc=$?
+  rc="${rc:-0}"
+  if [[ "$rc" -ne 0 || "$out" != "soft_ok_jobs_flake" ]]; then
+    echo "FAIL watch-flake fixture: expected soft_ok_jobs_flake got rc=$rc out=$out" >&2
+    exit 1
+  fi
+  out0="$(watch_exit_decision '' "$last" 0)" || true
+  if [[ "$out0" != "soft_ok_jobs_flake" ]]; then
+    echo "FAIL watch-flake fixture: empty concl + last-good must soft-ok without flake bit got $out0" >&2
+    exit 1
+  fi
+  # run conclusion success wins even if jobs flaked
+  out2="$(watch_exit_decision 'success' "$JOBS_UNAVAILABLE_LINE" 1)" || true
+  if [[ "$out2" != "ok" ]]; then
+    echo "FAIL watch-flake fixture: concl success must be ok got $out2" >&2
+    exit 1
+  fi
+  # real failure stays hard
+  if watch_exit_decision 'failure' "$last" 0 >/dev/null; then
+    echo "FAIL watch-flake fixture: conclusion failure must exit nonzero" >&2
+    exit 1
+  fi
+  # empty concl + flake + no last-good → fail
+  if watch_exit_decision '' '' 1 >/dev/null; then
+    echo "FAIL watch-flake fixture: empty last-good must not soft-ok" >&2
+    exit 1
+  fi
+  if ! jobs_line_is_unavailable "$JOBS_UNAVAILABLE_LINE"; then
+    echo "FAIL watch-flake fixture: jobs_line_is_unavailable" >&2
+    exit 1
+  fi
+  if ! last_good_shows_deploy_success "$last"; then
+    echo "FAIL watch-flake fixture: last_good_shows_deploy_success" >&2
+    exit 1
+  fi
+  echo "ok push-watch flake fixture (jobs miss after success → soft exit 0)"
   exit 0
 fi

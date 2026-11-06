@@ -78,7 +78,10 @@ while (( i <= attempts )); do
     fi
     SHA="$local_head"
     SHORT="$(git rev-parse --short HEAD)"
-    echo "pushed $SHORT"
+    echo "pushed $SHORT (attempt $i/$attempts; proxy_cleared=$cleared_proxy)"
+    if (( cleared_proxy )); then
+      echo "note: proxy env was cleared after a prior 443/CONNECT flake; push landed on attempt $i"
+    fi
     pushed=1
     break
   fi
@@ -86,8 +89,8 @@ while (( i <= attempts )); do
   err_txt="$(cat "$err_log" 2>/dev/null || true)"
   rm -f "$err_log"
   # Empty reply / CONNECT / port 443: drop proxy once and retry immediately (no backoff).
-  if (( cleared_proxy == 0 )) && echo "$err_txt" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect'; then
-    echo "clearing proxy env (https_proxy/http_proxy/ALL_PROXY); immediate retry"
+  if (( cleared_proxy == 0 )) && echo "$err_txt" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect|Operation timed out|Recv failure'; then
+    echo "clearing proxy env (https_proxy/http_proxy/ALL_PROXY); immediate retry (was attempt $i/$attempts)"
     unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy || true
     cleared_proxy=1
     i=$(( i + 1 ))
@@ -185,16 +188,58 @@ summary_append() {
     printf '%s\n' "$@"
   } >> "$SUMMARY_MD"
 }
+# Persist last-good jobs line so a late "(jobs unavailable)" does not wipe the summary.
+LAST_GOOD_HEARTBEAT_LINE=""
+LAST_GOOD_HEARTBEAT_FAIL_N=0
+JOBS_UNAVAILABLE_STREAK=0
+LAST_EMITTED_HEARTBEAT_LINE=""
+COMPLETED_SEEN=0
 summary_heartbeat() {
-  local ts line tmp row fail_n
+  local ts line tmp row fail_n jobs_raw
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
-    [.jobs[] | "\(.name)=\(.status)/\(.conclusion // "-")"] | join(" · ")
-  ' 2>/dev/null || echo "(jobs unavailable)")"
-  fail_n="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
-    [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
-    | length
-  ' 2>/dev/null || echo 0)"
+  jobs_raw="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" 2>/dev/null || true)"
+  if [[ -z "$jobs_raw" ]]; then
+    line="$JOBS_UNAVAILABLE_LINE"
+    fail_n=0
+  else
+    line="$(printf '%s' "$jobs_raw" | python3 -c '
+import json,sys
+try:
+  data=json.load(sys.stdin)
+  jobs=data.get("jobs") or []
+  print(" · ".join("%s=%s/%s" % (j.get("name") or "?", j.get("status") or "-", j.get("conclusion") or "-") for j in jobs))
+except Exception:
+  print("")
+' 2>/dev/null || true)"
+    fail_n="$(printf '%s' "$jobs_raw" | python3 -c '
+import json,sys
+try:
+  data=json.load(sys.stdin)
+  jobs=data.get("jobs") or []
+  print(sum(1 for j in jobs if (j.get("conclusion") or "") in ("failure","cancelled","timed_out")))
+except Exception:
+  print(0)
+' 2>/dev/null || echo 0)"
+    if [[ -z "$line" ]]; then
+      line="$JOBS_UNAVAILABLE_LINE"
+      fail_n=0
+    fi
+  fi
+  if jobs_line_is_unavailable "$line"; then
+    JOBS_UNAVAILABLE_STREAK=$((JOBS_UNAVAILABLE_STREAK + 1))
+    # Transient: keep last-good in summary; console note only (no wipe).
+    echo "heartbeat $JOBS_UNAVAILABLE_LINE (transient; keeping last-good; streak=$JOBS_UNAVAILABLE_STREAK)"
+    return 0
+  fi
+  JOBS_UNAVAILABLE_STREAK=0
+  LAST_GOOD_HEARTBEAT_LINE="$line"
+  LAST_GOOD_HEARTBEAT_FAIL_N="$fail_n"
+  # Cap noise: identical line while already completed — skip duplicate summary rows.
+  if (( COMPLETED_SEEN )) && [[ "$line" == "$LAST_EMITTED_HEARTBEAT_LINE" ]]; then
+    echo "heartbeat (unchanged while completed; suppressed)"
+    return 0
+  fi
+  LAST_EMITTED_HEARTBEAT_LINE="$line"
   row="$(heartbeat_format_row "$ts" "$line" "$fail_n")"
   echo "heartbeat ${row#- }"
   # Insert inside ## Heartbeats (before marker), not after later summary sections.
@@ -231,18 +276,19 @@ set_issue_title() {
 }
 echo "local summary: $SUMMARY_MD (paste into issues)"
 echo "issue title: $ISSUE_TITLE"
-# Capture job may still be running; print short-SHA artifact deep links early.
+# Expected names only until run conclusion is known (download URLs dump later).
 RUN_URL="https://github.com/${REPO}/actions/runs/${RID}"
-echo "capture artifacts (short SHA $SHORT; upload when capture job finishes):"
+echo "expected capture artifacts (short SHA $SHORT; URLs after conclusion):"
 echo "  run: $RUN_URL"
-echo "  PNG:  capture-340px-zh-long-title-$SHORT  → ${RUN_URL}#artifacts"
-echo "  fail: capture-last-fail-$SHORT           → ${RUN_URL}#artifacts"
-echo "  redir: redirect-fail-headers-$SHORT      → ${RUN_URL}#artifacts"
+echo "  PNG:  capture-340px-zh-long-title-$SHORT"
+echo "  fail: capture-last-fail-$SHORT"
+echo "  redir: redirect-fail-headers-$SHORT"
 summary_append "Expected artifacts" \
   "- PNG: \`capture-340px-zh-long-title-$SHORT\`" \
   "- fail: \`capture-last-fail-$SHORT\`" \
   "- redir: \`redirect-fail-headers-$SHORT\`" \
-  "- run: $RUN_URL"
+  "- run: $RUN_URL" \
+  "- note: browse/api download URLs are filled only after run conclusion is known"
 warned_waiting=0
 waiting_since=0
 # Seconds to stay in environment "waiting" before printing reviewers and exiting.
@@ -419,14 +465,57 @@ maybe_mid_fail_title() {
   fi
 }
 
+# Poll run conclusion a few times (final authority before hard exit 1).
+poll_run_conclusion() {
+  local tries="${1:-5}" delay_s="${2:-2}" c="" n=1
+  while (( n <= tries )); do
+    c="$(gh run view "$RID" --repo "$REPO" --json conclusion --jq '.conclusion // empty' 2>/dev/null || true)"
+    if [[ -n "$c" ]]; then
+      echo "$c"
+      return 0
+    fi
+    echo "run conclusion poll $n/$tries empty; retry in ${delay_s}s" >&2
+    sleep "$delay_s"
+    n=$(( n + 1 ))
+  done
+  echo ""
+  return 1
+}
+
 # Poll until the run leaves "waiting" (env approval), appending heartbeats.
 while true; do
   meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
-  status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
-  url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
+  status="$(python3 -c 'import json,sys
+try:
+  print(json.loads(sys.argv[1] or "{}").get("status",""))
+except Exception:
+  print("")
+' "$meta" 2>/dev/null || true)"
+  url="$(python3 -c 'import json,sys
+try:
+  print(json.loads(sys.argv[1] or "{}").get("url",""))
+except Exception:
+  print("")
+' "$meta" 2>/dev/null || true)"
+  # Empty meta (API flake): transient retry; soft-break if last-good already deploy success.
+  if [[ -z "$status" ]]; then
+    echo "run view meta unavailable; transient retry (keeping last-good)"
+    summary_heartbeat
+    if last_good_shows_deploy_success "$LAST_GOOD_HEARTBEAT_LINE" && (( JOBS_UNAVAILABLE_STREAK >= 2 || COMPLETED_SEEN )); then
+      echo "soft-complete: last-good already deploy=completed/success amid API flake"
+      break
+    fi
+    sleep 5
+    continue
+  fi
   # Title first so Heartbeats FAIL mark and ISSUE_TITLE stay aligned during waiting.
   maybe_mid_fail_title "$status"
   summary_heartbeat
+  # Soft-complete: deploy already green in last-good while jobs API keeps flaking.
+  if last_good_shows_deploy_success "$LAST_GOOD_HEARTBEAT_LINE" && (( JOBS_UNAVAILABLE_STREAK >= 3 )); then
+    echo "soft-complete: deploy success in last-good; jobs unavailable streak=$JOBS_UNAVAILABLE_STREAK"
+    break
+  fi
   if [[ "$status" == "waiting" ]]; then
     now="$(date +%s)"
     if (( warned_waiting == 0 )); then
@@ -447,6 +536,7 @@ while true; do
     continue
   fi
   if [[ "$status" == "completed" ]]; then
+    COMPLETED_SEEN=1
     break
   fi
   # in_progress / queued: keep polling with heartbeats (replaces blocking gh run watch).
@@ -457,16 +547,36 @@ while true; do
   sleep 5
 done
 
-# Final heartbeat + exit status from conclusion (no separate gh run watch).
+# Final heartbeat (skips wipe on jobs unavailable) + conclusion poll as authority.
 summary_heartbeat
 watch_rc=0
-concl="$(gh run view "$RID" --repo "$REPO" --json conclusion --jq '.conclusion // empty' 2>/dev/null || true)"
-set_issue_title "$concl"
-if [[ "$concl" != "success" ]]; then
-  watch_rc=1
+watch_kind=""
+jobs_flake=0
+if (( JOBS_UNAVAILABLE_STREAK > 0 )); then
+  jobs_flake=1
 fi
+concl="$(poll_run_conclusion 5 2 || true)"
+# Final authority: polled conclusion; soft-ok if empty but last-good saw deploy success.
+watch_kind="$(watch_exit_decision "$concl" "$LAST_GOOD_HEARTBEAT_LINE" "$jobs_flake" || true)"
+case "$watch_kind" in
+  ok|soft_ok_jobs_flake) watch_rc=0 ;;
+  *) watch_rc=1 ;;
+esac
+if [[ "$watch_kind" == "soft_ok_jobs_flake" ]]; then
+  echo "soft-ok: deploy already completed/success in last-good; treating jobs API flake as non-fatal"
+  concl="${concl:-success}"
+fi
+set_issue_title "${concl:-}"
 print_deploy_conclusion() {
   local line
+  if [[ -n "$LAST_GOOD_HEARTBEAT_LINE" ]] && (( JOBS_UNAVAILABLE_STREAK > 0 )); then
+    line="deploy job: (from last-good) $LAST_GOOD_HEARTBEAT_LINE"
+    echo "$line"
+    if [[ -n "${SUMMARY_MD:-}" ]]; then
+      summary_append "Deploy job" "$line" "(jobs API flaked; last-good preserved)"
+    fi
+    return 0
+  fi
   line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | select((.name | ascii_downcase | contains("deploy")) or (.name == "deploy"))]
     | .[0]
@@ -480,21 +590,37 @@ print_deploy_conclusion() {
   fi
 }
 
+# Artifact URL dump only after conclusion (or soft-ok) is decided.
 if (( watch_rc != 0 )); then
-  echo "Pages watch failed for $SHORT (exit $watch_rc)" >&2
-  echo "still listing fail artifacts if any were uploaded:"
-  print_run_artifacts 1
+  echo "Pages watch failed for $SHORT (exit $watch_rc; kind=${watch_kind:-fail}; concl=${concl:-empty})" >&2
+  if [[ -n "$concl" ]]; then
+    echo "listing fail artifacts (conclusion known: $concl):"
+    print_run_artifacts 1
+  else
+    echo "skipping artifact URL dump — run conclusion still unknown (API flake ≠ cancel)"
+    if [[ -n "${SUMMARY_MD:-}" ]]; then
+      summary_append "Artifacts" "skipped — conclusion unknown after jobs/run API flake"
+    fi
+  fi
   print_deploy_conclusion
   if [[ -n "${SUMMARY_MD:-}" ]]; then
-    summary_append "Watch failed" "exit $watch_rc" "Paste this file into the issue: \`$SUMMARY_MD\`"
+    summary_append "Watch failed" "exit $watch_rc kind=${watch_kind:-fail}" "Paste this file into the issue: \`$SUMMARY_MD\`"
     echo "summary written: $SUMMARY_MD" >&2
   fi
   exit "$watch_rc"
 fi
-echo "Pages ok for $SHORT"
+if [[ "$watch_kind" == "soft_ok_jobs_flake" ]]; then
+  echo "Pages ok for $SHORT (soft-ok after jobs API flake; last-good preserved)"
+else
+  echo "Pages ok for $SHORT"
+fi
 print_run_artifacts 0
 print_deploy_conclusion
 if [[ -n "${SUMMARY_MD:-}" ]]; then
-  summary_append "Watch ok" "Pages ok for $SHORT"
+  if [[ "$watch_kind" == "soft_ok_jobs_flake" ]]; then
+    summary_append "Watch ok" "Pages ok for $SHORT (soft_ok_jobs_flake — API flake ≠ cancel)"
+  else
+    summary_append "Watch ok" "Pages ok for $SHORT"
+  fi
   echo "summary written: $SUMMARY_MD"
 fi
