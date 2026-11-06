@@ -215,10 +215,16 @@ if (!hasTwoRowTop(block768)) {
       } else {
         const byMixed = document.querySelector('div > span.fold-hint + em');
         const byMixedMiss = document.querySelector('div > em + span.fold-hint');
+        const byMixedPseudo = document.querySelector('div > span.fold-hint.extra + em:last-child');
         if (!byMixed || byMixed !== trailing || byMixedMiss) {
           failed += 1;
           console.error('FAIL dom-lite mixed combinator div > span.fold-hint + em', {
             byMixed: !!byMixed, byMixedMiss: !!byMixedMiss,
+          });
+        } else if (!byMixedPseudo || byMixedPseudo !== trailing) {
+          failed += 1;
+          console.error('FAIL dom-lite mixed+pseudo div > span.fold-hint.extra + em:last-child', {
+            byMixedPseudo: !!byMixedPseudo,
           });
         } else {
           console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed');

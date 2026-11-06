@@ -43,6 +43,30 @@ OFFLINE_FIRST=0   # default
 # OFFLINE_FIRST=1 # future flip PR only
 ```
 
+## Pseudo-interface: `OFFLINE_FIRST=1` ↔ `stamp-build` (not wired)
+
+Sketch only — do **not** implement until the checklist passes. Shows how a future flip would talk to stamp + PRECACHE without changing today’s path.
+
+```js
+// scripts/stamp-build.mjs (future)
+const OFFLINE_FIRST = process.env.OFFLINE_FIRST === '1';
+const OFFLINE_SHELL = ['js/ui-chrome.js', 'js/uni-fold.js'];
+
+const REQUIRED = [
+  'index.html',
+  'js/app.js',
+  // ...
+  'sw.js',
+  ...(OFFLINE_FIRST ? OFFLINE_SHELL : []),
+];
+
+// sw.js PRECACHE (future, same commit as REQUIRED):
+// if (OFFLINE_FIRST) PRECACHE.push(...OFFLINE_SHELL.map(bust));
+// else keep busting via app.js ?v=__BUILD__ only.
+```
+
+Pages / local default: leave `OFFLINE_FIRST` unset. A flip PR sets it in CI only after ADR gates are checked.
+
 ## CI comment template (offline-first switch)
 
 Paste into the PR / issue that flips offline-first. Tick every box before merging the PRECACHE change:

@@ -132,6 +132,27 @@ if [[ -z "$RID" ]]; then
 fi
 
 echo "watching Pages run $RID"
+SUMMARY_MD="${ROOT}/.local-shots/push-main-last-summary.md"
+mkdir -p "${ROOT}/.local-shots"
+{
+  echo "# push-main summary"
+  echo ""
+  echo "- short SHA: \`$SHORT\`"
+  echo "- full SHA: \`$SHA\`"
+  echo "- run: $RID"
+  echo "- run URL: https://github.com/${REPO}/actions/runs/${RID}"
+  echo ""
+} > "$SUMMARY_MD"
+summary_append() {
+  {
+    echo ""
+    echo "## $1"
+    echo ""
+    shift
+    printf '%s\n' "$@"
+  } >> "$SUMMARY_MD"
+}
+echo "local summary: $SUMMARY_MD (paste into issues)"
 # Capture job may still be running; print short-SHA artifact deep links early.
 RUN_URL="https://github.com/${REPO}/actions/runs/${RID}"
 echo "capture artifacts (short SHA $SHORT; upload when capture job finishes):"
@@ -139,6 +160,11 @@ echo "  run: $RUN_URL"
 echo "  PNG:  capture-340px-zh-long-title-$SHORT  → ${RUN_URL}#artifacts"
 echo "  fail: capture-last-fail-$SHORT           → ${RUN_URL}#artifacts"
 echo "  redir: redirect-fail-headers-$SHORT      → ${RUN_URL}#artifacts"
+summary_append "Expected artifacts" \
+  "- PNG: \`capture-340px-zh-long-title-$SHORT\`" \
+  "- fail: \`capture-last-fail-$SHORT\`" \
+  "- redir: \`redirect-fail-headers-$SHORT\`" \
+  "- run: $RUN_URL"
 warned_waiting=0
 waiting_since=0
 # Seconds to stay in environment "waiting" before printing reviewers and exiting.
@@ -175,8 +201,10 @@ print_run_artifacts() {
   local art_lines
   art_lines="$(gh api "repos/${REPO}/actions/runs/${RID}/artifacts" --paginate \
     --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-last-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
+  local listed=""
   if [[ -z "$art_lines" ]]; then
     echo "  (no matching capture/redirect artifacts for run $RID)"
+    listed="(none)"
   else
     while IFS=$'\t' read -r name aid url; do
       [[ -z "$name" ]] && continue
@@ -186,12 +214,25 @@ print_run_artifacts() {
       echo "  $name"
       echo "    browse: https://github.com/${REPO}/actions/runs/${RID}/artifacts/${aid}"
       [[ -n "$url" ]] && echo "    api:    $url"
+      listed="${listed}- ${name}"$'\n'"  browse: https://github.com/${REPO}/actions/runs/${RID}/artifacts/${aid}"$'\n'
     done <<< "$art_lines"
+  fi
+  if [[ -n "${SUMMARY_MD:-}" ]]; then
+    if [[ "$prefer_fail" == "1" ]]; then
+      summary_append "Fail artifacts (watch failed)" "${listed:-(none)}"
+    fi
   fi
   # When prefer_fail=0, also diagnose missing PNG.
   if [[ "$prefer_fail" != "1" ]]; then
     if ! echo "$art_lines" | grep -q "capture-340px-zh-long-title-${SHORT}"; then
-      diagnose_missing_capture_png
+      diagnose_missing_capture_png | tee /tmp/push-main-diag.txt
+      if [[ -n "${SUMMARY_MD:-}" && -f /tmp/push-main-diag.txt ]]; then
+        summary_append "Missing PNG diagnosis" "$(cat /tmp/push-main-diag.txt)"
+      fi
+    else
+      if [[ -n "${SUMMARY_MD:-}" ]]; then
+        summary_append "Artifacts" "$(echo "$art_lines" | awk -F'\t' '{print "- "$1}')"
+      fi
     fi
   fi
 }
@@ -299,11 +340,36 @@ done
 
 watch_rc=0
 gh run watch "$RID" --repo "$REPO" --exit-status || watch_rc=$?
+print_deploy_conclusion() {
+  local line
+  line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
+    [.jobs[] | select((.name | ascii_downcase | contains("deploy")) or (.name == "deploy"))]
+    | .[0]
+    | if . == null then "deploy job: (not found)"
+      else "deploy job: \(.name) status=\(.status) conclusion=\(.conclusion // "-")"
+      end
+  ' 2>/dev/null || echo "deploy job: (could not fetch)")"
+  echo "$line"
+  if [[ -n "${SUMMARY_MD:-}" ]]; then
+    summary_append "Deploy job" "$line"
+  fi
+}
+
 if (( watch_rc != 0 )); then
   echo "Pages watch failed for $SHORT (exit $watch_rc)" >&2
   echo "still listing fail artifacts if any were uploaded:"
   print_run_artifacts 1
+  print_deploy_conclusion
+  if [[ -n "${SUMMARY_MD:-}" ]]; then
+    summary_append "Watch failed" "exit $watch_rc" "Paste this file into the issue: \`$SUMMARY_MD\`"
+    echo "summary written: $SUMMARY_MD" >&2
+  fi
   exit "$watch_rc"
 fi
 echo "Pages ok for $SHORT"
 print_run_artifacts 0
+print_deploy_conclusion
+if [[ -n "${SUMMARY_MD:-}" ]]; then
+  summary_append "Watch ok" "Pages ok for $SHORT"
+  echo "summary written: $SUMMARY_MD"
+fi

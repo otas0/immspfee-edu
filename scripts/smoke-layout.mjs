@@ -669,7 +669,33 @@ let failed = 0;
                     afterClosedUnknown, openIdleClosedUnknown, openSearchClosedUnknown,
                   });
                 } else {
-                  console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                  // Unknown id + several legal chapters mixed → prune drops unknown; open set unchanged.
+                  const mixed = uniAllFoldsMap(book.chapters, false);
+                  const openLegals = book.chapters.slice(0, Math.min(3, book.chapters.length));
+                  for (const ch of openLegals) mixed[ch.id] = true;
+                  mixed['__ghost-a__'] = true;
+                  mixed['__ghost-b__'] = false;
+                  writeUniFoldsTo(foldStore, mixed);
+                  const beforeOpen = uniOpenChapterIds(
+                    book.chapters, hintCh.id, mixed, false,
+                  ).slice().sort();
+                  const afterMixed = pruneUniFoldsIn(
+                    foldStore, new Set(book.chapters.map((ch) => ch.id)),
+                  );
+                  const afterOpen = uniOpenChapterIds(
+                    book.chapters, hintCh.id, afterMixed, false,
+                  ).slice().sort();
+                  if (afterMixed['__ghost-a__'] != null || afterMixed['__ghost-b__'] != null
+                    || beforeOpen.join() !== afterOpen.join()
+                    || !openLegals.every((ch) => afterMixed[ch.id] === true)
+                    || Object.keys(afterMixed).length !== book.chapters.length) {
+                    failed += 1;
+                    console.error('FAIL uni fold prune: unknown+legal mix must keep open set', {
+                      beforeOpen, afterOpen, afterMixed,
+                    });
+                  } else {
+                    console.log('ok uni details[open] expand/collapse/only-current + search-open→collapse + prune-unknown', hintCh.id);
+                  }
                 }
               }
             }
@@ -949,7 +975,22 @@ let failed = 0;
                     gammaRe, dtRe,
                   });
                 } else {
-                  console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi');
+                  // Explore non-beta schema key (L0) must not clear β sticky.
+                  ui._betaHi = true;
+                  const l0Before = p.L0;
+                  const appliedL0 = applySchemaParam(sim, p, 'L0', l0Before * 2);
+                  Object.assign(p, appliedL0.params);
+                  clearStickyReadoutHiOnSchema('L0', ui);
+                  const afterL0 = sim.readouts(sim.compute(p), p, ui);
+                  if (!ui._betaHi || !afterL0.find((r) => r.en === 'β')?.hi
+                    || Math.abs(p.L0 - l0Before * 2) > 1e-6) {
+                    failed += 1;
+                    console.error('FAIL minkowski Explore L0 must not clear _betaHi', {
+                      sticky: ui._betaHi, L0: p.L0, row: afterL0.find((r) => r.en === 'β'),
+                    });
+                  } else {
+                    console.log('ok minkowski β sticky hi (β only) + Explore clear + re-drag hi + L0 keeps sticky');
+                  }
                 }
               }
             }

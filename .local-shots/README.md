@@ -1,6 +1,10 @@
 # Local viewport captures
 
+**Single source for capture / CI artifact naming.** Root `README.md` (EN/ZH) only links here — do not duplicate the artifact name table elsewhere.
+
 PNGs here are **not** committed (see `.gitignore`). Regenerate after chrome or projectile layout changes.
+
+Local `push-main` writes a paste-ready run summary to `push-main-last-summary.md` in this folder (gitignored).
 
 ## Book title strategy (321–360 vs ≤320)
 
