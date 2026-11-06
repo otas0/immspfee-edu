@@ -11,9 +11,9 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - Local preview is `http://127.0.0.1:4174/`. Probe with `curl -sI` (or `npm run preview` / `.dev-server-4174.ready`) before starting another server; only launch when the probe fails. Prefer `npm start` or `nohup node scripts/dev-server.mjs` — a second start exits 0 with a bilingual reuse tip when the port is already taken.
 - Checklist before claiming local preview / university nav is healthy: (1) `.dev-server-4174.ready` JSON parses and its `pid` is alive (`kill -0`), else clear stale sidecars and start via `scripts/ensure-dev-server.sh` (`--no-exec` / `ENSURE_NO_EXEC=1` when chaining); (2) university chapter `details` default to current-subject-only open (no saved fold map → only the active chapter is `open`).
 - Narrow projectile layout uses canvas `w <= 360` (stacked teachPanel). Book-select clipping for PEP/沪科 titles is CSS `@media (max-width: 320px)` with `text-overflow: clip`. Keep both breakpoints; do not collapse them without checking 321–360px.
-- At **321–360px**: projectile already stacks (`w <= 360`); the book-select may still use the base `text-overflow: ellipsis` until 320px. Document or screenshot that band when changing chrome — do not assume clip applies there.
-- Leaving Debug clears `ui.wrong` (`clearWrongLeavingDebug`); household Debug still forces bp–bn on enter. Leaving household layout also clears wrong.
-- `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports (see `scripts/stamp-build.mjs` comment).
+- At **321–360px**: projectile already stacks (`w <= 360`); the book-select may still use the base `text-overflow: ellipsis` until 320px. Capture reference: `.local-shots/340px-projectile-ellipsis.png` (see `.local-shots/README.md`; PNGs are gitignored). Do not assume clip applies in this band.
+- Leaving Debug clears `ui.wrong` (`clearWrongLeavingDebug`); phase **上一步** from Debug uses the same helper via `goPhase`. Household Debug still forces bp–bn on enter. Leaving household layout also clears wrong.
+- `ui-chrome.js` / `uni-fold.js` are not in `stamp-build` REQUIRED or `sw.js` PRECACHE; cache-bust via `app.js`’s `?v=__BUILD__` imports (see `scripts/stamp-build.mjs` comment). Revisit PRECACHE only if offline-first boot must work before `app.js` fetches the graph — not needed today.
 
 ## Release
 

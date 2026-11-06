@@ -73,8 +73,19 @@ if (!/w\s*<=\s*360/.test(motion)) {
 if (!/321|360px|w\s*<=\s*360/.test(agents) || !/320px/.test(agents)) {
   failed += 1;
   console.error('FAIL AGENTS.md must document 320px book-select vs w<=360 projectile boundary');
+} else if (!/\.local-shots/.test(agents)) {
+  failed += 1;
+  console.error('FAIL AGENTS.md must link .local-shots capture for 321–360px band');
 } else {
   console.log('ok 321–360px boundary documented (canvas stack vs CSS ellipsis)');
+}
+
+const shotsReadme = path.join(root, '.local-shots', 'README.md');
+if (!fs.existsSync(shotsReadme) || !/340px-projectile-ellipsis/.test(fs.readFileSync(shotsReadme, 'utf8'))) {
+  failed += 1;
+  console.error('FAIL .local-shots/README.md must describe 340px-projectile-ellipsis.png');
+} else {
+  console.log('ok .local-shots/README.md documents 340px band capture');
 }
 
 if (failed) {

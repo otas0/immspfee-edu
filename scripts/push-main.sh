@@ -61,6 +61,12 @@ done
 
 if (( pushed == 0 )); then
   echo "push failed after $attempts attempts" >&2
+  if (( cleared_proxy )); then
+    echo "proxy was cleared once; remaining env (empty = unset):" >&2
+    for v in https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy; do
+      echo "  $v=${!v-}" >&2
+    done
+  fi
   echo "If you see CONNECT tunnel / proxy / port 443 errors, try:" >&2
   echo "  unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy" >&2
   echo "  then: bash scripts/push-main.sh" >&2

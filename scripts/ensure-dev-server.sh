@@ -82,6 +82,11 @@ if (( NO_EXEC )); then
   for _ in $(seq 1 50); do
     if probe_ok; then
       echo "$URL (started pid ${START_PID}, --no-exec)"
+      # Drop the startup log on success so a later failure does not show a stale OK run.
+      # Set ENSURE_KEEP_LOG=1 to retain it.
+      if [[ "${ENSURE_KEEP_LOG:-}" != "1" ]]; then
+        rm -f "$LOG_FILE"
+      fi
       exit 0
     fi
     if ! kill -0 "$START_PID" 2>/dev/null; then

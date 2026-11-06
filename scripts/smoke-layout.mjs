@@ -3,15 +3,23 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getSim } from '../js/sims/registry.js';
 import { CIRCUIT_LINKS, circuit } from '../js/physics/circuits.js';
-import { uniChapterOpen, uniAllFoldsMap } from '../js/uni-fold.js';
+import {
+  uniChapterOpen,
+  uniAllFoldsMap,
+  UNI_FOLD_KEY,
+  readUniFoldsFrom,
+  writeUniFoldsTo,
+  pruneUniFoldsMap,
+  foldCurrentHint,
+} from '../js/uni-fold.js';
 import {
   clearWrongLeavingHousehold,
   clearWrongLeavingDebug,
   readoutClass,
   isCanvasBufferError,
 } from '../js/ui-chrome.js';
-import { getBook, flatten } from '../js/curricula/index.js';
-import { STR } from '../js/i18n.js';
+import { getBook, flatten, findLesson } from '../js/curricula/index.js';
+import { STR, t } from '../js/i18n.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -291,7 +299,7 @@ let failed = 0;
 }
 
 {
-  // Product: leaving Debug clears ui.wrong; re-enter household Debug forces it again in app.
+  // Product: leaving Debug clears ui.wrong; 上一步 Debug→Check uses the same helper.
   const ui = { wrong: true };
   clearWrongLeavingDebug('debug', 'explore', ui);
   if (ui.wrong !== false) {
@@ -299,11 +307,18 @@ let failed = 0;
     console.error('FAIL leave debug: ui.wrong should be false');
   } else {
     ui.wrong = true;
-    clearWrongLeavingDebug('debug', 'debug', ui);
-    if (ui.wrong !== true) {
+    clearWrongLeavingDebug('debug', 'check', ui);
+    if (ui.wrong !== false) {
       failed += 1;
-      console.error('FAIL stay on debug: ui.wrong must remain');
-    } else console.log('ok leave debug clears ui.wrong');
+      console.error('FAIL leave debug via 上一步 (→check): ui.wrong should be false');
+    } else {
+      ui.wrong = true;
+      clearWrongLeavingDebug('debug', 'debug', ui);
+      if (ui.wrong !== true) {
+        failed += 1;
+        console.error('FAIL stay on debug: ui.wrong must remain');
+      } else console.log('ok leave debug / 上一步 clears ui.wrong');
+    }
   }
 }
 
@@ -355,6 +370,44 @@ let failed = 0;
     failed += 1;
     console.error('FAIL uni fold expand/collapse all', { allOpen, allClosed, n: Object.keys(expandMap).length });
   } else console.log('ok uni fold expand/collapse all ↔ uniChapterOpen');
+
+  // fold-hint 「当前学科」 names the same chapter that defaults to open.
+  const sample = findLesson('university', rows[0].lesson.id);
+  const hintCh = sample?.chapter;
+  const hint = foldCurrentHint(t('zh', 'foldCurrent'), hintCh?.title?.zh || '');
+  const defaultOpen = book.chapters.find((ch) => uniChapterOpen(ch.id, hintCh?.id, {}, false));
+  if (!hintCh || !defaultOpen || defaultOpen.id !== hintCh.id || !hint.includes(hintCh.title.zh)) {
+    failed += 1;
+    console.error('FAIL uni fold hint vs default open chapter', { hint, hintCh: hintCh?.id, defaultOpen: defaultOpen?.id });
+  } else console.log('ok uni fold hint ↔ default open chapter', hintCh.id);
+
+  // Mock localStorage: expand-all write → read → prune stale ids.
+  const mem = new Map();
+  const storage = {
+    getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+    setItem: (k, v) => { mem.set(k, String(v)); },
+  };
+  writeUniFoldsTo(storage, uniAllFoldsMap(book.chapters, true));
+  const stored = readUniFoldsFrom(storage);
+  const valid = new Set(book.chapters.map((ch) => ch.id));
+  stored['__gone__'] = true;
+  writeUniFoldsTo(storage, stored);
+  const pruned = pruneUniFoldsMap(readUniFoldsFrom(storage), valid);
+  if (pruned.map.__gone__ || !pruned.changed || Object.keys(pruned.map).length !== book.chapters.length) {
+    failed += 1;
+    console.error('FAIL uni fold storage mock prune', pruned);
+  } else if (storage.getItem(UNI_FOLD_KEY) == null) {
+    failed += 1;
+    console.error('FAIL uni fold storage key missing');
+  } else {
+    writeUniFoldsTo(storage, pruned.map);
+    const again = readUniFoldsFrom(storage);
+    const stillAllOpen = book.chapters.every((ch) => uniChapterOpen(ch.id, currentCh, again, false));
+    if (!stillAllOpen) {
+      failed += 1;
+      console.error('FAIL uni fold storage round-trip expand map');
+    } else console.log('ok uni fold localStorage mock write/read/prune');
+  }
 }
 
 {
@@ -410,8 +463,31 @@ let failed = 0;
                 failed += 1;
                 console.error('FAIL double-slit: width bar must stay hittable after envelope off');
               } else {
+                // Clamp a to schema [1e-5, 2e-4].
+                const aField = sim.schema.find((f) => f.key === 'a');
+                const amin = aField.min;
+                const amax = aField.max;
+                ui.drag = 'width';
+                const gClamp = ui._slit;
+                // Near envelope baseline → tiny half → a hits max.
+                const atMax = sim.pointer({
+                  type: 'move',
+                  x: gClamp.barX,
+                  y: gClamp.gy - gClamp.gh * 0.5,
+                }, p, d, ui);
+                ui._betaLast = null;
+                const atMin = sim.pointer({
+                  type: 'move',
+                  x: gClamp.barX,
+                  y: gClamp.gy,
+                }, p, d, ui);
                 sim.pointer({ type: 'up', x: g3.barX, y: g3.yLo }, p, d, ui);
-                console.log('ok double-slit envelope + width-bar drag/hit', { a0, a1: p.a });
+                if (!atMax || Math.abs(atMax.a - amax) > 1e-12 || !atMin || Math.abs(atMin.a - amin) > 1e-12) {
+                  failed += 1;
+                  console.error('FAIL double-slit width drag clamp to schema a', { atMax, atMin, amin, amax });
+                } else {
+                  console.log('ok double-slit envelope + width-bar drag/hit/clamp', { a0, amin, amax });
+                }
               }
             }
           }
@@ -431,9 +507,15 @@ let failed = 0;
   sim.draw(ctx, 640, 400, p, d, ui);
   const tr = ui._vTrack;
   const snap = sim.onParam('beta', 0.73);
+  const loSnap = sim.onParam('beta', 0.049);
+  const hiSnap = sim.onParam('beta', 0.951);
   if (!snap.beta || Math.abs(snap.beta - 0.75) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski onParam: 0.73 should snap to 0.75', snap);
+  } else if (!loSnap.beta || Math.abs(loSnap.beta - 0.05) > 1e-9
+    || !hiSnap.beta || Math.abs(hiSnap.beta - 0.95) > 1e-9) {
+    failed += 1;
+    console.error('FAIL minkowski onParam endpoints 0.049→0.05 / 0.951→0.95', { loSnap, hiSnap });
   } else if (!tr) {
     failed += 1;
     console.error('FAIL minkowski: missing _vTrack');

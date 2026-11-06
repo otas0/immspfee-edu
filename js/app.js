@@ -2,7 +2,14 @@ import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.
 import { getSim, prefetchSims, setImportErrorHandler } from './sims/registry.js?v=__BUILD__';
 import { fmt } from './fmt.js?v=__BUILD__';
 import { t, tx } from './i18n.js?v=__BUILD__';
-import { uniChapterOpen, uniAllFoldsMap } from './uni-fold.js?v=__BUILD__';
+import {
+  uniChapterOpen,
+  uniAllFoldsMap,
+  readUniFoldsFrom,
+  writeUniFoldsTo,
+  pruneUniFoldsMap,
+  foldCurrentHint,
+} from './uni-fold.js?v=__BUILD__';
 import {
   clearWrongLeavingHousehold,
   clearWrongLeavingDebug,
@@ -236,7 +243,9 @@ function draw() {
     s.draw(ctx, w, h, params, d, ui);
   } catch (err) {
     if (isCanvasBufferError(err)) {
-      showToast(t(lang, 'isingCanvasNeed'), { reload: true });
+      const base = t(lang, 'isingCanvasNeed');
+      const detail = err && err.message ? err.message : String(err);
+      showToast(DEV_TOAST ? `${base} (${detail})` : base, { reload: true });
       paintReadouts(d);
       return;
     }
@@ -351,24 +360,16 @@ function renderChrome() {
   if (swBtn) swBtn.textContent = t(lang, 'swReload');
 }
 
-const UNI_FOLD_KEY = 'immspfee-edu-uni-folds';
-
 function readUniFolds() {
-  try { return JSON.parse(localStorage.getItem(UNI_FOLD_KEY) || '{}'); }
-  catch (_) { return {}; }
+  return readUniFoldsFrom(localStorage);
 }
 
 function writeUniFolds(map) {
-  try { localStorage.setItem(UNI_FOLD_KEY, JSON.stringify(map)); }
-  catch (_) { /* ignore */ }
+  writeUniFoldsTo(localStorage, map);
 }
 
 function pruneUniFolds(validIds) {
-  const map = readUniFolds();
-  let changed = false;
-  for (const id of Object.keys(map)) {
-    if (!validIds.has(id)) { delete map[id]; changed = true; }
-  }
+  const { map, changed } = pruneUniFoldsMap(readUniFolds(), validIds);
   if (changed) writeUniFolds(map);
   return map;
 }
@@ -395,7 +396,8 @@ function renderTree() {
     if (current?.chapter) {
       const hint = document.createElement('span');
       hint.className = 'fold-hint';
-      hint.textContent = `${t(lang, 'foldCurrent')}: ${tx(lang, current.chapter.title)}`;
+      hint.dataset.chapterId = current.chapter.id;
+      hint.textContent = foldCurrentHint(t(lang, 'foldCurrent'), tx(lang, current.chapter.title));
       tools.appendChild(hint);
     }
     const exp = document.createElement('button');
@@ -554,8 +556,15 @@ function renderTeach() {
   const back = document.createElement('button');
   back.type = 'button';
   back.className = 'ghost';
-  back.textContent = t(lang, 'reset');
-  back.addEventListener('click', () => loadLesson(lessonId, phase));
+  const phaseIdx = PHASES.indexOf(phase);
+  if (phaseIdx > 0) {
+    // 上一步：previous phase (Debug → Check clears ui.wrong via goPhase).
+    back.textContent = t(lang, 'back');
+    back.addEventListener('click', () => goPhase(PHASES[phaseIdx - 1]));
+  } else {
+    back.textContent = t(lang, 'reset');
+    back.addEventListener('click', () => loadLesson(lessonId, phase));
+  }
   body.appendChild(back);
   host.append(body, sourcesBlock());
 }
