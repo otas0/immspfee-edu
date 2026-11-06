@@ -118,9 +118,16 @@ export const isingSim = {
     };
     if (d.N >= 12) {
       if (!isingBuf || isingBuf.width !== side) {
-        isingBuf = typeof OffscreenCanvas !== 'undefined'
-          ? new OffscreenCanvas(side, side)
-          : Object.assign(document.createElement('canvas'), { width: side, height: side });
+        if (typeof OffscreenCanvas !== 'undefined') {
+          isingBuf = new OffscreenCanvas(side, side);
+        } else if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+          isingBuf = Object.assign(document.createElement('canvas'), { width: side, height: side });
+        } else {
+          throw new Error(
+            'Ising N≥12 needs OffscreenCanvas or document.createElement("canvas"); '
+            + 'mock globalThis.OffscreenCanvas in Node smoke (see scripts/smoke-layout.mjs)',
+          );
+        }
       }
       const g = isingBuf.getContext('2d');
       g.clearRect(0, 0, side, side);

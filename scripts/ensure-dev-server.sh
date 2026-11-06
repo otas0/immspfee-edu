@@ -1,12 +1,24 @@
 #!/usr/bin/env bash
 # Probe local preview first; only start when the probe fails.
 # Prefer .ready JSON: reuse only when its pid is still alive and HTTP answers.
+#
+# Default replaces this shell with the server (exec). For chained scripts use:
+#   bash scripts/ensure-dev-server.sh --no-exec
+# or ENSURE_NO_EXEC=1 so the server is backgrounded and this script returns.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${PORT:-4174}"
 URL="http://127.0.0.1:${PORT}/"
 READY_FILE="$ROOT/.dev-server-${PORT}.ready"
 PID_FILE="$ROOT/.dev-server-${PORT}.pid"
+
+NO_EXEC=0
+if [[ "${ENSURE_NO_EXEC:-}" == "1" ]]; then NO_EXEC=1; fi
+for arg in "$@"; do
+  case "$arg" in
+    --no-exec) NO_EXEC=1 ;;
+  esac
+done
 
 probe_ok() {
   curl -sI --max-time 2 "$URL" | head -n 1 | grep -q '200\|301\|302\|304'
@@ -49,4 +61,23 @@ fi
 
 echo "probe failed; starting dev server on $PORT"
 cd "$ROOT"
+
+if (( NO_EXEC )); then
+  node scripts/dev-server.mjs >/tmp/immspfee-edu-${PORT}.log 2>&1 &
+  START_PID=$!
+  for _ in $(seq 1 50); do
+    if probe_ok; then
+      echo "$URL (started pid ${START_PID}, --no-exec)"
+      exit 0
+    fi
+    if ! kill -0 "$START_PID" 2>/dev/null; then
+      echo "dev server exited early; see /tmp/immspfee-edu-${PORT}.log" >&2
+      exit 1
+    fi
+    sleep 0.1
+  done
+  echo "dev server did not answer within 5s; see /tmp/immspfee-edu-${PORT}.log" >&2
+  exit 1
+fi
+
 exec node scripts/dev-server.mjs

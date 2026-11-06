@@ -29,13 +29,26 @@ attempts=6
 delay=5
 i=1
 pushed=0
+cleared_proxy=0
 while (( i <= attempts )); do
   echo "push attempt $i/$attempts (HTTP/1.1)"
-  if git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push "$AUTH_URL" HEAD:main; then
+  err_log="$(mktemp)"
+  if git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push "$AUTH_URL" HEAD:main 2>"$err_log"; then
+    cat "$err_log" >&2 || true
+    rm -f "$err_log"
     git fetch "$AUTH_URL" main:refs/remotes/origin/main 2>/dev/null || git fetch origin
     echo "pushed $SHORT"
     pushed=1
     break
+  fi
+  cat "$err_log" >&2 || true
+  err_txt="$(cat "$err_log" 2>/dev/null || true)"
+  rm -f "$err_log"
+  # Empty reply / CONNECT / port 443: drop proxy once, then keep backoff.
+  if (( cleared_proxy == 0 )) && echo "$err_txt" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect'; then
+    echo "clearing proxy env (https_proxy/http_proxy/ALL_PROXY) for remaining attempts"
+    unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy || true
+    cleared_proxy=1
   fi
   echo "push failed; sleeping ${delay}s"
   sleep "$delay"

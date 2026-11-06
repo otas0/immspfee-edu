@@ -45,13 +45,28 @@ for (const name of fs.readdirSync(simDir).filter((n) => n.endsWith('.js'))) {
 }
 
 const css = fs.readFileSync(path.join(root, 'css/edu.css'), 'utf8');
-if (!/@media\s*\(max-width:\s*320px\)[\s\S]*?\.book-select\s*\{[\s\S]*?text-overflow:\s*clip/.test(css)) {
+if (!/@media\s*\(max-width:\s*320px\)[\s\S]*?\.book-select-wrap\s+select[\s\S]*?text-overflow:\s*clip/.test(css)) {
   failed += 1;
-  console.error('FAIL edu.css@320: .book-select must keep text-overflow: clip so PEP/沪科 titles stay readable');
+  console.error('FAIL edu.css@320: .book-select-wrap select must set text-overflow: clip (beats base ellipsis)');
+}
+if (!/\.readout\.warn[^{]*\{[^}]*color:\s*#a33/.test(css)
+  && !/\.readout\.warn span,\s*\.readout\.warn strong\s*\{\s*color:\s*#a33/.test(css)) {
+  failed += 1;
+  console.error('FAIL edu.css: .readout.warn must use color #a33 to match canvas fault ink');
+}
+// Projectile narrow stack (canvas) and book-select clip (CSS) stay on different breakpoints.
+const motion = fs.readFileSync(path.join(root, 'js/sims/motion.js'), 'utf8');
+if (!/w\s*<=\s*360/.test(motion)) {
+  failed += 1;
+  console.error('FAIL motion.js: projectile narrow branch must keep w <= 360 (not CSS 320 alone)');
+}
+if (!/@media\s*\(max-width:\s*320px\)/.test(css)) {
+  failed += 1;
+  console.error('FAIL edu.css: keep @media (max-width: 320px) for book-select; distinct from canvas w<=360');
 }
 
 if (failed) {
   console.error(`lint-teach-layout: ${failed} failure(s)`);
   process.exit(1);
 }
-console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book)`);
+console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book + warn/#a33 + narrow breakpoints)`);

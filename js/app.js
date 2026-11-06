@@ -2,6 +2,8 @@ import { BOOKS, REGIONS, findLesson, flatten, getBook } from './curricula/index.
 import { getSim, prefetchSims, setImportErrorHandler } from './sims/registry.js?v=__BUILD__';
 import { fmt } from './fmt.js?v=__BUILD__';
 import { t, tx } from './i18n.js?v=__BUILD__';
+import { uniChapterOpen } from './uni-fold.js?v=__BUILD__';
+import { clearWrongLeavingHousehold, readoutClass } from './ui-chrome.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
 const narrowMq = window.matchMedia('(max-width: 768px)');
@@ -198,7 +200,7 @@ function setParam(key, value) {
   const extra = s.onParam?.(key, clean, next) || {};
   params = { ...next, ...extra };
   // Leaving household layout drops the debug short overlay so series/parallel stay clean.
-  if (key === 'layout' && clean !== 'household') ui.wrong = false;
+  clearWrongLeavingHousehold(key, clean, ui);
   marked = false;
   if (field && field.type !== 'number') renderTeach();
   else if (extra && Object.keys(extra).length) renderTeach();
@@ -240,7 +242,7 @@ function paintReadouts(d) {
   host.appendChild(title);
   for (const item of s.readouts(d, params, ui)) {
     const rowEl = document.createElement('div');
-    rowEl.className = item.warn ? 'readout warn' : item.hi ? 'readout hi' : 'readout';
+    rowEl.className = readoutClass(item);
     const k = document.createElement('span');
     k.textContent = tx(lang, item);
     const v = document.createElement('strong');
@@ -438,12 +440,8 @@ function renderTree() {
         sum.textContent = tx(lang, ch.title);
         block.append(sum, body);
         const current = findLesson(bookId, lessonId);
-        const saved = Object.prototype.hasOwnProperty.call(foldMap, ch.id) ? !!foldMap[ch.id] : null;
         // First visit (no saved map entry): only the current subject is open.
-        if (q) block.open = true;
-        else if (saved === true) block.open = true;
-        else if (saved === false) block.open = false;
-        else block.open = current?.chapter?.id === ch.id;
+        block.open = uniChapterOpen(ch.id, current?.chapter?.id, foldMap, !!q);
         block.addEventListener('toggle', () => {
           const map = readUniFolds();
           map[ch.id] = block.open;

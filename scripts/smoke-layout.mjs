@@ -1,5 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getSim } from '../js/sims/registry.js';
 import { CIRCUIT_LINKS, circuit } from '../js/physics/circuits.js';
+import { uniChapterOpen } from '../js/uni-fold.js';
+import { clearWrongLeavingHousehold, readoutClass } from '../js/ui-chrome.js';
+import { getBook, flatten } from '../js/curricula/index.js';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
  * Layout smoke without native canvas: record 2d ops from draw() and assert
@@ -257,6 +265,180 @@ let failed = 0;
     failed += 1;
     console.error('FAIL household debug bp–bn: stage should label short');
   } else console.log('ok household debug forces bp–bn short');
+}
+
+{
+  // Leaving household clears ui.wrong (app setParam → clearWrongLeavingHousehold).
+  const ui = { wrong: true };
+  clearWrongLeavingHousehold('layout', 'series', ui);
+  if (ui.wrong !== false) {
+    failed += 1;
+    console.error('FAIL leave household: ui.wrong should be false', ui);
+  } else {
+    ui.wrong = true;
+    clearWrongLeavingHousehold('layout', 'household', ui);
+    if (ui.wrong !== true) {
+      failed += 1;
+      console.error('FAIL stay on household: ui.wrong must remain');
+    } else console.log('ok leave household clears ui.wrong');
+  }
+}
+
+{
+  // DOM class + CSS: Path warn → .readout.warn → #a33 (same as canvas fault ink).
+  const bypass = circuit({
+    layout: 'series', links: 'bp-s1,s2-a1,a2-b1,b2-bn,a1-a2', closed: true, E: 3, r: 0.5, R1: 4, R2: 6, Rs: 10,
+  });
+  const sim = await getSim('circuit');
+  const row = sim.readouts(bypass).find((r) => r.en === 'Path');
+  const cls = readoutClass(row);
+  const css = fs.readFileSync(path.join(root, 'css/edu.css'), 'utf8');
+  const cssOk = /\.readout\.warn span,\s*\.readout\.warn strong\s*\{\s*color:\s*#a33/.test(css);
+  if (cls !== 'readout warn' || !cssOk) {
+    failed += 1;
+    console.error('FAIL bypass Path DOM warn/#a33', { cls, cssOk });
+  } else console.log('ok bypass Path .readout.warn → #a33');
+}
+
+{
+  // University fold: empty map → only current chapter open.
+  const book = getBook('university');
+  const rows = flatten(book);
+  const currentCh = rows[0]?.chapter?.id;
+  if (!currentCh || book.chapters.length < 2) {
+    failed += 1;
+    console.error('FAIL uni fold: need ≥2 chapters');
+  } else {
+    const openIds = book.chapters
+      .filter((ch) => uniChapterOpen(ch.id, currentCh, {}, false))
+      .map((ch) => ch.id);
+    const searchOpen = book.chapters.every((ch) => uniChapterOpen(ch.id, currentCh, {}, true));
+    const savedKeepsClosed = uniChapterOpen(currentCh, currentCh, { [currentCh]: false }, false) === false;
+    if (openIds.length !== 1 || openIds[0] !== currentCh) {
+      failed += 1;
+      console.error('FAIL uni fold default: only current chapter open', { openIds, currentCh });
+    } else if (!searchOpen || !savedKeepsClosed) {
+      failed += 1;
+      console.error('FAIL uni fold search/saved map', { searchOpen, savedKeepsClosed });
+    } else console.log('ok uni fold default current-only + search/saved', { currentCh });
+  }
+}
+
+{
+  // Double-slit: envelope toggle + width-bar drag updates a.
+  const sim = await getSim('double-slit');
+  const ui = { lang: 'en', wrong: false };
+  let p = { ...sim.params, envelope: false, a: 4e-5 };
+  let d = sim.compute(p);
+  if (d.useEnv) {
+    failed += 1;
+    console.error('FAIL double-slit: envelope false → useEnv false');
+  } else {
+    const ctx = mockCtx();
+    sim.draw(ctx, 640, 400, p, d, ui);
+    const g = ui._slit;
+    if (!g) {
+      failed += 1;
+      console.error('FAIL double-slit: missing _slit after draw');
+    } else {
+      sim.pointer({ type: 'down', x: g.barX, y: g.yLo }, p, d, ui);
+      if (ui.drag !== 'width') {
+        failed += 1;
+        console.error('FAIL double-slit: width bar down should set drag');
+      } else {
+        const a0 = p.a;
+        const patch = sim.pointer({ type: 'move', x: g.barX, y: g.yLo - 50 }, p, d, ui);
+        if (!patch || Math.abs(patch.a - a0) < 1e-12) {
+          failed += 1;
+          console.error('FAIL double-slit: width drag should change a', { patch, a0 });
+        } else {
+          p = { ...p, ...patch, envelope: true };
+          d = sim.compute(p);
+          if (!d.useEnv) {
+            failed += 1;
+            console.error('FAIL double-slit: envelope true → useEnv true');
+          } else {
+            const ctx2 = mockCtx();
+            sim.draw(ctx2, 640, 400, p, d, ui);
+            sim.pointer({ type: 'up', x: g.barX, y: g.yLo }, p, d, ui);
+            console.log('ok double-slit envelope + width-bar drag', { a0, a1: p.a, useEnv: d.useEnv });
+          }
+        }
+      }
+    }
+  }
+}
+
+{
+  // Minkowski β pointer snaps to 0.05; onParam lockstep.
+  const sim = await getSim('simultaneity');
+  const ui = { lang: 'en', wrong: false };
+  let p = { ...sim.params, beta: 0.5 };
+  let d = sim.compute(p);
+  const ctx = mockCtx();
+  sim.draw(ctx, 640, 400, p, d, ui);
+  const tr = ui._vTrack;
+  const snap = sim.onParam('beta', 0.73);
+  if (!snap.beta || Math.abs(snap.beta - 0.75) > 1e-9) {
+    failed += 1;
+    console.error('FAIL minkowski onParam: 0.73 should snap to 0.75', snap);
+  } else if (!tr) {
+    failed += 1;
+    console.error('FAIL minkowski: missing _vTrack');
+  } else {
+    const target = 0.7;
+    const hx = tr.trackX0 + ((target - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
+    ui._betaLast = null;
+    ui._betaAt = 0;
+    sim.pointer({ type: 'down', x: hx, y: tr.trackY }, p, d, ui);
+    const patch = sim.pointer({ type: 'move', x: hx, y: tr.trackY }, p, d, ui);
+    if (!patch || Math.abs(patch.beta - target) > 1e-9) {
+      failed += 1;
+      console.error('FAIL minkowski pointer: β should snap to 0.05 grid', { patch, target });
+    } else {
+      // Sequence along the track stays on 0.05 steps.
+      const steps = [0.1, 0.25, 0.55, 0.9];
+      let bad = null;
+      for (const b of steps) {
+        const x = tr.trackX0 + ((b - 0.05) / 0.9) * (tr.trackX1 - tr.trackX0);
+        ui._betaLast = null;
+        ui._betaAt = 0;
+        const expect = Math.round(b / 0.05) * 0.05;
+        const got = sim.pointer({ type: 'move', x, y: tr.trackY }, p, d, ui);
+        if (!got || Math.abs(got.beta - expect) > 1e-9) {
+          bad = { b, expect, got };
+          break;
+        }
+      }
+      if (bad) {
+        failed += 1;
+        console.error('FAIL minkowski β pointer sequence lockstep', bad);
+      } else console.log('ok minkowski β pointer + onParam 0.05 lockstep');
+    }
+  }
+}
+
+{
+  // Ising without OffscreenCanvas/document must throw a clear error (then restore mock).
+  // Use a new N so isingBuf side changes and recreation is attempted.
+  const saved = globalThis.OffscreenCanvas;
+  delete globalThis.OffscreenCanvas;
+  const hadDoc = typeof globalThis.document !== 'undefined';
+  const savedDoc = globalThis.document;
+  if (hadDoc) delete globalThis.document;
+  let threw = null;
+  try {
+    await runDraw('ising', 700, 420, {}, { N: 36 });
+  } catch (e) {
+    threw = e;
+  }
+  globalThis.OffscreenCanvas = saved;
+  if (hadDoc) globalThis.document = savedDoc;
+  else if ('document' in globalThis) delete globalThis.document;
+  if (!threw || !/OffscreenCanvas|document\.createElement/.test(String(threw.message || threw))) {
+    failed += 1;
+    console.error('FAIL ising: N≥12 without canvas APIs should throw a clear Error', threw);
+  } else console.log('ok ising clear error without OffscreenCanvas/document');
 }
 
 if (failed) {

@@ -344,7 +344,9 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
 @media (max-width: 320px) {
   .top { padding: 4px 6px; }
   .brand img { max-width: calc(100vw - 16px); }
-  /* Keep 「沪科初中物理」「沪科高中物理」「人教版初中物理」 fully visible. */
+  /* Keep 「沪科初中物理」「沪科高中物理」「人教版初中物理」 fully visible.
+     Match .book-select-wrap select specificity so clip beats the base ellipsis. */
+  .book-select-wrap select,
   .book-select {
     font-size: 11px;
     padding: 3px 16px 3px 4px;

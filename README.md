@@ -37,6 +37,17 @@ nohup node scripts/dev-server.mjs >/tmp/immspfee-edu-4174.log 2>&1 &
 
 Open http://127.0.0.1:4174/ . Deep link: `#/sh-junior/shj-4-4a/explore`.
 
+Hash routes use the **lesson** id, not the section id. `live()` lessons append `a` (e.g. Shanghai senior curved motion is `#/sh-senior/shs-5-1a/introduce`, not `shs-5-1`). Unknown ids fall back to the default junior lesson.
+
+For chained scripts that must keep running after preview starts:
+
+```bash
+bash scripts/ensure-dev-server.sh --no-exec   # or ENSURE_NO_EXEC=1
+curl -sI http://127.0.0.1:4174/
+```
+
+Safari still shows an old tab icon after a favicon rotate: quit browsers and run `bash scripts/clear-favicons.sh` from Terminal.app (needs Full Disk Access), or double-click `scripts/clear-favicons.command`.
+
 Each new browser tab hard-boots once (clears this site’s Cache Storage and reopens with a fresh query) so a stale module cannot sit next to a newer curriculum. If the chapter list and the stage still disagree after a deploy, close the tab and open the site again, or hard-refresh once. When a new service worker is waiting, the page shows a bilingual “Site updated / Reload” bar instead of auto-reloading—click Reload rather than waiting for an automatic refresh. About (textbook edition notes, the separate standard-lab link, and the lab repository path as plain text) sits at the bottom of the teach column, not under the header. Add `?dev` to surface module import failures as a toast. Opening a lesson also prefetches the other simulations in that volume so Explore does not flash an empty stage.
 
 Switch the textbook in the header (narrow screens use a one-line book dropdown). Shanghai junior and PEP junior share one simulation pool; only the chapter order changes. Language is English by default, with 中文 for the same chrome.
