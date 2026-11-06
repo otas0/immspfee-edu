@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/dev-server.mjs",
+    "preview": "bash scripts/ensure-dev-server.sh",
     "test": "node scripts/test-edu.mjs && node scripts/lint-teach-layout.mjs && node scripts/smoke-layout.mjs",
     "lint:layout": "node scripts/lint-teach-layout.mjs",
     "smoke:layout": "node scripts/smoke-layout.mjs",

@@ -35,6 +35,10 @@ done
 
 if (( pushed == 0 )); then
   echo "push failed after $attempts attempts" >&2
+  echo "If you see CONNECT tunnel / proxy / port 443 errors, try:" >&2
+  echo "  unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy" >&2
+  echo "  then: bash scripts/push-main.sh" >&2
+  echo "Or use a network path that can reach github.com:443." >&2
   exit 1
 fi
 

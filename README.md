@@ -21,13 +21,21 @@ npm test
 npm start
 ```
 
-`npm start` reuses an already-listening process on port 4174 (PID file `.dev-server-4174.pid`) and exits 0 if the port is busy, so a second start does not fight the first. For a session that should outlive the terminal:
+`npm start` reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a bilingual tip if the port is busy. Prefer probing first:
+
+```bash
+npm run preview          # curl -sI …/4174/ ; start only on failure
+# or:
+curl -sI http://127.0.0.1:4174/ || npm start
+```
+
+For a session that should outlive the terminal:
 
 ```bash
 nohup node scripts/dev-server.mjs >/tmp/immspfee-edu-4174.log 2>&1 &
 ```
 
-Open http://127.0.0.1:4174/ . Deep link: `#/sh-junior/shj-4-4a/explore`. Agents should probe that URL first and only start the server when it fails.
+Open http://127.0.0.1:4174/ . Deep link: `#/sh-junior/shj-4-4a/explore`.
 
 Each new browser tab hard-boots once (clears this site’s Cache Storage and reopens with a fresh query) so a stale module cannot sit next to a newer curriculum. If the chapter list and the stage still disagree after a deploy, close the tab and open the site again, or hard-refresh once. When a new service worker is waiting, the page shows a bilingual “Site updated / Reload” bar instead of auto-reloading—click Reload rather than waiting for an automatic refresh. About (textbook edition notes, the separate standard-lab link, and the lab repository path as plain text) sits at the bottom of the teach column, not under the header. Add `?dev` to surface module import failures as a toast. Opening a lesson also prefetches the other simulations in that volume so Explore does not flash an empty stage.
 

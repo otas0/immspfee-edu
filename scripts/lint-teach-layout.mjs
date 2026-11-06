@@ -21,16 +21,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel'] },
 ];
 
-/** Sims whose draw still mixes port wires and full-stage I–U without a panel — banned patterns. */
-const banned = [
-  {
-    file: 'js/sims/circuits.js',
-    id: 'circuit',
-    // Old layout put gy near the floor while ports spanned most of the stage.
-    bad: /const gy = h \* 0\.8[0-9]/,
-    hint: 'I–U must live inside teachPanel, not at h·0.8x over the schematic',
-  },
-];
+/** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */
+const bannedGy = /(?:const|let)\s+gy\s*=\s*h\s*\*\s*0\.8\d*/;
+const simDir = path.join(root, 'js/sims');
 
 let failed = 0;
 for (const row of requiredTeachPanel) {
@@ -42,16 +35,23 @@ for (const row of requiredTeachPanel) {
     }
   }
 }
-for (const row of banned) {
-  const src = fs.readFileSync(path.join(root, row.file), 'utf8');
-  if (row.bad.test(src)) {
+
+for (const name of fs.readdirSync(simDir).filter((n) => n.endsWith('.js'))) {
+  const src = fs.readFileSync(path.join(simDir, name), 'utf8');
+  if (src.includes('portsOf') && bannedGy.test(src)) {
     failed += 1;
-    console.error(`FAIL ${row.id}: ${row.hint}`);
+    console.error(`FAIL ${name}: portsOf + gy = h * 0.8x stacks I–U on the schematic; use teachPanel`);
   }
+}
+
+const css = fs.readFileSync(path.join(root, 'css/edu.css'), 'utf8');
+if (!/@media\s*\(max-width:\s*320px\)[\s\S]*?\.book-select\s*\{[\s\S]*?text-overflow:\s*clip/.test(css)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: .book-select must keep text-overflow: clip so PEP/沪科 titles stay readable');
 }
 
 if (failed) {
   console.error(`lint-teach-layout: ${failed} failure(s)`);
   process.exit(1);
 }
-console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks)`);
+console.log(`ok lint-teach-layout (${requiredTeachPanel.length} dual-view checks + gy scan + 320px book)`);

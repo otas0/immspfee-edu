@@ -62,6 +62,13 @@ export const circuitSim = {
     return {};
   },
   compute: (p) => ((p.t ?? 0) > 0 || p.layout === 'household' ? electricalEnergy(p) : circuit(p)),
+  /** Debug overlay adds bp–bn; recompute so readouts match the stage. */
+  computeForUi(p, t, ui) {
+    const links = ui?.wrong
+      ? (String(p.links || '').includes('bp-bn') ? p.links : `${p.links},bp-bn`)
+      : p.links;
+    return this.compute({ ...p, links }, t);
+  },
   readouts: (d) => {
     const fault = d.batteryShort
       ? { en: 'short', zh: '短路' }

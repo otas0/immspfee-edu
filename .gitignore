@@ -1,4 +1,5 @@
 .DS_Store
 .dev-server-*.pid
+.dev-server-*.ready
 node_modules/
 *.log

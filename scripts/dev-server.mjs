@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 4174);
 const pidPath = path.join(root, `.dev-server-${port}.pid`);
+const readyPath = path.join(root, `.dev-server-${port}.ready`);
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -35,14 +36,27 @@ function readPidFile() {
   }
 }
 
-function writePidFile() {
+function writeSidecars() {
   fs.writeFileSync(pidPath, `${process.pid}\n`);
+  fs.writeFileSync(readyPath, `${JSON.stringify({
+    url: `http://127.0.0.1:${port}/`,
+    pid: process.pid,
+    port,
+    startedAt: new Date().toISOString(),
+  })}\n`);
 }
 
-function clearPidFile() {
+function clearSidecars() {
   try {
     const existing = readPidFile();
-    if (existing == null || existing === process.pid) fs.unlinkSync(pidPath);
+    if (existing == null || existing === process.pid) {
+      fs.unlinkSync(pidPath);
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    fs.unlinkSync(readyPath);
   } catch {
     /* ignore */
   }
@@ -58,18 +72,35 @@ function portOpen() {
   });
 }
 
+function reuseMessage(pid) {
+  const who = pid ?? 'unknown';
+  console.log(`http://127.0.0.1:${port}/ (reusing pid ${who})`);
+  console.log('Already running — 已在运行，复用现有实例。');
+}
+
 async function reuseOrExit() {
   const stored = readPidFile();
   if (stored && pidAlive(stored) && await portOpen()) {
-    console.log(`http://127.0.0.1:${port}/ (reusing pid ${stored})`);
+    // Refresh .ready so agents can trust the sidecar without restarting.
+    try {
+      fs.writeFileSync(readyPath, `${JSON.stringify({
+        url: `http://127.0.0.1:${port}/`,
+        pid: stored,
+        port,
+        reusedAt: new Date().toISOString(),
+      })}\n`);
+    } catch {
+      /* ignore */
+    }
+    reuseMessage(stored);
     process.exit(0);
   }
   if (await portOpen()) {
     const hint = stored && pidAlive(stored) ? stored : 'unknown';
-    console.log(`http://127.0.0.1:${port}/ (port busy, pid ${hint})`);
+    reuseMessage(hint);
     process.exit(0);
   }
-  if (stored && !pidAlive(stored)) clearPidFile();
+  if (stored && !pidAlive(stored)) clearSidecars();
 }
 
 await reuseOrExit();
@@ -98,7 +129,7 @@ const server = http.createServer((req, res) => {
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
     const stored = readPidFile();
-    console.log(`http://127.0.0.1:${port}/ (port busy, pid ${stored && pidAlive(stored) ? stored : 'unknown'})`);
+    reuseMessage(stored && pidAlive(stored) ? stored : 'unknown');
     process.exit(0);
   }
   throw err;
@@ -106,13 +137,13 @@ server.on('error', (err) => {
 
 for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   process.on(sig, () => {
-    clearPidFile();
+    clearSidecars();
     server.close(() => process.exit(0));
   });
 }
-process.on('exit', clearPidFile);
+process.on('exit', clearSidecars);
 
 server.listen(port, '127.0.0.1', () => {
-  writePidFile();
+  writeSidecars();
   console.log(`http://127.0.0.1:${port}/`);
 });

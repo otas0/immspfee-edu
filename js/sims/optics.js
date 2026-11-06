@@ -613,15 +613,16 @@ export const doubleSlitSim = {
     line(ctx, slitX, h * 0.42, slitX, h * 0.45, '#f3efe6', 4);
     line(ctx, slitX, h * 0.55, slitX, h * 0.58, '#f3efe6', 4);
     text(ctx, lab(ui, 'slits', '双缝'), slitX, h * 0.2, MUTED, 11, 'center');
-    // Guide rays stop at the intensity panel’s left edge (no bleed into I(y)).
-    const screenX = panelX - 2;
-    line(ctx, slitX, h * 0.435, screenX, h * 0.435, RAY, 1, [3, 3]);
-    line(ctx, slitX, h * 0.565, screenX, h * 0.565, RAY, 1, [3, 3]);
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'screen intensity', '屏上强度'));
     const gx = panelX + panelW * 0.2;
     const gy = panelY + panelH * 0.88;
     const gw = panelW * 0.62;
     const gh = panelH * 0.7;
+    // Guide rays meet the panel edge on the I(y) envelope baseline (central max, y = 0).
+    const screenX = panelX - 2;
+    const envBaseY = gy - gh * 0.5;
+    line(ctx, slitX, h * 0.435, screenX, envBaseY, RAY, 1, [3, 3]);
+    line(ctx, slitX, h * 0.565, screenX, envBaseY, RAY, 1, [3, 3]);
     const ySpan = Math.max(2.2 * d.centralWidth, 4 * d.dy);
     let yLo = gy;
     let yHi = gy;

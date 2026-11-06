@@ -99,7 +99,10 @@ function tMax() {
 }
 function derived() {
   const s = sim();
-  return s ? s.compute(params, clock) : null;
+  if (!s) return null;
+  return typeof s.computeForUi === 'function'
+    ? s.computeForUi(params, clock, ui)
+    : s.compute(params, clock);
 }
 
 function parseHash() {
@@ -216,7 +219,9 @@ function draw() {
     paintReadouts(null);
     return;
   }
-  const d = s.compute(params, clock);
+  const d = typeof s.computeForUi === 'function'
+    ? s.computeForUi(params, clock, ui)
+    : s.compute(params, clock);
   ui.lang = lang;
   s.draw(ctx, w, h, params, d, ui);
   paintReadouts(d);
@@ -721,6 +726,10 @@ function debugBlock(s) {
   const p = document.createElement('p');
   p.className = 'intro';
   p.textContent = tx(lang, s.debug);
+  // Household debug always demonstrates the bp–bn battery short.
+  if (s.id === 'circuit' && params.layout === 'household' && !ui.wrong) {
+    ui.wrong = true;
+  }
   const lab = document.createElement('label');
   lab.className = 'mistake';
   const input = document.createElement('input');

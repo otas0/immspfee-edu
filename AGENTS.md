@@ -8,7 +8,7 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - A queued section stays empty. Do not ship a placeholder animation.
 - Nuclear and modern items stay on public teaching relations (half-life, energy levels, mass–energy). Do not add device, yield, or production steps.
 - `npm test` must stay green.
-- Local preview is `http://127.0.0.1:4174/`. Probe that URL (or the PID file from `scripts/dev-server.mjs`) before starting another server; only launch when the probe fails. Prefer `npm start` or `nohup node scripts/dev-server.mjs` — a second start exits 0 when the port is already taken.
+- Local preview is `http://127.0.0.1:4174/`. Probe with `curl -sI` (or `npm run preview` / `.dev-server-4174.ready`) before starting another server; only launch when the probe fails. Prefer `npm start` or `nohup node scripts/dev-server.mjs` — a second start exits 0 with a bilingual reuse tip when the port is already taken.
 
 ## Release
 
