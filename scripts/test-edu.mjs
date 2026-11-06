@@ -459,6 +459,11 @@ assert(swJs.includes('./js/sims/registry.js'), 'SW precache includes registry');
 const stamp = readFileSync(new URL('../scripts/stamp-build.mjs', import.meta.url), 'utf8');
 assert(stamp.includes('js/curricula/index.js'), 'stamp required list includes curricula');
 assert(stamp.includes('opt-in'), 'stamp policy documents opt-in tokens');
+assert(stamp.includes("startsWith('scripts/')"), 'stamp never rewrites scripts/ (protects test asserts)');
+const opticsSim = readFileSync(new URL('../js/sims/optics.js', import.meta.url), 'utf8');
+assert(opticsSim.includes("from './kit.js?v=__BUILD__'"), 'optics imports kit with bust');
+assert(opticsSim.includes("from '../physics/optics.js?v=__BUILD__'"), 'optics imports physics with bust');
+assert(i18nJs.includes('project’s remote') || i18nJs.includes("project's remote"), 'labRepo uses a proper apostrophe');
 
 if (failed) {
   console.error(`${failed} failed`);

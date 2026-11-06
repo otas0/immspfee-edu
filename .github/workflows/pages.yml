@@ -192,7 +192,7 @@ jobs:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
           LIVE_GETSIM_IDS: convex-lens,finite-well
-        run: node --experimental-network-imports scripts/smoke-live-getsim.mjs
+        run: node scripts/smoke-live-getsim.mjs
       - name: Smoke home HTML build stamp
         id: stamp_smoke
         if: success()
@@ -422,18 +422,24 @@ jobs:
         continue-on-error: true
         # GITHUB_STEP_SUMMARY is injected by Actions; on assert fail the script appends overflow/topH.
         run: npm run capture:340-title
+      - name: Run capture:1280 desktop baseline
+        id: capture1280
+        if: steps.pw.outputs.have == '1'
+        continue-on-error: true
+        run: npm run capture:1280
       - name: Capture step summary
         if: always()
         run: |
           ART_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           {
-            echo "### Optional capture:340-title"
+            echo "### Optional capture:340-title / 1280"
             echo ""
             echo "| Kind | Artifact / status | Retention |"
             echo "| --- | --- | --- |"
             echo "| redirect-fail | \`redirect-fail-headers-${SHORT}\` | 7-day |"
             echo "| capture-fail | \`capture-last-fail-${SHORT}\` | 7-day |"
             echo "| capture PNG | \`capture-340px-zh-long-title-${SHORT}\` | 7-day |"
+            echo "| capture 1280 | \`capture-1280-desktop-${SHORT}\` | 7-day |"
             if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
               echo "| force_fail | skipped (no Playwright) | — |"
             elif [ "${{ steps.force_fail.outcome }}" = "success" ]; then
@@ -460,10 +466,10 @@ jobs:
             if [ "${{ steps.pw.outputs.have }}" != "1" ]; then
               :
             elif [ "${{ steps.capture.outcome }}" = "success" ]; then
-              echo "Succeeded."
+              echo "340 capture succeeded."
               rm -f .local-shots/capture-last-fail.md
             elif [ "${{ steps.capture.outcome }}" = "failure" ]; then
-              echo "Failed — **non-blocking** (\`continue-on-error\`). Deploy may still be green."
+              echo "340 capture failed — **non-blocking** (\`continue-on-error\`). Deploy may still be green."
               echo ""
               echo "Detail artifact: [\`capture-last-fail-${SHORT}\`]($ART_URL)."
               echo ""
@@ -473,11 +479,16 @@ jobs:
                 echo "No capture-last-fail.md (overflow/topH detail missing — check job logs)."
               fi
             else
-              echo "Outcome: \`${{ steps.capture.outcome }}\` / Playwright have=\`${{ steps.pw.outputs.have }}\`"
+              echo "340 outcome: \`${{ steps.capture.outcome }}\` / Playwright have=\`${{ steps.pw.outputs.have }}\`"
             fi
+            echo ""
+            echo "1280 desktop baseline: \`${{ steps.capture1280.outcome }}\` → artifact \`capture-1280-desktop-${SHORT}\`."
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.capture.outcome }}" = "failure" ]; then
             echo "::warning::capture:340-title failed (workflow continues)"
+          fi
+          if [ "${{ steps.capture1280.outcome }}" = "failure" ]; then
+            echo "::warning::capture:1280 failed (workflow continues)"
           fi
       - name: Upload 340px capture PNG
         id: up_png
@@ -486,6 +497,15 @@ jobs:
         with:
           name: capture-340px-zh-long-title-${{ env.SHORT }}
           path: .local-shots/340px-zh-long-title-ellipsis.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload 1280 desktop capture PNG
+        id: up_1280
+        if: always() && steps.pw.outputs.have == '1'
+        uses: actions/upload-artifact@v7
+        with:
+          name: capture-1280-desktop-${{ env.SHORT }}
+          path: .local-shots/1280-desktop-three-column.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload capture-last-fail.md
@@ -503,6 +523,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           png="—"
+          png1280="—"
           fail="—"
           if [ "${{ steps.pw.outputs.have }}" = "1" ]; then
             if [ -f .local-shots/340px-zh-long-title-ellipsis.png ] \
@@ -510,6 +531,12 @@ jobs:
               png="✅"
             elif [ "${{ steps.up_png.outcome }}" = "failure" ]; then
               png="❌"
+            fi
+            if [ -f .local-shots/1280-desktop-three-column.png ] \
+              && [ "${{ steps.up_1280.outcome }}" = "success" ]; then
+              png1280="✅"
+            elif [ "${{ steps.up_1280.outcome }}" = "failure" ]; then
+              png1280="❌"
             fi
             if [ "${{ steps.up_fail.outcome }}" = "success" ] \
               && [ -f .local-shots/capture-last-fail.md ]; then
@@ -524,10 +551,15 @@ jobs:
           api_names="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
             --jq '.artifacts[].name' 2>/dev/null || true)"
           png_api="—"
+          png1280_api="—"
           fail_api="—"
           if echo "$api_names" | grep -qx "capture-340px-zh-long-title-${SHORT}"; then
             png_api="✅"
             png="✅"
+          fi
+          if echo "$api_names" | grep -qx "capture-1280-desktop-${SHORT}"; then
+            png1280_api="✅"
+            png1280="✅"
           fi
           if echo "$api_names" | grep -qx "capture-last-fail-${SHORT}"; then
             fail_api="✅"
@@ -539,6 +571,7 @@ jobs:
             echo "| Kind | Local/step | API |"
             echo "| --- | --- | --- |"
             echo "| capture PNG (\`capture-340px-zh-long-title-${SHORT}\`) | $png | $png_api |"
+            echo "| capture 1280 (\`capture-1280-desktop-${SHORT}\`) | $png1280 | $png1280_api |"
             echo "| capture-fail (\`capture-last-fail-${SHORT}\`) | $fail | $fail_api |"
             echo "| redirect-fail | — (deploy job) | — |"
             if [ "${{ steps.force_fail.outcome }}" = "success" ]; then
