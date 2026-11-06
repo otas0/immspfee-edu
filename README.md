@@ -35,17 +35,18 @@ npm test
 npm start
 ```
 
-`npm start` runs `ensure-dev-server.sh` with `ENSURE_QUIET=1`: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
+`npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 
 ```bash
 npm run preview          # curl -sI …/4174/ ; start only on failure
 # or:
 curl -sI http://127.0.0.1:4174/ || npm start
-# Quiet escape hatch (restore banners): ENSURE_QUIET=0 npm start
-#   or: bash scripts/ensure-dev-server.sh --verbose
+# Quiet escape hatch (restore banners):
+npm start -- --verbose
+#   or: ENSURE_QUIET=0 npm start
 ```
 
-`push-main` waits on the github-pages environment; override with `PAGES_WAITING_TIMEOUT=900` (seconds) if approval is slow.
+`push-main` waits on the github-pages environment; default `PAGES_WAITING_TIMEOUT=900` (seconds) — override if approval is slow.
 
 For a session that should outlive the terminal:
 

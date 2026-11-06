@@ -100,13 +100,42 @@ const info = await page.evaluate(() => {
 await page.screenshot({ path: out });
 await browser.close();
 console.log(info);
+
+function writeCaptureFail(title, detail) {
+  const body = [
+    `### capture:340-title assertion failed`,
+    '',
+    `**${title}**`,
+    '',
+    '```json',
+    JSON.stringify(detail, null, 2),
+    '```',
+    '',
+    `- overflow: \`${detail.overflow}\` (want \`ellipsis\`)`,
+    `- overflows: \`${detail.overflows}\` (want text wider than select)`,
+    `- topH: \`${detail.topH}\` (want ≤100)`,
+    '',
+  ].join('\n');
+  const failPath = path.join(root, '.local-shots', 'capture-last-fail.md');
+  fs.mkdirSync(path.dirname(failPath), { recursive: true });
+  fs.writeFileSync(failPath, body);
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) {
+    try { fs.appendFileSync(summary, body); } catch { /* ignore */ }
+  }
+  console.error(title, detail);
+}
+
 if (info.overflow !== 'ellipsis' || !info.overflows) {
-  console.error('FAIL: expected ellipsis with text wider than select at 340px');
+  writeCaptureFail('FAIL: expected ellipsis with text wider than select at 340px', info);
   process.exit(2);
 }
 // 99f9ab8: narrow header stays under ~100px (lang no longer stacks under brand).
 if (info.topH == null || info.topH > 100) {
-  console.error('FAIL: .top height should stay ≤100px at 340px after header layout', info.topH);
+  writeCaptureFail('FAIL: .top height should stay ≤100px at 340px after header layout', info);
   process.exit(3);
 }
+try {
+  fs.unlinkSync(path.join(root, '.local-shots', 'capture-last-fail.md'));
+} catch { /* no prior fail */ }
 console.log('ok wrote', out, `(top ${info.topH.toFixed(1)}px)`);

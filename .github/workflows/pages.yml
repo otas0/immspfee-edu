@@ -36,6 +36,10 @@ jobs:
         run: node scripts/smoke-layout.mjs
       - name: Smoke 320px zh book-select CSSOM
         run: node scripts/smoke-book-select.mjs
+      - name: Check immspfee-education → immspfee-edu redirect
+        env:
+          REQUIRE_REDIRECT_CHECK: '1'
+        run: bash scripts/check-rename-redirect.sh
       - name: Guard against edition / ready-count chrome
         run: |
           ! grep -n 'id="edition"' index.html
@@ -60,6 +64,8 @@ jobs:
           BOOK_B=$(wc -c < scripts/smoke-book-select.mjs | tr -d ' ')
           ENSURE_B=$(wc -c < scripts/ensure-dev-server.sh | tr -d ' ')
           CAPTURE_B=$(wc -c < scripts/capture-340px-long-title.mjs | tr -d ' ')
+          DOM_B=$(wc -c < scripts/dom-lite.mjs | tr -d ' ')
+          REDIR_B=$(wc -c < scripts/check-rename-redirect.sh | tr -d ' ')
           {
             echo "### Pages artifact size"
             echo ""
@@ -73,6 +79,8 @@ jobs:
             echo "| \`smoke-layout.mjs\` (CI only) | $(( (SMOKE_B + 1023) / 1024 )) KiB |"
             echo "| \`smoke-book-select.mjs\` (CI only) | $(( (BOOK_B + 1023) / 1024 )) KiB |"
             echo "| \`capture-340px-long-title.mjs\` (optional CI) | $(( (CAPTURE_B + 1023) / 1024 )) KiB |"
+            echo "| \`dom-lite.mjs\` (CI only) | $(( (DOM_B + 1023) / 1024 )) KiB |"
+            echo "| \`check-rename-redirect.sh\` (CI only) | $(( (REDIR_B + 1023) / 1024 )) KiB |"
             echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
@@ -175,12 +183,14 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
+      # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
       - name: Install Playwright or skip
         id: pw
         run: |
           set +e
           PW_VER="$(tr -d ' \n\r' < scripts/playwright-version.txt)"
-          echo "Playwright pin: $PW_VER"
+          echo "Playwright pin: $PW_VER (bump /tmp/pw-shot when changing this file)"
           npm install --no-save "playwright@${PW_VER}"
           INSTALL_PKG=$?
           if [ "$INSTALL_PKG" -ne 0 ]; then
@@ -200,6 +210,7 @@ jobs:
         id: capture
         if: steps.pw.outputs.have == '1'
         continue-on-error: true
+        # GITHUB_STEP_SUMMARY is injected by Actions; on assert fail the script appends overflow/topH.
         run: |
           bash scripts/ensure-dev-server.sh --no-exec --quiet
           npm run capture:340-title
@@ -214,7 +225,13 @@ jobs:
             elif [ "${{ steps.capture.outcome }}" = "success" ]; then
               echo "Succeeded."
             elif [ "${{ steps.capture.outcome }}" = "failure" ]; then
-              echo "Failed — **non-blocking** (\`continue-on-error\`). Inspect job logs; deploy may still be green."
+              echo "Failed — **non-blocking** (\`continue-on-error\`). Deploy may still be green."
+              echo ""
+              if [ -f .local-shots/capture-last-fail.md ]; then
+                cat .local-shots/capture-last-fail.md
+              else
+                echo "No capture-last-fail.md (overflow/topH detail missing — check job logs)."
+              fi
             else
               echo "Outcome: \`${{ steps.capture.outcome }}\` / Playwright have=\`${{ steps.pw.outputs.have }}\`"
             fi

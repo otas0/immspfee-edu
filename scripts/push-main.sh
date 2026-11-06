@@ -3,6 +3,7 @@
 # for that SHA's Pages run. One push → one watch. Do not start another
 # finished-task push until this script exits; Pages cancel-in-progress
 # would otherwise drop the prior deploy.
+# Environment waiting timeout: PAGES_WAITING_TIMEOUT=900 (seconds, default).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

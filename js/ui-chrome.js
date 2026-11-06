@@ -65,9 +65,24 @@ export function toastErrorDetail(err, maxLen = 120, opts = {}) {
   return truncateUnits(line, maxLen, Array.from(line));
 }
 
-/** Clear sticky double-slit width-bar hi when schema edits `a` (mirrors off-bar pointer down). */
+/**
+ * Schema key → ui sticky-hi flag. Double-slit width bar uses `_slitWidthHi`;
+ * other sims can register here without new setParam branches.
+ */
+export const STICKY_READOUT_HI_BY_SCHEMA = Object.freeze({
+  a: '_slitWidthHi',
+});
+
+/** Clear sticky readout hi when a mapped schema key is edited (mirrors off-control pointer down). */
+export function clearStickyReadoutHiOnSchema(key, ui) {
+  if (!ui || key == null) return;
+  const prop = STICKY_READOUT_HI_BY_SCHEMA[key];
+  if (prop) ui[prop] = false;
+}
+
+/** @deprecated Use clearStickyReadoutHiOnSchema */
 export function clearSlitWidthHiOnSchemaA(key, ui) {
-  if (key === 'a' && ui) ui._slitWidthHi = false;
+  clearStickyReadoutHiOnSchema(key, ui);
 }
 
 /**

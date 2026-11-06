@@ -689,7 +689,7 @@ export const doubleSlitSim = {
         ui._slitWidthHi = true;
         return {};
       }
-      // Other hits clear sticky hi (schema `a` also clears via clearSlitWidthHiOnSchemaA / setParam).
+      // Other hits clear sticky hi (schema `a` also clears via clearStickyReadoutHiOnSchema / setParam).
       ui._slitWidthHi = false;
       return null;
     }

@@ -32,7 +32,7 @@ CI: optional `capture-340-title` job in `.github/workflows/pages.yml` installs P
 
 ## Playwright pin
 
-Version is pinned in `scripts/playwright-version.txt` (CI reads it). Local capture:
+Version is pinned in `scripts/playwright-version.txt` (CI reads it). **When bumping the pin, reinstall `/tmp/pw-shot` to the same version** so local `NODE_PATH` captures match CI. Local capture:
 
 ```bash
 PW_VER=$(tr -d ' \n\r' < scripts/playwright-version.txt)

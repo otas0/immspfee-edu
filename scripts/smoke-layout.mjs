@@ -25,7 +25,8 @@ import {
   isCanvasBufferError,
   toastErrorDetail,
   applySchemaParam,
-  clearSlitWidthHiOnSchemaA,
+  clearStickyReadoutHiOnSchema,
+  STICKY_READOUT_HI_BY_SCHEMA,
 } from '../js/ui-chrome.js';
 
 /** Minimal element stand-in with dataset + setAttribute dual-write surface. */
@@ -556,7 +557,22 @@ let failed = 0;
       console.error('FAIL uni details[open] saved map closes current chapter', {
         openIdleClosed, openSearchClosed, afterClose,
       });
-    } else console.log('ok uni details[open] search clear ↔ storage + closed-current', hintCh.id);
+    } else {
+      // Close current → Expand all (storage) → clear search: idle open set stays all chapters.
+      const expandAll = uniAllFoldsMap(book.chapters, true);
+      writeUniFoldsTo(foldStore, expandAll);
+      const afterExpand = pruneUniFoldsIn(foldStore, new Set(book.chapters.map((ch) => ch.id)));
+      const openAfterExpandSearch = uniOpenChapterIds(book.chapters, hintCh.id, afterExpand, true);
+      const openAfterExpandClear = uniOpenChapterIds(book.chapters, hintCh.id, afterExpand, false);
+      if (openAfterExpandSearch.length !== book.chapters.length
+        || openAfterExpandClear.length !== book.chapters.length
+        || !book.chapters.every((ch) => afterExpand[ch.id] === true)) {
+        failed += 1;
+        console.error('FAIL uni details[open] close→expand all→clear search storage', {
+          openAfterExpandSearch, openAfterExpandClear, afterExpand,
+        });
+      } else console.log('ok uni details[open] search clear + closed-current + expand round-trip', hintCh.id);
+    }
   }
 }
 
@@ -660,13 +676,17 @@ let failed = 0;
                       failed += 1;
                       console.error('FAIL double-slit paintReadouts DOM class / sticky clear', { domHi, domLo, sticky: ui._slitWidthHi });
                     } else {
-                      // Schema `a` edit clears sticky hi (mirrors setParam → clearSlitWidthHiOnSchemaA).
+                      // Schema `a` edit clears sticky hi (mirrors setParam → clearStickyReadoutHiOnSchema).
                       ui._slitWidthHi = true;
-                      clearSlitWidthHiOnSchemaA('a', ui);
+                      if (STICKY_READOUT_HI_BY_SCHEMA.a !== '_slitWidthHi') {
+                        failed += 1;
+                        console.error('FAIL STICKY_READOUT_HI_BY_SCHEMA.a map', STICKY_READOUT_HI_BY_SCHEMA);
+                      }
+                      clearStickyReadoutHiOnSchema('a', ui);
                       const afterSchema = sim.readouts(dClamp, { ...p, a: atMax.a }, ui);
                       if (ui._slitWidthHi || afterSchema.find((r) => r.en === 'a')?.hi) {
                         failed += 1;
-                        console.error('FAIL double-slit schema a must clear _slitWidthHi', {
+                        console.error('FAIL double-slit schema a must clear sticky readout hi', {
                           sticky: ui._slitWidthHi, row: afterSchema.find((r) => r.en === 'a'),
                         });
                       } else {
@@ -685,7 +705,7 @@ let failed = 0;
 }
 
 {
-  // Minkowski β pointer snaps to 0.05; snap lives in clampSchemaValue (onParam deprecated no-op).
+  // Minkowski β pointer snaps to 0.05; snap lives in clampSchemaValue (no onParam).
   const sim = await getSim('simultaneity');
   const ui = { lang: 'en', wrong: false };
   let p = { ...sim.params, beta: 0.5 };
@@ -693,14 +713,24 @@ let failed = 0;
   const ctx = mockCtx();
   sim.draw(ctx, 640, 400, p, d, ui);
   const tr = ui._vTrack;
-  const deprecated = sim.onParam?.('beta', 0.73) || {};
+  // Scan: simultaneity must not ship onParam; smoke must not call onParam('beta') for snap.
+  const modernSrc = fs.readFileSync(path.join(root, 'js/sims/modern.js'), 'utf8');
+  const smokeSrc = fs.readFileSync(path.join(root, 'scripts/smoke-layout.mjs'), 'utf8');
+  const simBlock = modernSrc.match(/export const simultaneitySim\s*=\s*\{[\s\S]*?\n\};\n/);
+  const hasOnParam = simBlock && /\bonParam\s*\(/.test(simBlock[0]);
+  const smokeCallsOnParamBeta = /\.onParam\s*\(\s*['"]beta['"]/.test(smokeSrc);
   // Field <input> path = shared applySchemaParam (same module as app.setParam / β track snap).
   const fromField = applySchemaParam(sim, p, 'beta', 0.049);
   const fromFieldHi = applySchemaParam(sim, p, 'beta', 0.951);
   const snap = applySchemaParam(sim, p, 'beta', 0.73);
-  if (Object.keys(deprecated).length) {
+  if (hasOnParam || typeof sim.onParam === 'function') {
     failed += 1;
-    console.error('FAIL minkowski onParam should be deprecated no-op (snap via clamp)', deprecated);
+    console.error('FAIL minkowski: remove empty onParam; snap via clampSchemaValue only', {
+      hasOnParam, typeofOnParam: typeof sim.onParam,
+    });
+  } else if (smokeCallsOnParamBeta) {
+    failed += 1;
+    console.error('FAIL smoke-layout still calls onParam(\'beta\') — use applySchemaParam');
   } else if (Math.abs(snap.params.beta - 0.75) > 1e-9 || Math.abs(snap.clean - 0.75) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski applySchemaParam: 0.73 should snap to 0.75', snap);
@@ -836,7 +866,13 @@ let failed = 0;
       } else if (stripFail) {
         failed += 1;
         console.error('FAIL toastErrorDetail forceCodePoints must peel trailing ZWJ', { stripFail, stripTable });
-      } else console.log('ok ising clear error + i18n + code-point/ZWJ/flag trunc');
+      } else {
+        const zwjDoc = fs.readFileSync(path.join(root, 'scripts/toast-zwj-table.md'), 'utf8');
+        if (!/forceCodePoints/.test(zwjDoc) || !/🏴‍☠️/.test(zwjDoc)) {
+          failed += 1;
+          console.error('FAIL scripts/toast-zwj-table.md missing forceCodePoints / flag rows');
+        } else console.log('ok ising clear error + i18n + code-point/ZWJ/flag trunc + zwj table');
+      }
     }
   }
 }

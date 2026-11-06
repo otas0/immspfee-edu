@@ -161,15 +161,23 @@ if (!hasTwoRowTop(block768)) {
     applyFoldHintEl(hintEl, searchFold.chapterId, searchFold.text, searchFold.searching);
     const byCompound = document.querySelector('span.fold-hint');
     const byCompoundAttr = document.querySelector('span.fold-hint[data-searching="1"]');
+    const byChapterId = document.querySelector('span.fold-hint[data-chapter-id]');
+    hintEl.className = 'fold-hint extra';
+    const byMulti = document.querySelector('span.fold-hint.extra');
     if (!byCompound || byCompound !== hintEl || !byCompoundAttr || byCompoundAttr !== hintEl
-      || byCompoundAttr.getAttribute('data-searching') !== '1') {
+      || byCompoundAttr.getAttribute('data-searching') !== '1'
+      || !byChapterId || byChapterId !== hintEl
+      || byChapterId.getAttribute('data-chapter-id') !== String(ch.id)
+      || !byMulti || byMulti !== hintEl) {
       failed += 1;
-      console.error('FAIL dom-lite querySelector span.fold-hint compound', {
+      console.error('FAIL dom-lite querySelector span.fold-hint compound / bare attr / multi-class', {
         byCompound: !!byCompound, same: byCompound === hintEl,
         byCompoundAttr: byCompoundAttr?.getAttribute('data-searching'),
+        chapterId: byChapterId?.getAttribute('data-chapter-id'),
+        multi: !!byMulti,
       });
     } else {
-      console.log('ok uniFoldHintFromQuery whitespace/blank DOM + span.fold-hint compound');
+      console.log('ok uniFoldHintFromQuery whitespace/blank DOM + span.fold-hint compound/attr/multi');
     }
   }
 }

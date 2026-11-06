@@ -618,11 +618,7 @@ export const simultaneitySim = {
     handle(ctx, hx, trackY, ui.drag === 'v');
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
-  onParam(_key, _value) {
-    // Deprecated for β snap: clampSchemaValue (via applySchemaParam / setParam) already
-    // snaps schema.step. Kept as a no-op so callers expecting onParam still work.
-    return {};
-  },
+  // β snap lives in clampSchemaValue / applySchemaParam — no onParam hook.
   pointer(ev, p, d, ui) {
     const tr = ui._vTrack;
     if (!tr) return null;

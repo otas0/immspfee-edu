@@ -76,7 +76,7 @@ if (/@media\s*\(\s*max-width:\s*320px\s*\)[\s\S]*?grid-template-areas\s*:\s*[^;]
   console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
 }
 
-// Narrow header height intent: @768 (covers 340) and @320 must not force min-height > 100px.
+// Narrow header height: @768/@420 (340 hit chain) and @320 must not force min-height > 100px.
 function topMinHeightInMedia(src, maxWidthPx) {
   const re = new RegExp(`@media\\s*\\(\\s*max-width:\\s*${maxWidthPx}px\\s*\\)`);
   const start = src.search(re);
@@ -99,12 +99,12 @@ function topMinHeightInMedia(src, maxWidthPx) {
   const mh = top[1].match(/min-height\s*:\s*([^;]+)/);
   return mh ? mh[1].trim() : 'unset';
 }
-for (const w of [768, 320]) {
+for (const w of [768, 420, 320]) {
   const mh = topMinHeightInMedia(css, w);
   if (mh == null) {
-    if (w === 768) {
+    if (w === 768 || w === 420) {
       failed += 1;
-      console.error('FAIL edu.css@768: missing media block for narrow header min-height lint');
+      console.error(`FAIL edu.css@${w}: missing media block for narrow header min-height lint`);
     }
     continue;
   }
