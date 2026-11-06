@@ -11,6 +11,8 @@ import { num, sel, tog, clear, line, text, lab, arrow, teachPanel, INK, MUTED, R
 const KB = 1.380649e-23;
 let isingBuf = null;
 let isingSweepCache = { key: '', sweep: null };
+let isingAtCache = { key: '', at: null };
+let isingPlayCache = { key: '', play: null };
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -64,8 +66,21 @@ export const isingSim = {
     }
     const sweep = isingSweepCache.sweep;
     const Tplay = sweep.Tmin + Math.min(1, Math.max(0, t)) * (sweep.Tmax - sweep.Tmin);
-    const at = isingMetropolis({ ...p, T });
-    const play = isingMetropolis({ ...p, T: Tplay, seed: p.seed + Math.round(Tplay * 10) });
+    // Cache Metropolis lattices: probe T exact; play T quantized so scrubbing/play is not N² every frame.
+    const atKey = [p.N, p.sweeps, p.seed, T].join('|');
+    if (isingAtCache.key !== atKey) {
+      isingAtCache = { key: atKey, at: isingMetropolis({ ...p, T }) };
+    }
+    const at = isingAtCache.at;
+    const TplayQ = Math.round(Tplay * 10) / 10;
+    const playKey = [p.N, p.sweeps, p.seed, TplayQ].join('|');
+    if (isingPlayCache.key !== playKey) {
+      isingPlayCache = {
+        key: playKey,
+        play: isingMetropolis({ ...p, T: TplayQ, seed: p.seed + Math.round(TplayQ * 10) }),
+      };
+    }
+    const play = isingPlayCache.play;
     const paintStep = Math.max(1, Math.min(3, Math.round(p.paintStep ?? 1)));
     const cells = Math.ceil(at.N / paintStep) ** 2;
     const inSweep = p.T >= Tmin - 1e-9 && p.T <= Tmax + 1e-9;

@@ -188,7 +188,7 @@ jobs:
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
       # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
-      # (post-9cb6c02): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
+      # (post-93d85fc): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
       # When #413 ships a patch, bump immediately and confirm DEP0040 gone before merge.
       # Keep this bump track separate from push-main watch-flake soft-ok work.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
@@ -499,7 +499,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           rm -f "$FAIL_MD"
           echo "force-fail summary template ok (340+1280)"
-      - name: Force-cols-fail 1280 → capture-last-fail upload path
+      - name: Force-cols-fail 1280 (verify only; no green upload)
         id: force_cols
         if: steps.pw.outputs.have == '1'
         continue-on-error: true

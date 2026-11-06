@@ -406,6 +406,19 @@ if (!hasTwoRowTop(block768)) {
   } else {
     console.log('ok offline-first OFFLINE_FIRST_REALTREE=1 lockstep green (patched copy)');
   }
+  const realMp = spawnSync(process.execPath, ['scripts/offline-first-lockstep-dry-run.mjs'], {
+    cwd: root,
+    env: { ...process.env, OFFLINE_FIRST_REALTREE: '1', OFFLINE_FIRST_REQUIRE_MP: '1' },
+    encoding: 'utf8',
+  });
+  if (realMp.status !== 0 || !/ok flip: modulepreload present/.test(realMp.stdout || '')) {
+    failed += 1;
+    console.error('FAIL offline-first REALTREE + REQUIRE_MP=1', {
+      status: realMp.status, out: (realMp.stdout || '').slice(0, 500), err: realMp.stderr,
+    });
+  } else {
+    console.log('ok offline-first REALTREE + REQUIRE_MP=1 (modulepreload lockstep)');
+  }
 }
 
 {

@@ -65,6 +65,11 @@ push_stderr_is_connect_flake() {
   echo "$err" | grep -qiE 'empty reply|couldn.t connect|connection timed out|CONNECT tunnel|port 443|Failed to connect|Operation timed out|Recv failure|RPC failed|unexpected disconnect|remote end hung up'
 }
 
+# PUSH_PRECLEAR_PROXY default on; =0 skips preclear (push-main honors this).
+push_preclear_enabled() {
+  [[ "${PUSH_PRECLEAR_PROXY:-1}" == "1" ]]
+}
+
 # Whether a heartbeat jobs line is a transient API miss (do not wipe last-good).
 jobs_line_is_unavailable() {
   local line="${1:-}"
@@ -298,6 +303,30 @@ if [[ "${PUSH_WATCH_FLAKE_FIXTURE:-}" == "1" ]]; then
   fi
   if push_stderr_is_connect_flake 'Everything up-to-date'; then
     echo "FAIL watch-flake fixture: clean Everything up-to-date must not be connect flake" >&2
+    exit 1
+  fi
+  # PUSH_PRECLEAR_PROXY=0 path
+  if PUSH_PRECLEAR_PROXY=0 push_preclear_enabled; then
+    echo "FAIL watch-flake fixture: PUSH_PRECLEAR_PROXY=0 must disable preclear" >&2
+    exit 1
+  fi
+  if ! PUSH_PRECLEAR_PROXY=1 push_preclear_enabled; then
+    echo "FAIL watch-flake fixture: PUSH_PRECLEAR_PROXY=1 must enable preclear" >&2
+    exit 1
+  fi
+  # mid-FAIL waiting: issue title echo only when title changes (no spam).
+  ISSUE_TITLE_LAST=""
+  title_echo_n=0
+  sim_set_issue_title() {
+    local t="FAIL [pages] push-main deadbee — run 1"
+    if [[ "$t" != "$ISSUE_TITLE_LAST" ]]; then
+      ISSUE_TITLE_LAST="$t"
+      title_echo_n=$((title_echo_n + 1))
+    fi
+  }
+  for _ in 1 2 3 4; do sim_set_issue_title; done
+  if [[ "$title_echo_n" -ne 1 ]]; then
+    echo "FAIL watch-flake fixture: mid-FAIL title must echo once got $title_echo_n" >&2
     exit 1
   fi
   echo "ok push-watch flake fixture (jobs miss after success → soft exit 0)"

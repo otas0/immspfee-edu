@@ -37,7 +37,7 @@ pushed=0
 cleared_proxy=0
 # Pre-clear proxy before attempt 1 when set (443 flakes often need this first).
 # Disable: PUSH_PRECLEAR_PROXY=0
-if [[ "${PUSH_PRECLEAR_PROXY:-1}" == "1" ]]; then
+if push_preclear_enabled; then
   if [[ -n "${https_proxy:-}${http_proxy:-}${HTTPS_PROXY:-}${HTTP_PROXY:-}${ALL_PROXY:-}${all_proxy:-}" ]]; then
     echo "preclear: unsetting proxy env before first push (PUSH_PRECLEAR_PROXY=1)"
     unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy || true

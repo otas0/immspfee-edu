@@ -53,21 +53,36 @@ setImportErrorHandler((err, detail) => {
   else showToast(`${t(lang, 'importFail')} ${detail || ''}`.trim(), { reload: true });
 });
 
+function scheduleIdle(fn, timeoutMs = 2500) {
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(() => fn(), { timeout: timeoutMs });
+  } else {
+    setTimeout(fn, Math.min(400, timeoutMs));
+  }
+}
+
+/** Prefetch current chapter sims first; remainder of the volume on idle (uni is one volume — avoid eager whole-book download). */
 function prefetchOpenVolume() {
   const book = getBook(bookId);
   const current = findLesson(bookId, lessonId);
   const volId = current?.chapter?.volume;
-  if (!volId) return;
-  const ids = [];
+  if (!volId || !current?.chapter?.id) return;
+  const chapterIds = [];
+  const volumeRest = [];
   for (const ch of book.chapters) {
     if (ch.volume !== volId) continue;
     for (const sec of ch.sections) {
       for (const ls of sec.lessons) {
-        if (ls.sim) ids.push(ls.sim);
+        if (!ls.sim) continue;
+        if (ch.id === current.chapter.id) chapterIds.push(ls.sim);
+        else volumeRest.push(ls.sim);
       }
     }
   }
-  prefetchSims(ids);
+  prefetchSims(chapterIds);
+  const rest = volumeRest.filter((id) => !chapterIds.includes(id));
+  if (!rest.length) return;
+  scheduleIdle(() => prefetchSims(rest));
 }
 
 const LANG_KEY = 'immspfee-edu-lang';
@@ -860,4 +875,5 @@ if ('serviceWorker' in navigator) {
 }
 
 narrowMq.addEventListener('change', () => renderChrome());
-prefetchOpenVolume();
+// After first lesson settle — do not race the open getSim with a full-volume prefetch.
+scheduleIdle(() => prefetchOpenVolume(), 2000);

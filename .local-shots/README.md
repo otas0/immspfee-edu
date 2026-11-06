@@ -6,6 +6,8 @@ PNGs here are **not** committed (see `.gitignore`). Regenerate after chrome or p
 
 Local `push-main` writes a paste-ready run summary to `push-main-last-summary.md` in this folder (gitignored). The file opens with a **Copy to issue title** line and appends job-status heartbeats while the Pages run is watched.
 
+Soft-ok jobs-miss demo (no network): `PUSH_WATCH_FLAKE_FIXTURE=1 bash scripts/push-main-heartbeat.sh` writes `push-main-soft-ok-demo.md` here; it must contain the string `soft_ok_jobs_flake`.
+
 ## Book title strategy (321–360 vs ≤320)
 
 | Viewport band | Projectile (`w`) | Book-select `text-overflow` | Notes |

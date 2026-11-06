@@ -117,12 +117,14 @@ export const convertSim = {
   params: { E0: 100, f: 0.4 },
   schema: [
     num('E0', 'Total E0', '总量 E0', 'J', 10, 200, 5),
-    num('f', 'Share to store 2', '转入库 2 的份额', '', 0, 1, 0.05),
+    // f is a dimensionless share into store 2 — not a wave frequency.
+    num('f', 'Share → store 2', '转入库 2 份额 f', '', 0, 1, 0.05),
   ],
   compute: (p) => energyShare(p),
   readouts: (d) => [
-    ro('E1', 'E1', `${fmt(d.E1, 1)} J`),
-    ro('E2', 'E2', `${fmt(d.E2, 1)} J`),
+    ro('E1', 'E1（库 1）', `${fmt(d.E1, 1)} J`),
+    ro('E2', 'E2（库 2）', `${fmt(d.E2, 1)} J`),
+    ro('f', '份额 f', fmt(d.f, 2)),
     ro('Total', '合计', `${fmt(d.total, 1)} J`),
   ],
   checks: (d) => [

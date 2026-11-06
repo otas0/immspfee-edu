@@ -56,7 +56,7 @@ function buildRealTreeFlip() {
   fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
   let stamp = fs.readFileSync(path.join(root, 'scripts/stamp-build.mjs'), 'utf8');
   let sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-  const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  let index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   // Inject shell into REQUIRED array (before closing ]).
   if (!/js\/ui-chrome\.js/.test(stamp)) {
     stamp = stamp.replace(
@@ -69,6 +69,18 @@ function buildRealTreeFlip() {
       /const PRECACHE = \[/,
       "const PRECACHE = [\n  './js/ui-chrome.js',\n  './js/uni-fold.js',",
     );
+  }
+  // Optional lockstep with ADR flip template (OFFLINE_FIRST_REQUIRE_MP=1).
+  if (REQUIRE_MP) {
+    for (const rel of SHELL) {
+      const needle = `href="./${rel}?v=__BUILD__"`;
+      if (!index.includes(needle)) {
+        index = index.replace(
+          '<link rel="modulepreload" href="./js/app.js?v=__BUILD__">',
+          `<link rel="modulepreload" href="./js/app.js?v=__BUILD__">\n  <link rel="modulepreload" href="./${rel}?v=__BUILD__">`,
+        );
+      }
+    }
   }
   fs.writeFileSync(path.join(dir, 'scripts/stamp-build.mjs'), stamp);
   fs.writeFileSync(path.join(dir, 'sw.js'), sw);

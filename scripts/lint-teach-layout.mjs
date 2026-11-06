@@ -193,6 +193,13 @@ function lint420AreasOrInherit(block) {
     fxOk = false;
     console.error('FAIL push-main.sh: print_run_artifacts must still match capture-cols-fail (legacy) names');
   }
+  const pagesYml = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
+  // Green-run upload of capture-cols-fail removed — forbid reintroducing upload-artifact name.
+  if (/name:\s*capture-cols-fail-\$\{\{/.test(pagesYml)) {
+    failed += 1;
+    fxOk = false;
+    console.error('FAIL pages.yml: must not upload capture-cols-fail-${{…}} on green (verify-only force_cols)');
+  }
   if (fxOk) console.log('ok watch/doctor/offline-first fixture scripts present');
 }
 
