@@ -20,6 +20,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = process.env.OFFLINE_FIRST_FIXTURE === '1';
 const REALTREE = process.env.OFFLINE_FIRST_REALTREE === '1';
 const OFFLINE = FIXTURE || REALTREE || process.env.OFFLINE_FIRST === '1';
+/** Sidebranch / flip PR: require index.html modulepreload for shell modules. */
+const REQUIRE_MP = process.env.OFFLINE_FIRST_REQUIRE_MP === '1';
 const SHELL = ['js/ui-chrome.js', 'js/uni-fold.js'];
 
 function buildFixtureTree() {
@@ -142,8 +144,13 @@ for (const rel of SHELL) {
     console.error(`FAIL OFFLINE_FIRST=1: ${rel} REQUIRED/PRECACHE out of lockstep`);
   } else {
     console.log('ok flip: REQUIRED + PRECACHE present');
-    if (!mp) {
+    if (REQUIRE_MP && !mp) {
+      failed += 1;
+      console.error(`FAIL OFFLINE_FIRST_REQUIRE_MP=1: ${rel} must have index.html modulepreload (ADR flip lockstep)`);
+    } else if (!mp) {
       console.log('note: no dedicated modulepreload (ok if only imported from stamped app.js)');
+    } else {
+      console.log('ok flip: modulepreload present');
     }
   }
   console.log('');

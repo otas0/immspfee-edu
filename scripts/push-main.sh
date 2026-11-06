@@ -30,9 +30,20 @@ echo "precheck ok"
 
 attempts=6
 delay=5
+# Cap backoff (default 30s). Override: PAGES_PUSH_MAX_DELAY=60
+MAX_DELAY="${PAGES_PUSH_MAX_DELAY:-30}"
 i=1
 pushed=0
 cleared_proxy=0
+# Pre-clear proxy before attempt 1 when set (443 flakes often need this first).
+# Disable: PUSH_PRECLEAR_PROXY=0
+if [[ "${PUSH_PRECLEAR_PROXY:-1}" == "1" ]]; then
+  if [[ -n "${https_proxy:-}${http_proxy:-}${HTTPS_PROXY:-}${HTTP_PROXY:-}${ALL_PROXY:-}${all_proxy:-}" ]]; then
+    echo "preclear: unsetting proxy env before first push (PUSH_PRECLEAR_PROXY=1)"
+    unset https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy || true
+    cleared_proxy=1
+  fi
+fi
 while (( i <= attempts )); do
   echo "push attempt $i/$attempts (HTTP/1.1)"
   err_log="$(mktemp)"
@@ -69,7 +80,7 @@ while (( i <= attempts )); do
         i=$(( i + 1 ))
         sleep "$delay"
         delay=$(( delay * 2 ))
-        if (( delay > 60 )); then delay=60; fi
+        if (( delay > MAX_DELAY )); then delay=$MAX_DELAY; fi
         continue
       fi
       # Re-probe gh once: tip already matches → treat as landed (no false retry loop).
@@ -81,7 +92,7 @@ while (( i <= attempts )); do
         i=$(( i + 1 ))
         sleep "$delay"
         delay=$(( delay * 2 ))
-        if (( delay > 60 )); then delay=60; fi
+        if (( delay > MAX_DELAY )); then delay=$MAX_DELAY; fi
         continue
       fi
     else
@@ -89,14 +100,14 @@ while (( i <= attempts )); do
       i=$(( i + 1 ))
       sleep "$delay"
       delay=$(( delay * 2 ))
-      if (( delay > 60 )); then delay=60; fi
+      if (( delay > MAX_DELAY )); then delay=$MAX_DELAY; fi
       continue
     fi
     SHA="$local_head"
     SHORT="$(git rev-parse --short HEAD)"
     echo "pushed $SHORT (attempt $i/$attempts; proxy_cleared=$cleared_proxy)"
     if (( cleared_proxy )); then
-      echo "note: proxy env was cleared after a prior 443/CONNECT flake; push landed on attempt $i"
+      echo "note: proxy was cleared (preclear and/or mid-loop 443 flake); push landed on attempt $i"
     fi
     pushed=1
     break
@@ -116,10 +127,10 @@ while (( i <= attempts )); do
   if echo "$err_txt" | grep -qi 'Everything up-to-date' && push_stderr_is_connect_flake "$err_txt"; then
     echo "note: ignoring Everything up-to-date next to connect/RPC failure (not landed)" >&2
   fi
-  echo "push failed; sleeping ${delay}s"
+  echo "push failed; sleeping ${delay}s (max ${MAX_DELAY}s)"
   sleep "$delay"
   delay=$(( delay * 2 ))
-  if (( delay > 60 )); then delay=60; fi
+  if (( delay > MAX_DELAY )); then delay=$MAX_DELAY; fi
   i=$(( i + 1 ))
 done
 
@@ -272,6 +283,7 @@ except Exception:
     { print }
   ' "$SUMMARY_MD" > "$tmp" && mv "$tmp" "$SUMMARY_MD"
 }
+ISSUE_TITLE_LAST=""
 set_issue_title() {
   local concl="${1:-}" h1
   # conclusion=failure → FAIL prefix on issue-title template (also cancelled/timed_out).
@@ -295,7 +307,11 @@ set_issue_title() {
       { print }
     ' "$SUMMARY_MD" > "$tmp" && mv "$tmp" "$SUMMARY_MD"
   fi
-  echo "issue title: $ISSUE_TITLE"
+  # Mid-FAIL waiting polls used to spam console; only print when title changes.
+  if [[ "$ISSUE_TITLE" != "$ISSUE_TITLE_LAST" ]]; then
+    ISSUE_TITLE_LAST="$ISSUE_TITLE"
+    echo "issue title: $ISSUE_TITLE"
+  fi
 }
 echo "local summary: $SUMMARY_MD (paste into issues)"
 echo "issue title: $ISSUE_TITLE"
@@ -346,6 +362,8 @@ print_run_artifacts() {
   local prefer_fail="${1:-0}"
   echo "artifact download URLs (short SHA $SHORT):"
   local art_lines
+  # Match fail-only + capture PNG names. capture-cols-fail kept in regex for legacy runs
+  # (green uploads removed 2026-11-06; real fails use capture-last-fail).
   art_lines="$(gh api "repos/${REPO}/actions/runs/${RID}/artifacts" --paginate \
     --jq '.artifacts[] | select(.name | test("^(capture-340px-zh-long-title-|capture-1280-desktop-|capture-last-fail-|capture-cols-fail-|redirect-fail-headers-)")) | "\(.name)\t\(.id)\t\(.archive_download_url)"' 2>/dev/null || true)"
   local listed=""

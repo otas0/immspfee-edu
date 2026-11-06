@@ -19,7 +19,8 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 - Minkowski sticky readout hi: **β only** while/after track drag (`_betaHi`). γ / Δt stay plain until product confirmation [issue #1](https://github.com/otas0/immspfee-edu/issues/1) is checked; then extend `STICKY_READOUT_HI_BY_SCHEMA` + smoke-layout (do not paint hi first).
 - Stage with `bash scripts/git-stage-allow.sh --default` (or explicit paths). Do not run `git add -A` / `--all` / `.` in agent scripts — lint forbids it. Optional hook: `git config core.hooksPath scripts/githooks` ([docs/hooks/stage-allow.md](docs/hooks/stage-allow.md)).
 - Local health: `npm run doctor` (clears bad sidecars; `DOCTOR_AUTO_ENSURE=1` default restarts via ensure-dev-server --no-exec). Not on Pages.
-- OFFLINE_FIRST flip dry-run: `npm run offline-first:dry-run` (default off PRECACHE; `OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` green without touching main).
+- OFFLINE_FIRST flip dry-run: `npm run offline-first:dry-run` (default off PRECACHE; `OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` green without touching main). Local disposable worktree: `npm run offline-first:sidebranch`. **Do not open a real flip PR until ADR 001 gates are checked.**
+- `push-main` watch: `PAGES_CONCL_POLLS="tries delay"` (default `5 2`); `PUSH_PRECLEAR_PROXY=1` (default) clears proxy before attempt 1; `PAGES_PUSH_MAX_DELAY` caps backoff (default 30s); `PUSH_MAIN_DEBUG=1` for completed-heartbeat suppress noise.
 - See also [CONTRIBUTING.md](CONTRIBUTING.md) (hooksPath one-liner).
 
 ## Release

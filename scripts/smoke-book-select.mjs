@@ -476,6 +476,19 @@ if (!hasTwoRowTop(block768)) {
   } else {
     console.log('ok doctor AUTO_ENSURE=1 fixture (mock ensure, no server)');
   }
+  const docMiss = spawnSync('bash', ['scripts/doctor.sh'], {
+    cwd: root,
+    env: { ...process.env, DOCTOR_FIXTURE: 'missing-ready' },
+    encoding: 'utf8',
+  });
+  if (docMiss.status !== 0 || !/ok doctor missing-ready fixture/.test(docMiss.stdout || '')) {
+    failed += 1;
+    console.error('FAIL doctor missing-ready fixture', {
+      status: docMiss.status, out: (docMiss.stdout || '').slice(0, 400), err: docMiss.stderr,
+    });
+  } else {
+    console.log('ok doctor missing-ready fixture (tip + mock ensure; no server)');
+  }
   const side = spawnSync('bash', ['scripts/offline-first-sidebranch-dry-run.sh'], {
     cwd: root,
     encoding: 'utf8',

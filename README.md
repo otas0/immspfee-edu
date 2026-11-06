@@ -39,7 +39,7 @@ CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow
 npm run pw:pin-dry-run     # Playwright pin → issue 逻辑 dry-run（不建 issue；见 package.json scripts）
 ```
 
-无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。本地：`npm run doctor`（清 sidecar 后默认 `DOCTOR_AUTO_ENSURE=1` 调 ensure-dev-server；不进 Pages）· hooksPath → [docs/hooks/stage-allow.md](docs/hooks/stage-allow.md) / [CONTRIBUTING.md](CONTRIBUTING.md)。`npm run offline-first:dry-run`（`OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` 绿路径；main 勿设 OFFLINE_FIRST）。CI：`CAPTURE_FORCE_FAIL` + `CAPTURE_FORCE_COLS_FAIL`（三栏 fail→`capture-cols-fail-<sha>` 上传）+ `redir-retries-diag` 读 `needs.deploy.outputs.redir_retries`（不阻塞 capture）。提交用 `bash scripts/git-stage-allow.sh --default`。
+无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。本地：`npm run doctor`（清 sidecar 后默认 `DOCTOR_AUTO_ENSURE=1` 调 ensure-dev-server；不进 Pages）· hooksPath → [docs/hooks/stage-allow.md](docs/hooks/stage-allow.md) / [CONTRIBUTING.md](CONTRIBUTING.md)。`npm run offline-first:dry-run`（`OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` 绿路径；main 勿设 OFFLINE_FIRST）。CI：`CAPTURE_FORCE_FAIL` + `CAPTURE_FORCE_COLS_FAIL`（三栏 in-job 校验，绿跑不上传）+ `redir-retries-diag` 读 `needs.deploy.outputs.redir_retries`（不阻塞 capture）。提交用 `bash scripts/git-stage-allow.sh --default`。
 
 CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`（详见 [`.local-shots/README.md`](.local-shots/README.md)）。
 
@@ -52,7 +52,7 @@ npm start
 
 There is **no** `pretest` hook. Use `npm test` (includes rename redirect; soft-skips when GitHub is unreachable) or `npm run test:offline` when you want to skip redirect entirely.
 
-CI artifact names (short SHA, 7-day): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>`, `capture-cols-fail-<sha>` (same retention as last-fail), `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
+CI artifact names (short SHA, 7-day): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>` (fail-only), `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). `CAPTURE_FORCE_COLS_FAIL` verifies in-job only (no green `capture-cols-fail` upload). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
 
 `npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 

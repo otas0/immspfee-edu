@@ -117,6 +117,52 @@ EOF
   exit 0
 fi
 
+# Fixture: missing ready file → tip / mock-ensure path without fold/redirect (no server).
+#   DOCTOR_FIXTURE=missing-ready bash scripts/doctor.sh
+if [[ "${DOCTOR_FIXTURE:-}" == "missing-ready" ]]; then
+  PORT=4197
+  READY_FILE="$ROOT/.dev-server-${PORT}.ready"
+  PID_FILE="$ROOT/.dev-server-${PORT}.pid"
+  rm -f "$READY_FILE" "$PID_FILE"
+  DOCTOR_AUTO_ENSURE=0
+  # Inline the missing-ready branch (mirror main path; skip fold/redirect).
+  out=""
+  out+=$"FAIL: missing $READY_FILE — run npm start / npm run preview first"$'\n'
+  out+=$"tip: \`bash scripts/ensure-dev-server.sh\`"$'\n'
+  if [[ -f "$READY_FILE" ]]; then
+    echo "FAIL doctor missing-ready: ready file should be absent" >&2
+    exit 1
+  fi
+  if ! echo "$out" | grep -q 'FAIL: missing'; then
+    echo "FAIL doctor missing-ready: expected missing message" >&2
+    exit 1
+  fi
+  # AUTO_ENSURE=1 + mock ensure when ready missing.
+  mock_dir="$(mktemp -d "${TMPDIR:-/tmp}/doctor-missing-mock.XXXXXX")"
+  mock_sh="$mock_dir/ensure-dev-server.sh"
+  marker="$mock_dir/called"
+  cat >"$mock_sh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >"${DOCTOR_ENSURE_MARKER:?}"
+exit 0
+EOF
+  chmod +x "$mock_sh"
+  ENSURE_DEV_SERVER_SH="$mock_sh"
+  export DOCTOR_ENSURE_MARKER="$marker"
+  DOCTOR_AUTO_ENSURE=1
+  echo "FAIL: missing $READY_FILE — run npm start / npm run preview first"
+  echo "DOCTOR_AUTO_ENSURE=1 → bash ${ENSURE_DEV_SERVER_SH#$ROOT/} --no-exec --quiet"
+  bash "$ENSURE_DEV_SERVER_SH" --no-exec --quiet
+  if [[ ! -f "$marker" ]] || ! grep -q -- '--no-exec' "$marker"; then
+    echo "FAIL doctor missing-ready: mock ensure not invoked" >&2
+    rm -rf "$mock_dir"
+    exit 1
+  fi
+  rm -rf "$mock_dir"
+  echo "ok doctor missing-ready fixture (tip + mock ensure; no server)"
+  exit 0
+fi
+
 echo "### doctor — local preview / university nav"
 echo ""
 

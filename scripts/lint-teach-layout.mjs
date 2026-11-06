@@ -168,8 +168,8 @@ function lint420AreasOrInherit(block) {
 {
   const fixtures = [
     ['scripts/push-main-heartbeat.sh', /PUSH_WATCH_FLAKE_FIXTURE|watch_exit_decision|soft_ok_jobs_flake/],
-    ['scripts/doctor.sh', /DOCTOR_FIXTURE=auto-ensure-0|DOCTOR_FIXTURE=auto-ensure-1/],
-    ['scripts/offline-first-sidebranch-dry-run.sh', /OFFLINE_FIRST=1/],
+    ['scripts/doctor.sh', /DOCTOR_FIXTURE=auto-ensure-0|DOCTOR_FIXTURE=auto-ensure-1|DOCTOR_FIXTURE=missing-ready/],
+    ['scripts/offline-first-sidebranch-dry-run.sh', /OFFLINE_FIRST=1|OFFLINE_FIRST_REQUIRE_MP/],
   ];
   let fxOk = true;
   for (const [rel, re] of fixtures) {
@@ -186,6 +186,12 @@ function lint420AreasOrInherit(block) {
       fxOk = false;
       console.error(`FAIL ${rel}: missing expected fixture marker ${re}`);
     }
+  }
+  const pushMain = fs.readFileSync(path.join(root, 'scripts/push-main.sh'), 'utf8');
+  if (!/capture-cols-fail-/.test(pushMain) || !/print_run_artifacts/.test(pushMain)) {
+    failed += 1;
+    fxOk = false;
+    console.error('FAIL push-main.sh: print_run_artifacts must still match capture-cols-fail (legacy) names');
   }
   if (fxOk) console.log('ok watch/doctor/offline-first fixture scripts present');
 }

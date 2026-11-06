@@ -98,4 +98,6 @@ Paste into the PR that flips offline-first. Tick every box before merging the PR
 - [ ] `OFFLINE_FIRST=1` documented in the flip PR; default remains unset/`0` on `main` until then.
 - [ ] **Pages env must not set `OFFLINE_FIRST` on `main` before the flip** (repo / environment / workflow `env:` stay unset/`0` until this PR merges).
 
-When all boxes are checked: add `js/ui-chrome.js` and `js/uni-fold.js` to **both** stamp REQUIRED and `sw.js` PRECACHE in the same commit.
+When all boxes are checked: add `js/ui-chrome.js` and `js/uni-fold.js` to **both** stamp REQUIRED and `sw.js` PRECACHE in the same commit (and `index.html` modulepreload in lockstep).
+
+**Do not open a real flip PR until the Gates checkboxes above are ticked.** Local rehearsal only: `npm run offline-first:sidebranch` (disposable worktree; not pushed).

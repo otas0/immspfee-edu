@@ -265,26 +265,32 @@ if [[ "${PUSH_WATCH_FLAKE_FIXTURE:-}" == "1" ]]; then
     echo "FAIL watch-flake fixture: last_good_shows_deploy_success" >&2
     exit 1
   fi
-  # Soft-ok summary must carry soft_ok_jobs_flake (simulates push-main-last-summary.md).
+  # Soft-ok summary must carry soft_ok_jobs_flake (artificial jobs-miss demo).
   kind="$(watch_exit_decision '' "$last" 1)"
   sum_line="$(watch_ok_summary_line "$kind" 'deadbee')"
-  tmp_sum="$(mktemp)"
+  # Prefer repo .local-shots demo file (gitignored) so agents can open it after the fixture.
+  root="$(cd "$(dirname "$0")/.." && pwd)"
+  demo_sum="${root}/.local-shots/push-main-soft-ok-demo.md"
+  mkdir -p "${root}/.local-shots"
   {
-    echo "# push-main summary"
+    echo "# push-main summary (soft-ok jobs-miss demo)"
+    echo ""
+    echo "> Artificial jobs API miss after deploy=completed/success."
+    echo ""
     echo "## Watch ok"
+    echo ""
     echo "$sum_line"
-  } >"$tmp_sum"
-  if ! grep -q 'soft_ok_jobs_flake' "$tmp_sum"; then
+  } >"$demo_sum"
+  if ! grep -q 'soft_ok_jobs_flake' "$demo_sum"; then
     echo "FAIL watch-flake fixture: summary missing soft_ok_jobs_flake" >&2
-    cat "$tmp_sum" >&2
-    rm -f "$tmp_sum"
+    cat "$demo_sum" >&2
     exit 1
   fi
-  rm -f "$tmp_sum"
   if [[ "$sum_line" != *"soft_ok_jobs_flake"* ]]; then
     echo "FAIL watch-flake fixture: watch_ok_summary_line drift: $sum_line" >&2
     exit 1
   fi
+  echo "soft-ok demo summary: $demo_sum"
   # Everything up-to-date next to RPC noise is a connect flake, not a clean land.
   if ! push_stderr_is_connect_flake $'RPC failed\nEverything up-to-date'; then
     echo "FAIL watch-flake fixture: RPC+up-to-date must count as connect flake" >&2

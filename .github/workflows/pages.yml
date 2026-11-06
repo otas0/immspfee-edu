@@ -45,7 +45,7 @@ jobs:
             echo "| capture-fail | \`capture-last-fail-$SHORT\` | 7-day |"
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
             echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
-            echo "| force_cols | \`capture-cols-fail-$SHORT\` (Optional capture; same **7-day** retention as capture-last-fail) | 7-day |"
+            echo "| force_cols | in-job verify only (no artifact on green; same idea as force_fail template) | — |"
             echo "| force_fail | mirrored — see **Optional capture** job (\`force_fail=ok\` when template passes) | — |"
             echo ""
             echo "_Footnote: redirect-fail uploads only when the rename-redirect step fails; on redirect green the backfill row is \`not uploaded\` (skip reason: redirect green)._"
@@ -188,7 +188,7 @@ jobs:
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
       # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
-      # (post-a1f7c89): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
+      # (post-9cb6c02): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
       # When #413 ships a patch, bump immediately and confirm DEP0040 gone before merge.
       # Keep this bump track separate from push-main watch-flake soft-ok work.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
@@ -344,7 +344,7 @@ jobs:
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
             echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
             echo "| force_fail | ok when template step passes (authoritative here; deploy job mirrors this row) | — |"
-            echo "| force_cols | \`capture-cols-fail-$SHORT\` when three-column FORCE_COLS path verifies | 7-day |"
+            echo "| force_cols | in-job verify only (no green-run \`capture-cols-fail\` upload; real fails → \`capture-last-fail\`) | — |"
             echo ""
             echo "_Footnote: redirect-fail lives on the **deploy** job; upload only when rename-redirect fails (skip reason: redirect green → not uploaded). \`redir_retries\` is echoed by the **Redirect retries diag** job (not by capture)._"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -519,27 +519,18 @@ jobs:
             exit 1
           fi
           {
-            echo "### Force-cols-fail 1280 (three-column → capture-last-fail)"
+            echo "### Force-cols-fail 1280 (three-column assert → fail md)"
             echo ""
-            echo "Verified fail md for upload path (\`CAPTURE_FORCE_COLS_FAIL=1\`)."
+            echo "Verified fail md in-job (\`CAPTURE_FORCE_COLS_FAIL=1\`). **No artifact upload on green** — real capture failures use \`capture-last-fail-$SHORT\` via the fail-only upload step (aligned with force_fail)."
             echo ""
             echo "| Kind | Status |"
             echo "| --- | --- |"
-            echo "| force_cols | ok |"
-            echo "| artifact | \`capture-cols-fail-${SHORT}\` |"
+            echo "| force_cols | ok (verify only) |"
+            echo "| artifact | not uploaded on green |"
             echo ""
             cat "$FAIL_MD"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "force-cols-fail md ok"
-      - name: Upload force-cols capture-last-fail
-        id: up_cols
-        if: always() && steps.pw.outputs.have == '1' && steps.force_cols.outcome == 'success'
-        uses: actions/upload-artifact@v7
-        with:
-          name: capture-cols-fail-${{ env.SHORT }}
-          path: .local-shots/capture-last-fail.md
-          if-no-files-found: error
-          retention-days: 7
+          echo "force-cols-fail md ok (verify only; no green upload)"
       - name: Clear force-cols fail md before real captures
         if: always() && steps.pw.outputs.have == '1'
         run: rm -f .local-shots/capture-last-fail.md
@@ -761,11 +752,11 @@ jobs:
               echo "| force_fail (340+1280) | — | — | — |"
             fi
             if [ "${{ steps.force_cols.outcome }}" = "success" ]; then
-              echo "| force_cols (1280→fail md) | ok | — | — |"
+              echo "| force_cols (1280→fail md verify only) | ok | — | — |"
             elif [ "${{ steps.force_cols.outcome }}" = "failure" ]; then
-              echo "| force_cols (1280→fail md) | ❌ | — | — |"
+              echo "| force_cols (1280→fail md verify only) | ❌ | — | — |"
             else
-              echo "| force_cols (1280→fail md) | — | — | — |"
+              echo "| force_cols (1280→fail md verify only) | — | — | — |"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           echo "retries_used=${RETRIES_USED:-0}" >> "$GITHUB_OUTPUT"
