@@ -48,7 +48,8 @@ jobs:
           # Site-only tree: skip scripts, docs, tests, package.json, git, node_modules.
           rm -rf _site
           mkdir -p _site
-          cp index.html sw.js _site/
+          # Root favicon.ico must ship — Safari fetches /favicon.ico by origin, ignoring link tags when it 404s.
+          cp index.html sw.js favicon.ico _site/
           cp -R assets css js _site/
           BEFORE=$(du -sk --exclude=.git --exclude=node_modules --exclude=_site . | awk '{print $1}')
           AFTER=$(du -sk _site | awk '{print $1}')
