@@ -66,7 +66,8 @@ if (( pushed == 0 )); then
     for v in https_proxy http_proxy HTTPS_PROXY HTTP_PROXY ALL_PROXY all_proxy; do
       if [[ -n "${!v+x}" ]]; then
         # Set (possibly to empty string) vs truly unset.
-        echo "  $v is set (value=${!v@Q})" >&2
+        # printf %q is portable on bash 3.2 (macOS); ${var@Q} needs bash 4.4+.
+        echo "  $v is set (value=$(printf %q "${!v}"))" >&2
       else
         echo "  $v is unset" >&2
       fi

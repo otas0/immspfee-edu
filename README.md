@@ -16,6 +16,8 @@ IMMSPFEE 教育版：按教材一节一节上课。标准实验室在独立仓�
 
 深链用**课** id，不是节 id。`live()` 生成的课会在节号后加 `a`，例如沪科高中「曲线运动」是 `#/sh-senior/shs-5-1a/introduce`，不要写成 `shs-5-1`。本地预览：`npm run preview` 或 `bash scripts/ensure-dev-server.sh --no-exec`。Safari 旧标签图标可用 `bash scripts/clear-favicons.sh`（需在终端完整磁盘访问权限下运行）或双击 `scripts/clear-favicons.command`。
 
+相位控件：引入步只有「复位」（重载本节）；其他步是「上一步」。探究栏用参数表改数，**不做**「一键恢复预设」第二按钮。大学目录 hint：平时「当前学科：…」；搜索时「搜索中·全部展开 · 当前：…」（`data-searching="1"`），清空搜索后回到「当前学科」。
+
 本地检查清单：
 
 ```bash

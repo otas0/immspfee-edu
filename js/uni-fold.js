@@ -34,6 +34,10 @@ export function writeUniFoldsTo(storage, map) {
 }
 
 export function pruneUniFoldsMap(map, validIds) {
+  // Empty / missing valid set: do not wipe — refuse to prune (safe no-op).
+  if (!validIds || typeof validIds.has !== 'function' || validIds.size === 0) {
+    return { map: { ...(map || {}) }, changed: false };
+  }
   const next = { ...(map || {}) };
   let changed = false;
   for (const id of Object.keys(next)) {
@@ -69,20 +73,24 @@ export function foldHintText({ searching, currentLabel, searchLabel, chapterTitl
   return foldCurrentHint(currentLabel, chapterTitle);
 }
 
-/** DOM-free fold-hint props (dataset.chapterId) for smoke without jsdom. */
-export function foldHintDomProps(chapterId, text) {
+/** DOM-free fold-hint props (dataset.chapterId / data-searching) for smoke without jsdom. */
+export function foldHintDomProps(chapterId, text, searching = false) {
+  const dataset = { chapterId: String(chapterId || '') };
+  if (searching) dataset.searching = '1';
   return {
     className: 'fold-hint',
-    dataset: { chapterId: String(chapterId || '') },
+    dataset,
     textContent: String(text || ''),
   };
 }
 
-export function applyFoldHintEl(el, chapterId, text) {
-  const props = foldHintDomProps(chapterId, text);
+export function applyFoldHintEl(el, chapterId, text, searching = false) {
+  const props = foldHintDomProps(chapterId, text, searching);
   el.className = props.className;
   if (!el.dataset) el.dataset = {};
   el.dataset.chapterId = props.dataset.chapterId;
+  if (searching) el.dataset.searching = '1';
+  else delete el.dataset.searching;
   el.textContent = props.textContent;
   return el;
 }

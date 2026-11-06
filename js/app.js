@@ -14,9 +14,9 @@ import {
 import {
   clearWrongLeavingHousehold,
   clearWrongLeavingDebug,
-  readoutClass,
   isCanvasBufferError,
   toastErrorDetail,
+  applyReadoutRowEl,
 } from './ui-chrome.js?v=__BUILD__';
 
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
@@ -267,7 +267,7 @@ function paintReadouts(d) {
   host.appendChild(title);
   for (const item of s.readouts(d, params, ui)) {
     const rowEl = document.createElement('div');
-    rowEl.className = readoutClass(item);
+    applyReadoutRowEl(rowEl, item);
     const k = document.createElement('span');
     k.textContent = tx(lang, item);
     const v = document.createElement('strong');
@@ -405,6 +405,7 @@ function renderTree() {
           searchLabel: t(lang, 'foldSearchOpen'),
           chapterTitle: tx(lang, current.chapter.title),
         }),
+        searching,
       );
       tools.appendChild(hint);
     }

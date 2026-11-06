@@ -10,6 +10,7 @@ import {
   readUniFoldsFrom,
   writeUniFoldsTo,
   pruneUniFoldsIn,
+  pruneUniFoldsMap,
   foldHintText,
   foldHintDomProps,
   applyFoldHintEl,
@@ -18,8 +19,10 @@ import {
   clearWrongLeavingHousehold,
   clearWrongLeavingDebug,
   readoutClass,
+  applyReadoutRowEl,
   isCanvasBufferError,
   toastErrorDetail,
+  applySchemaParam,
 } from '../js/ui-chrome.js';
 import { getBook, flatten, findLesson } from '../js/curricula/index.js';
 import { STR, t } from '../js/i18n.js';
@@ -398,14 +401,26 @@ let failed = 0;
     console.error('FAIL uni fold search hint should keep current chapter title', searchHint);
   } else console.log('ok uni fold hint ↔ default open + search copy', hintCh.id);
 
-  // DOM-free fold-hint dataset.chapterId (mirrors app applyFoldHintEl).
-  const props = foldHintDomProps(hintCh.id, hint);
-  const el = { dataset: {}, className: '', textContent: '' };
-  applyFoldHintEl(el, hintCh.id, hint);
-  if (props.dataset.chapterId !== hintCh.id || el.dataset.chapterId !== hintCh.id || el.className !== 'fold-hint') {
+  // Search on → data-searching=1; clear search → foldCurrent + drop data-searching.
+  const elSearch = { dataset: {}, className: '', textContent: '' };
+  applyFoldHintEl(elSearch, hintCh.id, searchHint, true);
+  const elClear = { dataset: { searching: '1', chapterId: hintCh.id }, className: '', textContent: '' };
+  applyFoldHintEl(elClear, hintCh.id, hint, false);
+  if (elSearch.dataset.searching !== '1' || elClear.dataset.searching != null
+    || !elClear.textContent.startsWith(t('zh', 'foldCurrent'))) {
     failed += 1;
-    console.error('FAIL fold-hint DOM props / dataset.chapterId', { props, el });
-  } else console.log('ok fold-hint dataset.chapterId DOM smoke', hintCh.id);
+    console.error('FAIL fold hint search→clear UI regression', { elSearch, elClear, hint });
+  } else console.log('ok fold hint search clear → foldCurrent');
+
+  // DOM-free fold-hint dataset.chapterId + data-searching (mirrors app applyFoldHintEl).
+  const props = foldHintDomProps(hintCh.id, searchHint, true);
+  const el = { dataset: {}, className: '', textContent: '' };
+  applyFoldHintEl(el, hintCh.id, searchHint, true);
+  if (props.dataset.chapterId !== hintCh.id || props.dataset.searching !== '1'
+    || el.dataset.chapterId !== hintCh.id || el.dataset.searching !== '1' || el.className !== 'fold-hint') {
+    failed += 1;
+    console.error('FAIL fold-hint DOM props / dataset', { props, el });
+  } else console.log('ok fold-hint dataset.chapterId + data-searching DOM smoke', hintCh.id);
 
   // App pruneUniFoldsIn path: write expand → inject stale → pruneIn → read.
   const mem = new Map();
@@ -432,6 +447,23 @@ let failed = 0;
       failed += 1;
       console.error('FAIL uni fold storage round-trip expand map');
     } else console.log('ok uni fold pruneUniFoldsIn ↔ mock storage');
+  }
+
+  // Empty validIds must not wipe the map.
+  const kept = { a: true, b: false };
+  const emptyPrune = pruneUniFoldsMap(kept, new Set());
+  const nullPrune = pruneUniFoldsMap(kept, null);
+  if (emptyPrune.changed || nullPrune.changed
+    || Object.keys(emptyPrune.map).length !== 2 || Object.keys(nullPrune.map).length !== 2) {
+    failed += 1;
+    console.error('FAIL pruneUniFoldsMap empty validIds should no-op', { emptyPrune, nullPrune });
+  } else {
+    writeUniFoldsTo(storage, kept);
+    const afterEmpty = pruneUniFoldsIn(storage, new Set());
+    if (Object.keys(afterEmpty).length !== 2) {
+      failed += 1;
+      console.error('FAIL pruneUniFoldsIn empty validIds should no-op', afterEmpty);
+    } else console.log('ok pruneUniFoldsIn empty validIds safe no-op');
   }
 }
 
@@ -522,7 +554,15 @@ let failed = 0;
                     failed += 1;
                     console.error('FAIL double-slit readout hi should follow drag after clamp', { aRow, wRow, afterUp: rowsLo.find((r) => r.en === 'a') });
                   } else {
-                    console.log('ok double-slit envelope + width-bar drag/hit/clamp/hi', { a0, amin, amax });
+                    // Light DOM: paintReadouts className via applyReadoutRowEl.
+                    const domHi = applyReadoutRowEl({ className: '' }, aRow);
+                    const domLo = applyReadoutRowEl({ className: '' }, rowsLo.find((r) => r.en === 'a'));
+                    if (domHi.className !== 'readout hi' || domLo.className !== 'readout') {
+                      failed += 1;
+                      console.error('FAIL double-slit paintReadouts DOM class', { domHi, domLo });
+                    } else {
+                      console.log('ok double-slit envelope + width-bar drag/hit/clamp/hi/DOM', { a0, amin, amax });
+                    }
                   }
                 }
               }
@@ -546,11 +586,9 @@ let failed = 0;
   const snap = sim.onParam('beta', 0.73);
   const loSnap = sim.onParam('beta', 0.049);
   const hiSnap = sim.onParam('beta', 0.951);
-  const betaField = sim.schema.find((f) => f.key === 'beta');
-  const fieldSnap = (v) => {
-    const clamped = Math.max(betaField.min, Math.min(betaField.max, v));
-    return Math.round(clamped / betaField.step) * betaField.step;
-  };
+  // Field <input> path = clamp + onParam (same as setParam / β track snap).
+  const fromField = applySchemaParam(sim, p, 'beta', 0.049);
+  const fromFieldHi = applySchemaParam(sim, p, 'beta', 0.951);
   if (!snap.beta || Math.abs(snap.beta - 0.75) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski onParam: 0.73 should snap to 0.75', snap);
@@ -558,12 +596,10 @@ let failed = 0;
     || !hiSnap.beta || Math.abs(hiSnap.beta - 0.95) > 1e-9) {
     failed += 1;
     console.error('FAIL minkowski onParam endpoints 0.049→0.05 / 0.951→0.95', { loSnap, hiSnap });
-  } else if (Math.abs(fieldSnap(0.049) - loSnap.beta) > 1e-9
-    || Math.abs(fieldSnap(0.951) - hiSnap.beta) > 1e-9) {
+  } else if (Math.abs(fromField.beta - 0.05) > 1e-9 || Math.abs(fromFieldHi.beta - 0.95) > 1e-9
+    || Math.abs(fromField.beta - loSnap.beta) > 1e-9) {
     failed += 1;
-    console.error('FAIL minkowski schema field snap ≠ onParam', {
-      fieldLo: fieldSnap(0.049), onLo: loSnap.beta, fieldHi: fieldSnap(0.951), onHi: hiSnap.beta,
-    });
+    console.error('FAIL minkowski field input applySchemaParam ≠ onParam/track', { fromField, fromFieldHi, loSnap });
   } else if (!tr) {
     failed += 1;
     console.error('FAIL minkowski: missing _vTrack');
@@ -635,10 +671,16 @@ let failed = 0;
   } else {
     const long = { message: `${'x'.repeat(200)}\nsecond line should drop` };
     const short = toastErrorDetail(long, 120);
-    if (short.includes('\n') || short.length > 120 || !short.endsWith('…')) {
+    const cjkCut = toastErrorDetail({ message: `${'汉'.repeat(80)}` }, 5);
+    const cjkChars = Array.from(cjkCut);
+    // maxLen 5 → 4 code points + ellipsis (must not split a surrogate / CJK glyph).
+    if (short.includes('\n') || Array.from(short).length > 120 || !short.endsWith('…')) {
       failed += 1;
       console.error('FAIL toastErrorDetail should truncate to first line', short);
-    } else console.log('ok ising clear error + i18n toast keys + trunc detail');
+    } else if (cjkChars.length !== 5 || cjkChars[4] !== '…' || cjkChars.slice(0, 4).join('') !== '汉汉汉汉') {
+      failed += 1;
+      console.error('FAIL toastErrorDetail must truncate by code point (CJK)', { cjkCut, cjkChars });
+    } else console.log('ok ising clear error + i18n + code-point trunc');
   }
 }
 

@@ -9,6 +9,7 @@
     "lint:layout": "node scripts/lint-teach-layout.mjs",
     "smoke:layout": "node scripts/smoke-layout.mjs",
     "smoke:book": "node scripts/smoke-book-select.mjs",
+    "capture:340-title": "node scripts/capture-340px-long-title.mjs",
     "push:main": "bash scripts/push-main.sh"
   }
 }

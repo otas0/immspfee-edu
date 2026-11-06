@@ -13,10 +13,13 @@ READY_FILE="$ROOT/.dev-server-${PORT}.ready"
 PID_FILE="$ROOT/.dev-server-${PORT}.pid"
 
 NO_EXEC=0
+QUIET=0
 if [[ "${ENSURE_NO_EXEC:-}" == "1" ]]; then NO_EXEC=1; fi
+if [[ "${ENSURE_QUIET:-}" == "1" ]]; then QUIET=1; fi
 for arg in "$@"; do
   case "$arg" in
     --no-exec) NO_EXEC=1 ;;
+    --quiet) QUIET=1 ;;
   esac
 done
 
@@ -86,7 +89,9 @@ if (( NO_EXEC )); then
       # Set ENSURE_KEEP_LOG=1 to retain it.
       if [[ "${ENSURE_KEEP_LOG:-}" != "1" ]]; then
         rm -f "$LOG_FILE"
-        echo "cleared $LOG_FILE"
+        if (( ! QUIET )); then
+          echo "cleared $LOG_FILE"
+        fi
       fi
       exit 0
     fi

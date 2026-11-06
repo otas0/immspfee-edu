@@ -13,10 +13,8 @@ Suggested capture (with preview on `:4174`):
 
 ```bash
 bash scripts/ensure-dev-server.sh --no-exec
-# 340px band (short title may still fit — pad the selected <option> to force ellipsis):
-#   width 340 → #/sh-junior/… or #/sh-senior/shs-5-1a/introduce, lang=zh
-#   option text ← 「沪科版初中物理（上海科学技术出版社·五四制·2024）」
-#   Save as .local-shots/340px-zh-long-title-ellipsis.png
+node scripts/capture-340px-long-title.mjs   # → .local-shots/340px-zh-long-title-ellipsis.png
+# Short-title stack band (manual): width 340 → #/sh-senior/shs-5-1a/introduce
 ```
 
 Policy is also noted in `AGENTS.md` (321–360px bullet).
