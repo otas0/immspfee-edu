@@ -217,9 +217,9 @@ function paintReadouts(d) {
   title.className = 'readout-kicker';
   title.textContent = t(lang, 'readouts');
   host.appendChild(title);
-  for (const item of s.readouts(d, params)) {
+  for (const item of s.readouts(d, params, ui)) {
     const rowEl = document.createElement('div');
-    rowEl.className = 'readout';
+    rowEl.className = item.hi ? 'readout hi' : 'readout';
     const k = document.createElement('span');
     k.textContent = tx(lang, item);
     const v = document.createElement('strong');

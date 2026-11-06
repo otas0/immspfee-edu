@@ -80,7 +80,7 @@ export const university = {
         R('uni-th-4', 'ising', '伊辛模型', 'Ising model',
           '二维伊辛 Metropolis：播放扫温过 Onsager Tc = 2/ln(1+√2)，画 |M|(T) 与 Tc 竖线。',
           '2-D Ising Metropolis: play a T sweep across Onsager Tc = 2/ln(1+√2) and plot |M|(T) with a Tc line.',
-          { N: 12, T: 2.2, sweeps: 40, seed: 1, Tmin: 0.5, Tmax: 4 }, true),
+          { N: 12, T: 2.2, sweeps: 40, seed: 1, Tmin: 0.5, Tmax: 4, paintStep: 1 }, true),
         R('uni-th-5', 'internal-energy', '热力学第一定律', 'First law',
           '教学形式 ΔU = W + Q（进入系统为正）。',
           'Teaching form ΔU = W + Q with into-the-system signs positive.',

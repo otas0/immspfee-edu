@@ -105,8 +105,9 @@ export function finiteWell(p) {
     const kappa = Math.sqrt(Math.max(0, 2 * m * (V0 - lv.E))) / HBAR;
     const samples = [];
     const xMax = a * 2.4;
-    for (let i = 0; i <= 80; i += 1) {
-      const x = -xMax + (2 * xMax * i) / 80;
+    const nPts = 80;
+    for (let i = 0; i <= nPts; i += 1) {
+      const x = -xMax + (2 * xMax * i) / nPts;
       let psi;
       if (Math.abs(x) <= a) {
         psi = lv.parity === 'even' ? Math.cos(k * x) : Math.sin(k * x);
@@ -117,10 +118,20 @@ export function finiteWell(p) {
       }
       samples.push({ x, psi });
     }
-    let maxAbs = 1e-12;
-    for (const s of samples) maxAbs = Math.max(maxAbs, Math.abs(s.psi));
-    for (const s of samples) s.psi /= maxAbs;
-    return { ...lv, k, kappa, samples };
+    // Trapezoid ∫|ψ|² dx, then L²-normalise so the shape is a probability amplitude.
+    let integ = 0;
+    for (let i = 0; i < samples.length - 1; i += 1) {
+      const dx = samples[i + 1].x - samples[i].x;
+      integ += 0.5 * (samples[i].psi ** 2 + samples[i + 1].psi ** 2) * dx;
+    }
+    const scale = Math.sqrt(Math.max(integ, 1e-40));
+    for (const s of samples) s.psi /= scale;
+    let norm = 0;
+    for (let i = 0; i < samples.length - 1; i += 1) {
+      const dx = samples[i + 1].x - samples[i].x;
+      norm += 0.5 * (samples[i].psi ** 2 + samples[i + 1].psi ** 2) * dx;
+    }
+    return { ...lv, k, kappa, samples, integ: norm };
   });
   const Einf = [];
   for (let n = 1; n <= Math.max(1, bound.length); n += 1) {

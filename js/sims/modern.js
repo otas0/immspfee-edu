@@ -584,6 +584,8 @@ export const simultaneitySim = {
     const dx = sx * 0.42;
     const dct = beta * dx;
     line(ctx, xA - dx, tRod + dct, xA + dx, tRod - dct, RAY, 1.5, [4, 3]);
+    text(ctx, `β=${fmt(d.beta, 2)}`, xA + dx * 0.55, tRod - dct * 0.55 - 10, RAY, 11, 'left');
+    text(ctx, `v/c²=${d.slope.toExponential(2)}`, xA + dx * 0.55, tRod - dct * 0.55 + 6, RAY, 10, 'left');
     // Light cones (±45°) from A and B.
     const cone = sy * 0.45;
     line(ctx, xA, tRod, xA + cone, tRod - cone, RAY2, 1, [3, 3]);

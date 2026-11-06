@@ -253,6 +253,7 @@ export const finiteWellSim = {
   readouts: (d) => [
     ro('E1f', 'E₁ finite', d.E1f == null ? '—' : d.E1f.toExponential(3) + ' J'),
     ro('E1∞', 'E₁ infinite', d.E1inf.toExponential(3) + ' J'),
+    ro('∫ψ²', '∫|ψ₁|²', d.bound[0]?.integ != null ? fmt(d.bound[0].integ, 3) : '—'),
     ro('T', 'T(E)', fmt(d.T, 4)),
     ro('Nbound', '束缚态数', String(d.bound.length)),
   ],

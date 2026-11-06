@@ -39,13 +39,18 @@ jobs:
         run: node scripts/stamp-build.mjs
         env:
           GITHUB_SHA: ${{ github.sha }}
-      - name: Trim Pages artifact
-        run: rm -rf node_modules
+      - name: Stage Pages artifact
+        run: |
+          # Site-only tree: skip scripts, docs, tests, git metadata, node_modules.
+          rm -rf _site
+          mkdir -p _site
+          cp index.html sw.js package.json _site/
+          cp -R assets css js _site/
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: .
-          # .git / .github already excluded by the action; node_modules removed above.
+          path: _site
+          # .git / .github never in _site; action also excludes them if present.
       - id: deployment
         uses: actions/deploy-pages@v5
       - name: Smoke live module URLs
@@ -109,8 +114,13 @@ jobs:
             "- Inspect artifact and \`scripts/stamp-build.mjs\`." \
             "" \
             "cc @otas0")
-          gh issue create \
-            --title "Pages stamp failed ($SHORT)" \
-            --body "$BODY" \
-            --assignee otas0 || true
+          TITLE="Pages stamp failed ($SHORT)"
+          EXISTING=$(gh issue list --search "$TITLE in:title" --state open --json number,title \
+            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n 1)
+          if [ -n "$EXISTING" ]; then
+            echo "stamp issue already open: #$EXISTING"
+            gh issue comment "$EXISTING" --body "$BODY" || true
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --assignee otas0 || true
+          fi
           exit 1

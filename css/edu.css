@@ -242,6 +242,8 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
 .readout { display: flex; gap: 8px; align-items: baseline; }
 .readout span { color: var(--muted); font-size: 13px; }
 .readout strong { font-variant-numeric: tabular-nums; }
+.readout.hi span, .readout.hi strong { color: var(--ink, #1c1c1c); font-weight: 600; }
+.readout.hi { outline: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; background: #fff; }
 
 .teach { padding: 14px 14px 18px; overflow: auto; max-height: calc(100vh - 124px); }
 .crumb { margin: 0; color: var(--muted); font-size: 12px; }
@@ -322,13 +324,15 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
 @media (max-width: 320px) {
   .top { padding: 4px 6px; }
   .brand img { max-width: calc(100vw - 16px); }
-  /* Keep 「沪科初中物理」 (6 glyphs) fully visible in the native select. */
+  /* Keep 「沪科初中物理」(6) and 「沪科高中物理」(7) fully visible in the native select. */
   .book-select {
-    font-size: 12px;
-    padding: 3px 18px 3px 6px;
+    font-size: 11px;
+    padding: 3px 16px 3px 4px;
     letter-spacing: 0;
     text-overflow: clip;
     overflow: visible;
+    min-width: 0;
+    width: 100%;
   }
 }
 @media (prefers-color-scheme: dark) {

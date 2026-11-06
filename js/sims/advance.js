@@ -294,6 +294,10 @@ export const modesSim = {
       opt(`${fmt(d.w2, 3)} rad/s`, `${fmt(d.w2, 3)} rad/s`),
       opt(`${fmt(d.w1, 3)} rad/s`, `${fmt(d.w1, 3)} rad/s`),
     ], 0),
+    q('E0', 'The conserved E₀ equals', '守恒的 E₀ 等于', [
+      opt(`${fmt(d.E0, 3)} J = kA₁²+3kA₂²`, `${fmt(d.E0, 3)} J = kA₁²+3kA₂²`),
+      opt(`${fmt(d.E0 / 2, 3)} J = ½k(A₁²+A₂²)`, `${fmt(d.E0 / 2, 3)} J = ½k(A₁²+A₂²)`),
+    ], 0),
     q('E', 'Mechanical energy E = T + V stays', '机械能 E = T + V 保持', [
       opt(`${fmt(d.E, 3)} J ≈ E₀`, `${fmt(d.E, 3)} J ≈ E₀`),
       opt('only kinetic', '只有动能'),

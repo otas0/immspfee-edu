@@ -25,14 +25,23 @@ export const isingSim = {
   schema: [
     num('N', 'Lattice N', '格子边长 N', '', 6, 20, 2),
     num('T', 'Probe T', '探针 T', 'J/kB', 0.5, 5, 0.1),
+    num('Tmin', 'Sweep Tmin', '扫温下限', 'J/kB', 0.2, 2, 0.1),
+    num('Tmax', 'Sweep Tmax', '扫温上限', 'J/kB', 2, 6, 0.1),
     num('sweeps', 'Sweeps', '扫描次数', '', 10, 120, 10),
     num('seed', 'Seed', '随机种子', '', 1, 99, 1),
     num('paintStep', 'Paint step', '降采样步长', '', 1, 3, 1),
   ],
+  onParam(key, value, next) {
+    if (key === 'Tmin' && value >= next.Tmax - 0.2) return { Tmax: value + 0.5 };
+    if (key === 'Tmax' && value <= next.Tmin + 0.2) return { Tmin: Math.max(0.2, value - 0.5) };
+    return {};
+  },
   compute: (p, t) => {
-    const key = [p.N, p.sweeps, p.seed, p.Tmin ?? 0.5, p.Tmax ?? 4, 20].join('|');
+    const Tmin = p.Tmin ?? 0.5;
+    const Tmax = p.Tmax ?? 4;
+    const key = [p.N, p.sweeps, p.seed, Tmin, Tmax, 20].join('|');
     if (isingSweepCache.key !== key) {
-      isingSweepCache = { key, sweep: isingTempSweep({ ...p, steps: 20 }) };
+      isingSweepCache = { key, sweep: isingTempSweep({ ...p, Tmin, Tmax, steps: 20 }) };
     }
     const sweep = isingSweepCache.sweep;
     const Tplay = sweep.Tmin + Math.min(1, Math.max(0, t)) * (sweep.Tmax - sweep.Tmin);

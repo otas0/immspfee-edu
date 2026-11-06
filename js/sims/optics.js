@@ -569,12 +569,16 @@ export const doubleSlitSim = {
     tog('envelope', 'sinc² envelope (optional)', 'sinc² 包络（选修）'),
   ],
   compute: (p) => doubleSlitIntensity(p),
-  readouts: (d) => [
-    ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
-    ro('I', 'I/I0', fmt(d.I, 3)),
-    ro('env', 'sinc²', d.useEnv ? fmt(d.env, 3) : 'off'),
-    ro('2λD/a', '中央极大宽', d.centralWidth.toExponential(3) + ' m'),
-  ],
+  readouts: (d, _p, ui) => {
+    const hi = !!(ui && ui.drag === 'width');
+    return [
+      ro('Δy', 'Δy', `${d.dy.toExponential(3)} m`),
+      ro('I', 'I/I0', fmt(d.I, 3)),
+      ro('env', 'sinc²', d.useEnv ? fmt(d.env, 3) : 'off'),
+      { en: 'a', zh: '缝宽 a', value: d.a.toExponential(3) + ' m', hi },
+      { en: '2λD/a', zh: '中央极大宽', value: d.centralWidth.toExponential(3) + ' m', hi },
+    ];
+  },
   checks: (d) => [
     q('dy', 'Fringe spacing is', '条纹间距是', [
       opt(`${d.dy.toExponential(3)} m = λ D / d`, `${d.dy.toExponential(3)} m = λ D / d`),
