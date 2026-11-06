@@ -63,9 +63,11 @@ export const circuitSim = {
   },
   compute: (p) => ((p.t ?? 0) > 0 || p.layout === 'household' ? electricalEnergy(p) : circuit(p)),
   readouts: (d) => {
-    const fault = d.fault === 'short'
+    const fault = d.batteryShort
       ? { en: 'short', zh: '短路' }
-      : d.fault === 'open' ? { en: 'open', zh: '断路' } : { en: 'closed path', zh: '通路' };
+      : d.fault === 'short'
+        ? { en: 'load bypassed', zh: '负载被旁路' }
+        : d.fault === 'open' ? { en: 'open', zh: '断路' } : { en: 'closed path', zh: '通路' };
     const rows = [
       ro('Path', '电路', fault),
       ro('I', 'I', `${fmt(d.I, 3)} A`),
@@ -128,10 +130,18 @@ export const circuitSim = {
     const ports = portsOf(w, h);
     const household = p.layout === 'household';
     // Status strip (never overlaps the I–U panel).
-    const fault = d.fault === 'short' ? lab(ui, 'short circuit', '短路') : d.fault === 'open' ? lab(ui, 'open circuit', '断路') : lab(ui, 'closed path', '通路');
-    text(ctx, fault, w * 0.2, h * 0.07, d.fault === 'ok' ? INK : '#a33', 15, 'center');
+    // Red「短路」/ E/r only for a battery short (bp–bn), including the debug overlay wire.
+    const batteryShort = !!(ui.wrong || d.batteryShort);
+    const fault = batteryShort
+      ? lab(ui, 'short circuit', '短路')
+      : d.fault === 'open'
+        ? lab(ui, 'open circuit', '断路')
+        : d.fault === 'short'
+          ? lab(ui, 'load bypassed', '负载被旁路')
+          : lab(ui, 'closed path', '通路');
+    text(ctx, fault, w * 0.2, h * 0.07, d.fault === 'ok' && !batteryShort ? INK : '#a33', 15, 'center');
     text(ctx, `I=${fmt(d.I, 2)} A`, w * 0.42, h * 0.07, MUTED, 12, 'center');
-    if (ui.wrong || d.fault === 'short') text(ctx, `E/r=${fmt(d.E / d.r, 2)} A`, w * 0.62, h * 0.07, '#a33', 12, 'center');
+    if (batteryShort) text(ctx, `E/r=${fmt(d.E / d.r, 2)} A`, w * 0.62, h * 0.07, '#a33', 12, 'center');
     if (d.P != null) {
       text(ctx, `P=${fmt(d.P, 2)} W`, w * 0.82, h * 0.05, RAY2, 12, 'center');
       text(ctx, `Q=${fmt(d.Q, 2)} J`, w * 0.82, h * 0.1, RAY, 12, 'center');
@@ -143,7 +153,7 @@ export const circuitSim = {
       const [a, b] = row.split('-');
       if (!ports[a] || !ports[b]) continue;
       const shortWire = (a === 'bp' && b === 'bn') || (a === 'bn' && b === 'bp');
-      line(ctx, ports[a][0], ports[a][1], ports[b][0], ports[b][1], shortWire || d.fault === 'short' ? '#a33' : INK, 2);
+      line(ctx, ports[a][0], ports[a][1], ports[b][0], ports[b][1], shortWire || batteryShort ? '#a33' : INK, 2);
     }
     if (p.closed) line(ctx, ports.s1[0], ports.s1[1], ports.s2[0], ports.s2[1], INK, 2);
     line(ctx, ports.bp[0], ports.bp[1], ports.bn[0], ports.bn[1], RAY, 4);

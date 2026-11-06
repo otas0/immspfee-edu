@@ -78,9 +78,9 @@ export function circuit(p) {
     if (parts[key] > 1e-8 && find(ends[key][0]) === find(ends[key][1])) bypassed.push(key);
   }
   const ground = find('bn');
-  const short = find('bp') === ground;
-  const base = { E, r, closed: !!p.closed, R1: parts.R1, R2: parts.R2, Rs: parts.Rs, bypassed };
-  if (short) {
+  const batteryShort = find('bp') === ground;
+  const base = { E, r, closed: !!p.closed, R1: parts.R1, R2: parts.R2, Rs: parts.Rs, bypassed, batteryShort };
+  if (batteryShort) {
     return { ...base, fault: 'short', I: E / r, Uterm: 0, U1: 0, U2: 0, Us: 0, I1: 0, I2: 0, Is: 0 };
   }
   const elements = [['bp', 'bn', r]];
@@ -137,7 +137,7 @@ export function circuit(p) {
   if (N > 0) {
     const solved = solveLinear(G, I);
     if (!solved) {
-      return { ...base, fault: 'open', I: 0, Uterm: E, U1: 0, U2: 0, Us: 0, I1: 0, I2: 0, Is: 0 };
+      return { ...base, fault: 'open', batteryShort: false, I: 0, Uterm: E, U1: 0, U2: 0, Us: 0, I1: 0, I2: 0, Is: 0 };
     }
     for (let i = 0; i < N; i += 1) volt[i] = solved[i];
   }
@@ -155,7 +155,7 @@ export function circuit(p) {
   let fault = 'ok';
   if (Math.abs(Ibat) < 1e-6) fault = 'open';
   else if (bypassed.length) fault = 'short';
-  return { ...base, fault, I: Ibat, Uterm, U1: b1.U, U2: b2.U, Us: bs.U, I1: b1.I, I2: b2.I, Is: bs.I };
+  return { ...base, fault, batteryShort: false, I: Ibat, Uterm, U1: b1.U, U2: b2.U, Us: bs.U, I1: b1.I, I2: b2.I, Is: bs.I };
 }
 
 export const CIRCUIT_LINKS = {

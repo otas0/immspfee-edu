@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/dev-server.mjs",
-    "test": "node scripts/test-edu.mjs",
+    "test": "node scripts/test-edu.mjs && node scripts/lint-teach-layout.mjs && node scripts/smoke-layout.mjs",
+    "lint:layout": "node scripts/lint-teach-layout.mjs",
+    "smoke:layout": "node scripts/smoke-layout.mjs",
     "push:main": "bash scripts/push-main.sh"
   }
 }

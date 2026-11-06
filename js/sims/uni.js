@@ -315,11 +315,11 @@ export const finiteWellSim = {
       : d.bound.map((b, i) => ({ E: b.E, tag: `${i + 1}${b.parity === 'even' ? 'e' : 'o'}`, samples: b.samples }));
     levels.forEach((lv, i) => {
       const yPsi = yL(lv.E);
-      line(ctx, leftX + leftW * 0.1, yPsi, leftX + leftW * 0.9, yPsi, RAY2, 1);
+      line(ctx, leftX + leftW * 0.1, yPsi, leftX + leftW * 0.82, yPsi, RAY2, 1);
       if (!ui.wrong && lv.samples?.length) {
         const amp = Math.min(ghL * 0.1, h * 0.05);
         const x0 = leftX + leftW * 0.12;
-        const xw = leftW * 0.72;
+        const xw = leftW * 0.66;
         ctx.beginPath();
         lv.samples.forEach((s, j) => {
           const X = x0 + ((s.x + xMax) / (2 * xMax)) * xw;
@@ -331,13 +331,19 @@ export const finiteWellSim = {
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
-      text(ctx, lv.tag, leftX + leftW * 0.92, yPsi, INK, 10, 'left');
+      text(ctx, lv.tag, leftX + leftW * 0.88, yPsi, INK, 10, 'left');
       const yLad = yR(lv.E);
-      line(ctx, rightX + rightW * 0.18, yLad, rightX + rightW * 0.55, yLad, RAY2, 2);
-      text(ctx, lv.tag, rightX + rightW * 0.58, yLad, INK, 11);
-      if (!ui.wrong && d.Einf[i] != null) {
-        line(ctx, rightX + rightW * 0.18, yR(d.Einf[i]), rightX + rightW * 0.55, yR(d.Einf[i]), MUTED, 1, [2, 2]);
-        text(ctx, `∞${i + 1}`, rightX + rightW * 0.78, yR(d.Einf[i]), MUTED, 10);
+      if (ui.wrong) {
+        // Wrong mode: ∞ levels only on the ladder; tags stay inside the panel.
+        line(ctx, rightX + rightW * 0.18, yLad, rightX + rightW * 0.62, yLad, RAY2, 2);
+        text(ctx, lv.tag, rightX + rightW * 0.88, yLad, INK, 11, 'right');
+      } else {
+        line(ctx, rightX + rightW * 0.18, yLad, rightX + rightW * 0.48, yLad, RAY2, 2);
+        text(ctx, lv.tag, rightX + rightW * 0.5, yLad, INK, 11, 'left');
+        if (d.Einf[i] != null) {
+          line(ctx, rightX + rightW * 0.18, yR(d.Einf[i]), rightX + rightW * 0.48, yR(d.Einf[i]), MUTED, 1, [2, 2]);
+          text(ctx, `∞${i + 1}`, rightX + rightW * 0.88, yR(d.Einf[i]), MUTED, 10, 'right');
+        }
       }
     });
     line(ctx, leftX + leftW * 0.08, yL(d.E), leftX + leftW * 0.92, yL(d.E), RAY, 1, [4, 2]);

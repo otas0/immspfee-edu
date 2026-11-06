@@ -304,11 +304,13 @@ export const projectileSim = {
   },
   draw(ctx, w, h, _p, d, ui) {
     clear(ctx, w, h);
-    // Left: trajectory strobe. Right: opaque x–t / y–t teaching panel.
+    // Wide: left path / right graphs. Narrow (≤360): path on top, graphs below.
+    const narrow = w <= 360;
     const ox = w * 0.06;
-    const floor = h * 0.72;
-    const px = Math.min((w * 0.42) / Math.max(d.range, 0.5), (floor - 36) / Math.max(d.H, 0.5));
-    text(ctx, lab(ui, 'strobe path', '频闪轨迹'), ox + w * 0.2, h * 0.08, MUTED, 12, 'center');
+    const floor = narrow ? h * 0.34 : h * 0.72;
+    const pathW = narrow ? w * 0.88 : w * 0.42;
+    const px = Math.min(pathW / Math.max(d.range, 0.5), (floor - (narrow ? 28 : 36)) / Math.max(d.H, 0.5));
+    text(ctx, lab(ui, 'strobe path', '频闪轨迹'), narrow ? w * 0.5 : ox + pathW * 0.45, h * 0.06, MUTED, 12, 'center');
     line(ctx, ox, floor, ox + d.range * px + 16, floor, '#cfc6b8', 2);
     ctx.beginPath();
     for (let i = 0; i <= 40; i += 1) {
@@ -334,10 +336,10 @@ export const projectileSim = {
     ctx.strokeStyle = RAY;
     ctx.strokeRect(xNow - 5, yNow - 5, 10, 10);
 
-    const panelX = w * 0.52;
-    const panelY = h * 0.1;
-    const panelW = w * 0.44;
-    const panelH = h * 0.82;
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.4 : h * 0.1;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.56 : h * 0.82;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'x–t · y–t', 'x–t · y–t'));
     const graph = (label, x, y, series, color) => {
       const gw = panelW * 0.78;

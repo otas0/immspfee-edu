@@ -30,6 +30,10 @@ jobs:
         run: node scripts/test-edu.mjs
       - name: Smoke ready sim modules
         run: node scripts/smoke-sims.mjs
+      - name: Lint teach dual-view layout
+        run: node scripts/lint-teach-layout.mjs
+      - name: Smoke projectile / finite-well layout bands
+        run: node scripts/smoke-layout.mjs
       - name: Guard against edition / ready-count chrome
         run: |
           ! grep -n 'id="edition"' index.html

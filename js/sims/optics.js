@@ -417,8 +417,12 @@ export const convexLens = {
     };
     markF(p.f, 'F');
     markF(-p.f, 'F');
-    // Show 2F only when the object is near that classroom landmark (cuts idle clutter).
-    if (Math.abs(p.u - 2 * p.f) < Math.max(4, 0.35 * p.f) || Math.abs(p.u - p.f) < 1.5) {
+    // Hysteresis: show 2F near the landmark; keep until the object moves clearly away.
+    const near2F = Math.abs(p.u - 2 * p.f) < Math.max(4, 0.35 * p.f) || Math.abs(p.u - p.f) < 1.5;
+    const far2F = Math.abs(p.u - 2 * p.f) > Math.max(7, 0.55 * p.f) && Math.abs(p.u - p.f) > 3;
+    if (near2F) ui._show2F = true;
+    else if (far2F || ui._show2F == null) ui._show2F = false;
+    if (ui._show2F) {
       markF(2 * p.f, '2F');
       markF(-2 * p.f, '2F');
     }
@@ -600,15 +604,19 @@ export const doubleSlitSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    line(ctx, w * 0.12, h * 0.25, w * 0.12, h * 0.75, INK, 2);
-    line(ctx, w * 0.12, h * 0.42, w * 0.12, h * 0.45, '#f3efe6', 4);
-    line(ctx, w * 0.12, h * 0.55, w * 0.12, h * 0.58, '#f3efe6', 4);
-    text(ctx, lab(ui, 'slits', '双缝'), w * 0.12, h * 0.2, MUTED, 11, 'center');
-    // Intensity panel on the right, away from the slit schematic.
+    const slitX = w * 0.12;
     const panelX = w * 0.42;
     const panelY = h * 0.14;
     const panelW = w * 0.54;
     const panelH = h * 0.78;
+    line(ctx, slitX, h * 0.25, slitX, h * 0.75, INK, 2);
+    line(ctx, slitX, h * 0.42, slitX, h * 0.45, '#f3efe6', 4);
+    line(ctx, slitX, h * 0.55, slitX, h * 0.58, '#f3efe6', 4);
+    text(ctx, lab(ui, 'slits', '双缝'), slitX, h * 0.2, MUTED, 11, 'center');
+    // Guide rays stop at the intensity panel’s left edge (no bleed into I(y)).
+    const screenX = panelX - 2;
+    line(ctx, slitX, h * 0.435, screenX, h * 0.435, RAY, 1, [3, 3]);
+    line(ctx, slitX, h * 0.565, screenX, h * 0.565, RAY, 1, [3, 3]);
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'screen intensity', '屏上强度'));
     const gx = panelX + panelW * 0.2;
     const gy = panelY + panelH * 0.88;

@@ -567,9 +567,9 @@ export const simultaneitySim = {
     clear(ctx, w, h);
     // Minkowski sketch (axes + rod line + A/B). Light cones stay faint so the slope is readable.
     const panelX = w * 0.06;
-    const panelY = h * 0.08;
+    const panelY = h * 0.06;
     const panelW = w * 0.88;
-    const panelH = h * 0.72;
+    const panelH = h * 0.62;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Minkowski (x, ct)', '闵可夫斯基 (x, ct)'));
     const ox = panelX + panelW * 0.08;
     const oy = panelY + panelH * 0.82;
@@ -605,15 +605,17 @@ export const simultaneitySim = {
     text(ctx, 'A', xA, tRod + 14, MUTED, 11, 'center');
     text(ctx, 'B', xB, yB + 14, MUTED, 11, 'center');
     text(ctx, `Δt=${dtShow === 0 ? '0' : dtShow.toExponential(2)} s · β=${fmt(d.beta, 2)} · v/c²=${d.slope.toExponential(2)}`, panelX + panelW / 2, panelY + 28, ui.wrong ? '#a33' : INK, 12, 'center');
+    // β track below the panel with a gutter so labels never sit on the handle.
     const trackX0 = w * 0.18;
     const trackX1 = w * 0.82;
-    const trackY = h * 0.9;
+    const trackY = h * 0.88;
+    const midGutter = (panelY + panelH + trackY) / 2;
+    text(ctx, lab(ui, 'Drag β', '拖动 β'), w * 0.5, midGutter - 8, MUTED, 11, 'center');
+    text(ctx, `β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, midGutter + 8, MUTED, 11, 'center');
     line(ctx, trackX0, trackY, trackX1, trackY, MUTED, 2);
     const b = Math.min(0.95, Math.max(0.05, d.beta));
     const hx = trackX0 + ((b - 0.05) / 0.9) * (trackX1 - trackX0);
     handle(ctx, hx, trackY, ui.drag === 'v');
-    text(ctx, lab(ui, 'Drag v to change β / Δt', '拖动 v 改变 β / Δt'), w * 0.5, trackY - 14, MUTED, 11, 'center');
-    text(ctx, `β=${fmt(d.beta, 3)}  γ=${fmt(d.gamma, 3)}`, w * 0.5, trackY + 16, MUTED, 11, 'center');
     ui._vTrack = { trackX0, trackX1, trackY, c: d.c };
   },
   onParam(key, value) {
