@@ -28,7 +28,7 @@ npm run capture:340-title   # probes :4174; on failure runs ensure-dev --no-exec
 # Short-title stack band (manual): width 340 → #/sh-senior/shs-5-1a/introduce
 ```
 
-CI: optional `capture-340-title` job in `.github/workflows/pages.yml` installs Playwright when available, otherwise skips. Failures use `continue-on-error` + a step summary so deploy stays green.
+CI: optional `capture-340-title` job in `.github/workflows/pages.yml` installs Playwright when available, otherwise skips. Failures use `continue-on-error` + a step summary (`overflow` / `topH` via `scripts/capture-assert.mjs`) so deploy stays green. Successful runs upload the PNG as a workflow artifact (7-day retention). Force a summary dry-run locally: `CAPTURE_FORCE_FAIL=1 npm run capture:340-title`.
 
 ## Playwright pin
 

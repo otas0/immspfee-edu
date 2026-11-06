@@ -137,18 +137,31 @@ function matchSel(el, sel) {
 }
 
 function queryIn(root, sel) {
+  const raw = String(sel || '').trim();
+  if (raw.includes(',')) {
+    for (const part of raw.split(',')) {
+      const hit = queryIn(root, part.trim());
+      if (hit) return hit;
+    }
+    return null;
+  }
   for (const child of root.children || []) {
-    if (matchSel(child, sel)) return child;
-    const hit = queryIn(child, sel);
+    if (matchSel(child, raw)) return child;
+    const hit = queryIn(child, raw);
     if (hit) return hit;
   }
   return null;
 }
 
 function collect(root, sel, out) {
+  const raw = String(sel || '').trim();
+  if (raw.includes(',')) {
+    for (const part of raw.split(',')) collect(root, part.trim(), out);
+    return;
+  }
   for (const child of root.children || []) {
-    if (matchSel(child, sel)) out.push(child);
-    collect(child, sel, out);
+    if (matchSel(child, raw)) out.push(child);
+    collect(child, raw, out);
   }
 }
 

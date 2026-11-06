@@ -66,6 +66,8 @@ jobs:
           CAPTURE_B=$(wc -c < scripts/capture-340px-long-title.mjs | tr -d ' ')
           DOM_B=$(wc -c < scripts/dom-lite.mjs | tr -d ' ')
           REDIR_B=$(wc -c < scripts/check-rename-redirect.sh | tr -d ' ')
+          ZWJ_B=$(wc -c < scripts/toast-zwj-table.md | tr -d ' ')
+          START_B=$(wc -c < scripts/npm-start.sh | tr -d ' ')
           {
             echo "### Pages artifact size"
             echo ""
@@ -81,6 +83,8 @@ jobs:
             echo "| \`capture-340px-long-title.mjs\` (optional CI) | $(( (CAPTURE_B + 1023) / 1024 )) KiB |"
             echo "| \`dom-lite.mjs\` (CI only) | $(( (DOM_B + 1023) / 1024 )) KiB |"
             echo "| \`check-rename-redirect.sh\` (CI only) | $(( (REDIR_B + 1023) / 1024 )) KiB |"
+            echo "| \`toast-zwj-table.md\` (docs) | $(( (ZWJ_B + 1023) / 1024 )) KiB |"
+            echo "| \`npm-start.sh\` (local only) | $(( (START_B + 1023) / 1024 )) KiB |"
             echo "| \`ensure-dev-server.sh\` (local only) | $(( (ENSURE_B + 1023) / 1024 )) KiB |"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
@@ -179,12 +183,33 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           package-manager-cache: false
       # Pin: scripts/playwright-version.txt — when bumping, also reinstall /tmp/pw-shot locally
       # (see .local-shots/README.md) so NODE_PATH captures stay on the same Chromium.
+      - name: Notice if Playwright pin changed
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No before SHA; skip pin diff"
+            exit 0
+          fi
+          if git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -qx 'scripts/playwright-version.txt'; then
+            {
+              echo "### Playwright pin changed"
+              echo ""
+              echo "@otas0 bump \`/tmp/pw-shot\` to match \`scripts/playwright-version.txt\` (see \`.local-shots/README.md\`)."
+              echo ""
+              echo '```'
+              git diff "$BEFORE" "${{ github.sha }}" -- scripts/playwright-version.txt || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice title=Playwright pin changed::@otas0 reinstall /tmp/pw-shot to the new pin"
+          fi
       - name: Install Playwright or skip
         id: pw
         run: |
@@ -224,6 +249,7 @@ jobs:
               echo "Skipped (Playwright unavailable)."
             elif [ "${{ steps.capture.outcome }}" = "success" ]; then
               echo "Succeeded."
+              rm -f .local-shots/capture-last-fail.md
             elif [ "${{ steps.capture.outcome }}" = "failure" ]; then
               echo "Failed — **non-blocking** (\`continue-on-error\`). Deploy may still be green."
               echo ""
@@ -239,3 +265,11 @@ jobs:
           if [ "${{ steps.capture.outcome }}" = "failure" ]; then
             echo "::warning::capture:340-title failed (workflow continues)"
           fi
+      - name: Upload 340px capture PNG
+        if: always() && steps.pw.outputs.have == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-340px-zh-long-title
+          path: .local-shots/340px-zh-long-title-ellipsis.png
+          if-no-files-found: ignore
+          retention-days: 7

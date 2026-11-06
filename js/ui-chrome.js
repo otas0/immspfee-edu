@@ -71,6 +71,7 @@ export function toastErrorDetail(err, maxLen = 120, opts = {}) {
  */
 export const STICKY_READOUT_HI_BY_SCHEMA = Object.freeze({
   a: '_slitWidthHi',
+  beta: '_betaHi',
 });
 
 /** Clear sticky readout hi when a mapped schema key is edited (mirrors off-control pointer down). */

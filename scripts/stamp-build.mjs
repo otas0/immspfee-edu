@@ -22,8 +22,8 @@ const REQUIRED = [
  *
  * ui-chrome.js / uni-fold.js stay off REQUIRED and off sw.js PRECACHE: app.js
  * imports them with ?v=__BUILD__ (stamped in app.js). They ride the module graph
- * like other token-free helpers; do not add them unless they gain their own token
- * or must be offline-first without a prior app.js fetch.
+ * like other token-free helpers. Re-eval 2026-11: still do not add them — bust via
+ * app.js is enough unless offline-first boot must work before app.js fetches.
  */
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {

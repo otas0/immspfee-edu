@@ -571,7 +571,24 @@ let failed = 0;
         console.error('FAIL uni details[open] close→expand all→clear search storage', {
           openAfterExpandSearch, openAfterExpandClear, afterExpand,
         });
-      } else console.log('ok uni details[open] search clear + closed-current + expand round-trip', hintCh.id);
+      } else {
+        // Symmetric: Expand all → Collapse all → clear search → idle open set empty.
+        const collapseAll = uniAllFoldsMap(book.chapters, false);
+        writeUniFoldsTo(foldStore, collapseAll);
+        const afterCollapse = pruneUniFoldsIn(foldStore, new Set(book.chapters.map((ch) => ch.id)));
+        const openCollapseSearch = uniOpenChapterIds(book.chapters, hintCh.id, afterCollapse, true);
+        const openCollapseClear = uniOpenChapterIds(book.chapters, hintCh.id, afterCollapse, false);
+        if (openCollapseSearch.length !== book.chapters.length
+          || openCollapseClear.length !== 0
+          || !book.chapters.every((ch) => afterCollapse[ch.id] === false)) {
+          failed += 1;
+          console.error('FAIL uni details[open] expand→collapse all→clear search storage', {
+            openCollapseSearch, openCollapseClear, afterCollapse,
+          });
+        } else {
+          console.log('ok uni details[open] expand/collapse + search-clear round-trips', hintCh.id);
+        }
+      }
     }
   }
 }
@@ -784,7 +801,27 @@ let failed = 0;
         } else if (!lo || Math.abs(lo.beta - 0.05) > 1e-9 || !hi || Math.abs(hi.beta - 0.95) > 1e-9) {
           failed += 1;
           console.error('FAIL minkowski β endpoints 0.05/0.95', { lo, hi });
-        } else console.log('ok minkowski β pointer + endpoints 0.05/0.95 lockstep');
+        } else {
+          // Sticky _betaHi survives pointer-up; schema beta clears via STICKY_READOUT_HI_BY_SCHEMA.
+          sim.pointer({ type: 'up', x: hx, y: tr.trackY }, p, d, ui);
+          const rowsAfterUp = sim.readouts(d, p, ui);
+          const betaRow = rowsAfterUp.find((r) => r.en === 'β');
+          if (!ui._betaHi || !betaRow?.hi || STICKY_READOUT_HI_BY_SCHEMA.beta !== '_betaHi') {
+            failed += 1;
+            console.error('FAIL minkowski β sticky hi after pointer-up', {
+              sticky: ui._betaHi, betaRow, map: STICKY_READOUT_HI_BY_SCHEMA.beta,
+            });
+          } else {
+            clearStickyReadoutHiOnSchema('beta', ui);
+            const afterSchema = sim.readouts(d, p, ui);
+            if (ui._betaHi || afterSchema.find((r) => r.en === 'β')?.hi) {
+              failed += 1;
+              console.error('FAIL minkowski schema beta must clear _betaHi', {
+                sticky: ui._betaHi, row: afterSchema.find((r) => r.en === 'β'),
+              });
+            } else console.log('ok minkowski β pointer + endpoints + sticky hi lockstep');
+          }
+        }
       }
     }
   }

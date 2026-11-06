@@ -21,10 +21,12 @@ IMMSPFEE 教育版：按教材一节一节上课。标准实验室在独立仓�
 本地检查清单：
 
 ```bash
-npm test                 # 含 layout + book-select CSSOM
+npm test                 # 含 layout + book-select CSSOM（末尾 redirect 无网软跳过）
+npm run test:offline     # 无网：跳过 rename redirect
 npm run smoke:layout     # 仅教学双栏 / 指针烟雾
 npm run smoke:book       # 仅 320px 人教书名 / clip 断言
 npm run preview          # 探测 4174，失败才启动
+npm start -- --verbose   # 复用 4174 时恢复双语横幅（默认 quiet）
 npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 --no-exec 再拍）
 ```
 

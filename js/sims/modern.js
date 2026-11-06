@@ -545,12 +545,16 @@ export const simultaneitySim = {
     num('beta', 'β = v/c', 'β = v/c', '', 0.05, 0.95, 0.05),
   ],
   compute: (p) => simultaneity({ L0: p.L0, v: Math.max(0.05, Math.min(0.95, p.beta)) * 2.99792458e8 }),
-  readouts: (d) => [
-    ro('β', 'β', fmt(d.beta, 3)),
-    ro('γ', 'γ', fmt(d.gamma, 4)),
-    ro('Δt', 'Δt', d.dt.toExponential(3) + ' s'),
-    ro('v/c²', '斜率 v/c²', d.slope.toExponential(3) + ' s/m'),
-  ],
+  readouts: (d, _p, ui) => {
+    // Sticky after β-track edit so paintReadouts can still mark hi on pointer-up.
+    const hi = !!(ui && (ui.drag === 'v' || ui._betaHi));
+    return [
+      { en: 'β', zh: 'β', value: fmt(d.beta, 3), hi },
+      ro('γ', 'γ', fmt(d.gamma, 4)),
+      ro('Δt', 'Δt', d.dt.toExponential(3) + ' s'),
+      ro('v/c²', '斜率 v/c²', d.slope.toExponential(3) + ' s/m'),
+    ];
+  },
   checks: (d) => [
     q('dt', 'Desynchronisation of the end events is', '两端事件的时差是', [
       opt(`${d.dt.toExponential(3)} s = γ v L0 / c²`, `${d.dt.toExponential(3)} s = γ v L0 / c²`),
@@ -627,7 +631,12 @@ export const simultaneitySim = {
       if (hit(ev.x, ev.y, hx, tr.trackY, 18)
         || (Math.abs(ev.y - tr.trackY) < 16 && ev.x >= tr.trackX0 && ev.x <= tr.trackX1)) {
         ui.drag = 'v';
-      } else return null;
+        ui._betaHi = true;
+      } else {
+        // Off-track down clears sticky hi (schema beta also clears via clearStickyReadoutHiOnSchema).
+        ui._betaHi = false;
+        return null;
+      }
     }
     if (ev.type === 'up') {
       ui.drag = null;
@@ -635,6 +644,7 @@ export const simultaneitySim = {
       return {};
     }
     if (ev.type !== 'move' || ui.drag !== 'v') return null;
+    ui._betaHi = true;
     const u = Math.max(0, Math.min(1, (ev.x - tr.trackX0) / (tr.trackX1 - tr.trackX0)));
     // Canvas → slider: write β (not v), snap to schema step, debounce tiny jitter.
     let beta = Math.round((0.05 + u * 0.9) / 0.05) * 0.05;

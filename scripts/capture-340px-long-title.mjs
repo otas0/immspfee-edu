@@ -13,11 +13,14 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { formatCaptureFailMarkdown } from './capture-assert.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, '.local-shots', '340px-zh-long-title-ellipsis.png');
 const long = '沪科版初中物理（上海科学技术出版社·五四制全日制义务教育·2024）教学用书全称';
 const url = process.env.CAPTURE_URL || 'http://127.0.0.1:4174/#/sh-junior/shj-4-4a/introduce';
+/** Set CAPTURE_FORCE_FAIL=1 to exercise overflow/topH summary without a real layout bug. */
+const FORCE_FAIL = process.env.CAPTURE_FORCE_FAIL === '1';
 
 async function probe4174() {
   try {
@@ -102,20 +105,7 @@ await browser.close();
 console.log(info);
 
 function writeCaptureFail(title, detail) {
-  const body = [
-    `### capture:340-title assertion failed`,
-    '',
-    `**${title}**`,
-    '',
-    '```json',
-    JSON.stringify(detail, null, 2),
-    '```',
-    '',
-    `- overflow: \`${detail.overflow}\` (want \`ellipsis\`)`,
-    `- overflows: \`${detail.overflows}\` (want text wider than select)`,
-    `- topH: \`${detail.topH}\` (want ≤100)`,
-    '',
-  ].join('\n');
+  const body = formatCaptureFailMarkdown(title, detail);
   const failPath = path.join(root, '.local-shots', 'capture-last-fail.md');
   fs.mkdirSync(path.dirname(failPath), { recursive: true });
   fs.writeFileSync(failPath, body);
@@ -124,6 +114,16 @@ function writeCaptureFail(title, detail) {
     try { fs.appendFileSync(summary, body); } catch { /* ignore */ }
   }
   console.error(title, detail);
+}
+
+if (FORCE_FAIL) {
+  writeCaptureFail('FORCE FAIL (CAPTURE_FORCE_FAIL=1) — summary overflow/topH block', {
+    ...info,
+    overflow: 'clip',
+    overflows: false,
+    topH: 150,
+  });
+  process.exit(2);
 }
 
 if (info.overflow !== 'ellipsis' || !info.overflows) {

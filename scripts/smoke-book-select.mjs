@@ -177,8 +177,29 @@ if (!hasTwoRowTop(block768)) {
         multi: !!byMulti,
       });
     } else {
-      console.log('ok uniFoldHintFromQuery whitespace/blank DOM + span.fold-hint compound/attr/multi');
+      const byComma = document.querySelector('div.missing, span.fold-hint.extra');
+      if (!byComma || byComma !== hintEl) {
+        failed += 1;
+        console.error('FAIL dom-lite comma selector list', { byComma: !!byComma });
+      } else {
+        console.log('ok uniFoldHintFromQuery whitespace/blank DOM + span.fold-hint compound/attr/multi/comma');
+      }
     }
+  }
+}
+
+{
+  // capture-assert markdown always lists overflow / overflows / topH for step summary.
+  const { formatCaptureFailMarkdown } = await import('./capture-assert.mjs');
+  const md = formatCaptureFailMarkdown('FORCE FAIL probe', {
+    overflow: 'clip', overflows: false, topH: 150,
+  });
+  if (!md.includes('- overflow:') || !md.includes('- overflows:') || !md.includes('- topH:')
+    || !md.includes('```json')) {
+    failed += 1;
+    console.error('FAIL formatCaptureFailMarkdown missing overflow/topH block', md.slice(0, 200));
+  } else {
+    console.log('ok capture-assert overflow/topH summary block');
   }
 }
 

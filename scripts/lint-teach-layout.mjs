@@ -65,42 +65,52 @@ if (!/@media\s*\(max-width:\s*320px\)/.test(css)) {
   console.error('FAIL edu.css: keep @media (max-width: 320px) for book-select; distinct from canvas w<=360');
 }
 
-// 340px (≤768) and 320px header: brand|lang over nav|nav — no third-row lang stack.
-if (!/@media\s*\(\s*max-width:\s*768px\s*\)[\s\S]*?grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["'][\s\S]*?["']nav\s+nav["']/.test(css)) {
-  failed += 1;
-  console.error('FAIL edu.css@768: .top grid-template-areas must be brand lang / nav nav (covers 340px)');
+// 340px hit chain: @768 sets brand|lang / nav|nav; @420 must keep or inherit; @320 must not stack lang alone.
+function hasTwoRowAreas(block) {
+  return block && /grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["'][\s\S]*?["']nav\s+nav["']/.test(block);
 }
-if (/@media\s*\(\s*max-width:\s*320px\s*\)[\s\S]*?grid-template-areas\s*:\s*[^;]*["']lang["']\s*;/.test(css)
-  && !/@media\s*\(\s*max-width:\s*320px\s*\)[\s\S]*?grid-template-areas\s*:\s*[\s\S]*?["']brand\s+lang["']/.test(css)) {
-  failed += 1;
-  console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
-}
-
-// Narrow header height: @768/@420 (340 hit chain) and @320 must not force min-height > 100px.
-function topMinHeightInMedia(src, maxWidthPx) {
+function mediaInner(src, maxWidthPx) {
   const re = new RegExp(`@media\\s*\\(\\s*max-width:\\s*${maxWidthPx}px\\s*\\)`);
   const start = src.search(re);
   if (start < 0) return null;
   const brace = src.indexOf('{', start);
   if (brace < 0) return null;
   let depth = 0;
-  let end = -1;
   for (let i = brace; i < src.length; i += 1) {
     if (src[i] === '{') depth += 1;
     else if (src[i] === '}') {
       depth -= 1;
-      if (depth === 0) { end = i; break; }
+      if (depth === 0) return src.slice(brace + 1, i);
     }
   }
-  if (end < 0) return null;
-  const block = src.slice(brace + 1, end);
+  return null;
+}
+const block768 = mediaInner(css, 768);
+const block420 = mediaInner(css, 420);
+const block320 = mediaInner(css, 320);
+if (!hasTwoRowAreas(block768)) {
+  failed += 1;
+  console.error('FAIL edu.css@768: .top grid-template-areas must be brand lang / nav nav (covers 340px)');
+}
+if (block420 && /grid-template-areas/.test(block420) && !hasTwoRowAreas(block420)) {
+  failed += 1;
+  console.error('FAIL edu.css@420: grid-template-areas must stay brand lang / nav nav (340 hit chain)');
+}
+if (block320 && /grid-template-areas/.test(block320) && !hasTwoRowAreas(block320)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: do not stack lang alone; keep brand lang / nav nav or inherit');
+}
+
+// Narrow header height: @768/@420 (340 hit chain) and @320 must not force min-height > 100px.
+function topMinHeightInBlock(block) {
+  if (!block) return null;
   const top = block.match(/\.top\s*\{([^}]*)\}/);
   if (!top) return 'inherit';
   const mh = top[1].match(/min-height\s*:\s*([^;]+)/);
   return mh ? mh[1].trim() : 'unset';
 }
-for (const w of [768, 420, 320]) {
-  const mh = topMinHeightInMedia(css, w);
+for (const [w, block] of [[768, block768], [420, block420], [320, block320]]) {
+  const mh = topMinHeightInBlock(block);
   if (mh == null) {
     if (w === 768 || w === 420) {
       failed += 1;
