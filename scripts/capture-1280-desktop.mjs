@@ -18,6 +18,8 @@ const out = path.join(root, '.local-shots', '1280-desktop-three-column.png');
 const url = process.env.CAPTURE_URL || 'http://127.0.0.1:4174/#/sh-junior/shj-4-4a/introduce';
 /** Set CAPTURE_FORCE_FAIL=1 to exercise overflow/topH summary (aligned with capture:340). */
 const FORCE_FAIL = process.env.CAPTURE_FORCE_FAIL === '1';
+/** Set CAPTURE_FORCE_COLS_FAIL=1 to exercise three-column fail → capture-last-fail.md (no browser). */
+const FORCE_COLS_FAIL = process.env.CAPTURE_FORCE_COLS_FAIL === '1';
 
 async function probe4174() {
   try {
@@ -80,6 +82,14 @@ if (FORCE_FAIL) {
     overflows: false,
     topH: 150,
     viewport: '1280x800',
+  });
+  process.exit(2);
+}
+
+if (FORCE_COLS_FAIL) {
+  writeCaptureFail('FAIL: 1280 viewport must show three columns (aside | main | teach)', {
+    aside: null, main: { w: 10, h: 10, x: 0 }, teach: null, vw: 1280,
+    forced: 'CAPTURE_FORCE_COLS_FAIL=1',
   });
   process.exit(2);
 }

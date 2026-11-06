@@ -153,11 +153,15 @@ function assertSupportedSel(sel) {
   if (/:nth-child\s*\(/i.test(s)) {
     throw new Error('dom-lite does not support :nth-child() — use :first-child / :last-child');
   }
+  if (/:nth-of-type\s*\(/i.test(s)) {
+    throw new Error('dom-lite does not support :nth-of-type() — use :first-child / :last-child');
+  }
 }
 
 /**
  * Supports tag, .class, [attr], compounds, and :first-child / :last-child
- * (e.g. span.fold-hint:first-child). :not()/:is()/:where()/:has()/:nth-child() are rejected.
+ * (e.g. span.fold-hint:first-child).
+ * :not()/:is()/:where()/:has()/:nth-child()/:nth-of-type() are rejected.
  */
 function matchSel(el, sel) {
   let s = String(sel || '').trim();

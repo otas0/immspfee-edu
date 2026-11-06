@@ -1,25 +1,56 @@
 #!/usr/bin/env node
 /**
  * Dry-run for ADR 001 OFFLINE_FIRST flip: verify stamp REQUIRED ↔ sw.js PRECACHE
- * ↔ index.html modulepreload lockstep for ui-chrome / uni-fold — without writing files.
+ * ↔ index.html modulepreload lockstep for ui-chrome / uni-fold — without writing main.
  *
  *   node scripts/offline-first-lockstep-dry-run.mjs
  *   OFFLINE_FIRST=1 node scripts/offline-first-lockstep-dry-run.mjs
+ *   OFFLINE_FIRST_FIXTURE=1 node scripts/offline-first-lockstep-dry-run.mjs
+ *     → temp tree with chrome/fold on REQUIRED+PRECACHE; asserts green lockstep (does not touch main).
  *
  * Default (unset/0): asserts chrome/fold stay OFF required + PRECACHE (today's main).
- * OFFLINE_FIRST=1: reports what a flip PR must add (exit 1 until those files are listed —
- * useful on a side branch that is wiring the flip).
+ * OFFLINE_FIRST=1 against real tree: exit 1 until a flip side branch lists those files.
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OFFLINE = process.env.OFFLINE_FIRST === '1';
+const FIXTURE = process.env.OFFLINE_FIRST_FIXTURE === '1';
+const OFFLINE = FIXTURE || process.env.OFFLINE_FIRST === '1';
 const SHELL = ['js/ui-chrome.js', 'js/uni-fold.js'];
 
+function buildFixtureTree() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'immspfee-offline-first-'));
+  const stamp = `const REQUIRED = [
+  'index.html',
+  'js/app.js',
+  'js/ui-chrome.js',
+  'js/uni-fold.js',
+  'sw.js',
+];
+`;
+  const sw = `const PRECACHE = [
+  './index.html',
+  './js/app.js',
+  './js/ui-chrome.js',
+  './js/uni-fold.js',
+];
+`;
+  const index = `<link rel="modulepreload" href="./js/app.js?v=__BUILD__">
+`;
+  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'scripts/stamp-build.mjs'), stamp);
+  fs.writeFileSync(path.join(dir, 'sw.js'), sw);
+  fs.writeFileSync(path.join(dir, 'index.html'), index);
+  return dir;
+}
+
+const treeRoot = FIXTURE ? buildFixtureTree() : root;
+
 function read(rel) {
-  return fs.readFileSync(path.join(root, rel), 'utf8');
+  return fs.readFileSync(path.join(treeRoot, rel), 'utf8');
 }
 
 const stampSrc = read('scripts/stamp-build.mjs');
@@ -33,11 +64,9 @@ const inRequired = (rel) => new RegExp(`['"]${rel.replace(/\./g, '\\.')}['"]`).t
 const precacheMatch = swSrc.match(/const PRECACHE = \[([\s\S]*?)\];/);
 const precacheBlock = precacheMatch ? precacheMatch[1] : '';
 const inPrecache = (rel) => {
-  const base = rel.replace(/^js\//, './js/').replace(/^(?!(\.\/))/, './');
   const candidates = [
     `./${rel}`,
     rel.startsWith('js/') ? `./${rel}` : `./js/${rel}`,
-    base,
   ];
   return candidates.some((c) => precacheBlock.includes(`'${c}'`) || precacheBlock.includes(`"${c}"`));
 };
@@ -47,10 +76,11 @@ const modulepreload = (rel) => {
   return re.test(indexSrc) || indexSrc.includes(`href="./${rel}?v=`);
 };
 
-console.log('### OFFLINE_FIRST lockstep dry-run (no writes)');
+console.log('### OFFLINE_FIRST lockstep dry-run (no writes to main)');
 console.log('');
-console.log(`- OFFLINE_FIRST=${OFFLINE ? '1' : '0 (default)'}`);
+console.log(`- OFFLINE_FIRST=${OFFLINE ? '1' : '0 (default)'}${FIXTURE ? ' (temp fixture tree)' : ''}`);
 console.log(`- shell: ${SHELL.join(', ')}`);
+if (FIXTURE) console.log(`- fixture: ${treeRoot}`);
 console.log('');
 
 let failed = 0;
@@ -63,25 +93,20 @@ for (const rel of SHELL) {
   console.log(`- sw.js PRECACHE: ${pre ? 'yes' : 'no'}`);
   console.log(`- index.html modulepreload: ${mp ? 'yes' : 'no'}`);
   if (!OFFLINE) {
-    // Today's main: must stay off REQUIRED and PRECACHE (bust via app.js only).
     if (req || pre) {
       failed += 1;
       console.error(`FAIL default path: ${rel} must stay off REQUIRED/PRECACHE (ADR 001)`);
     } else {
       console.log('ok default: off REQUIRED + PRECACHE');
     }
+  } else if (!req || !pre) {
+    failed += 1;
+    console.error(`FAIL OFFLINE_FIRST=1: ${rel} must be on stamp REQUIRED and sw.js PRECACHE`);
+  } else if (req !== pre) {
+    failed += 1;
+    console.error(`FAIL OFFLINE_FIRST=1: ${rel} REQUIRED/PRECACHE out of lockstep`);
   } else {
-    // Flip path: all three must be in lockstep.
-    if (!req || !pre) {
-      failed += 1;
-      console.error(`FAIL OFFLINE_FIRST=1: ${rel} must be on stamp REQUIRED and sw.js PRECACHE`);
-    } else if (req !== pre) {
-      failed += 1;
-      console.error(`FAIL OFFLINE_FIRST=1: ${rel} REQUIRED/PRECACHE out of lockstep`);
-    } else {
-      console.log('ok flip: REQUIRED + PRECACHE present');
-    }
-    // modulepreload optional for chrome/fold (loaded via app.js) but report it.
+    console.log('ok flip: REQUIRED + PRECACHE present');
     if (!mp) {
       console.log('note: no dedicated modulepreload (ok if only imported from stamped app.js)');
     }
@@ -89,13 +114,11 @@ for (const rel of SHELL) {
   console.log('');
 }
 
-// Cross-check: every js/ path in PRECACHE that looks like an entry should appear in REQUIRED or be an asset/fmt-style dep.
-const precacheJs = [...precacheBlock.matchAll(/['"]\.\/(js\/[^'"]+)['"]/g)].map((m) => m[1]);
-for (const rel of precacheJs) {
-  if (SHELL.includes(rel)) continue;
-  if (!inRequired(rel) && rel !== 'js/fmt.js') {
-    // fmt.js is PRECACHE + modulepreload but historically may sit outside REQUIRED — warn only.
-    console.log(`note: PRECACHE has ${rel} — confirm stamp/modulepreload policy`);
+if (FIXTURE) {
+  try {
+    fs.rmSync(treeRoot, { recursive: true, force: true });
+  } catch {
+    /* ignore */
   }
 }
 
@@ -103,7 +126,11 @@ if (failed) {
   console.error(`offline-first-lockstep-dry-run: ${failed} failure(s)`);
   process.exit(1);
 }
-console.log(OFFLINE
-  ? 'ok OFFLINE_FIRST=1 lockstep dry-run (shell on REQUIRED+PRECACHE)'
-  : 'ok OFFLINE_FIRST=0 dry-run (shell stay off PRECACHE — main path)');
+if (FIXTURE) {
+  console.log('ok OFFLINE_FIRST_FIXTURE=1 lockstep green (temp tree; main untouched)');
+} else {
+  console.log(OFFLINE
+    ? 'ok OFFLINE_FIRST=1 lockstep dry-run (shell on REQUIRED+PRECACHE)'
+    : 'ok OFFLINE_FIRST=0 dry-run (shell stay off PRECACHE — main path)');
+}
 process.exit(0);

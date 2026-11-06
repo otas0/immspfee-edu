@@ -192,13 +192,33 @@ function lint420AreasOrInherit(block) {
       }
     });
   }
-  if (!fs.existsSync(path.join(root, 'scripts/stage-allow.default.list'))) {
+  const allowList = path.join(root, 'scripts/stage-allow.default.list');
+  const preCommit = path.join(root, 'scripts/githooks/pre-commit');
+  if (!fs.existsSync(allowList)) {
     failed += 1;
     console.error('FAIL missing scripts/stage-allow.default.list');
   } else if (addFails) {
     failed += addFails;
+  } else if (!fs.existsSync(preCommit)) {
+    failed += 1;
+    console.error('FAIL missing scripts/githooks/pre-commit');
   } else {
-    console.log('ok agent scripts: no blind git-add-all + default allowlist present');
+    const hookSrc = fs.readFileSync(preCommit, 'utf8');
+    // Hook must consume the same default list path (no divergent hard-coded roots).
+    if (!hookSrc.includes('stage-allow.default.list')) {
+      failed += 1;
+      console.error('FAIL pre-commit must reference scripts/stage-allow.default.list');
+    } else {
+      const rules = fs.readFileSync(allowList, 'utf8')
+        .split(/\r?\n/)
+        .filter((l) => l && !l.startsWith('#'));
+      if (rules.length < 3) {
+        failed += 1;
+        console.error('FAIL stage-allow.default.list looks empty');
+      } else {
+        console.log('ok agent scripts: no blind git-add-all + pre-commit ↔ stage-allow.default.list');
+      }
+    }
   }
 }
 if (block320) {

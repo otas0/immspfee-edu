@@ -70,9 +70,9 @@ export function toastErrorDetail(err, maxLen = 120, opts = {}) {
  * other sims can register here without new setParam branches.
  *
  * Minkowski product lock: **β only** (`beta → _betaHi`). γ / Δt stay plain.
- * Product has **not** asked to widen sticky to γ/Δt — do not paint those hi.
- * When product confirms: (1) add map entries here + ui flags, (2) extend
- * smoke-layout asserts, (3) only then flip readouts() hi for γ/Δt.
+ * Product has **not** asked to widen sticky to γ/Δt — do not paint those hi
+ * until otas0/immspfee-edu#1 is checked. When confirmed: (1) map + ui flags here,
+ * (2) smoke-layout, (3) then readouts hi.
  */
 export const STICKY_READOUT_HI_BY_SCHEMA = Object.freeze({
   a: '_slitWidthHi',

@@ -20,6 +20,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
+    outputs:
+      # Cross-job consumers (future / diagnostics): redirect-fail API retry count.
+      redir_retries: ${{ steps.redir_backfill.outputs.retries_used }}
     steps:
       # Node 24 scan (2026-11): checkout@v7 + setup-node@v7 + configure-pages@v6 +
       # deploy-pages@v5 all use node24. setup-node@v6 had no Node 20 deprecation on last
@@ -71,12 +74,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Redirect-fail artifact backfill
+        id: redir_backfill
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Retry 1s×5 only while the expected name is still missing (empty list or lag).
-          # Prints "attempts=N" on stderr via RETRIES_USED for the summary metric.
           fetch_artifact_names_until() {
             local want="$1" names="" i
             RETRIES_USED=0
@@ -96,6 +99,7 @@ jobs:
           redir_api="not uploaded"
           skip_reason=""
           retries_note="—"
+          RETRIES_USED=0
           if [ "${{ steps.redirect.outcome }}" = "failure" ]; then
             redir_api="—"
             if [ "${{ steps.up_redir.outcome }}" = "success" ] \
@@ -119,6 +123,7 @@ jobs:
             redir_api="not uploaded"
             skip_reason="skip reason: redirect green"
             retries_note="0 (skipped — redirect green)"
+            RETRIES_USED=0
           fi
           {
             echo "### Redirect-fail artifact backfill"
@@ -130,7 +135,10 @@ jobs:
               echo ""
               echo "$skip_reason"
             fi
+            echo ""
+            echo "GITHUB_OUTPUT retries_used=${RETRIES_USED:-0} (job output \`redir_retries\` for cross-job)."
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "retries_used=${RETRIES_USED:-0}" >> "$GITHUB_OUTPUT"
       - name: Guard against edition / ready-count chrome
         run: |
           ! grep -n 'id="edition"' index.html
@@ -181,7 +189,7 @@ jobs:
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
       # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
-      # (this batch): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
+      # (post-08be4f6): latest still v5.0.1 — no v5.0.2+; DEP0040 still soft in deploy logs.
       # When #413 ships a patch, bump immediately and confirm DEP0040 gone before merge.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
@@ -512,7 +520,11 @@ jobs:
               :
             elif [ "${{ steps.capture.outcome }}" = "success" ]; then
               echo "340 capture succeeded."
-              rm -f .local-shots/capture-last-fail.md
+              # Do not wipe fail md if 1280 failed (three-column assert writes capture-last-fail.md).
+              if [ "${{ steps.capture1280.outcome }}" = "success" ] \
+                || [ "${{ steps.capture1280.outcome }}" = "skipped" ]; then
+                rm -f .local-shots/capture-last-fail.md
+              fi
             elif [ "${{ steps.capture.outcome }}" = "failure" ]; then
               echo "340 capture failed — **non-blocking** (\`continue-on-error\`). Deploy may still be green."
               echo ""
@@ -528,12 +540,24 @@ jobs:
             fi
             echo ""
             echo "1280 desktop baseline: \`${{ steps.capture1280.outcome }}\` → artifact \`capture-1280-desktop-${SHORT}\`."
+            if [ "${{ steps.capture1280.outcome }}" = "failure" ]; then
+              echo ""
+              echo "1280 failed — **non-blocking**; three-column / viewport assert detail uploads as [\`capture-last-fail-${SHORT}\`]($ART_URL) when present."
+              echo ""
+              if [ -f .local-shots/capture-last-fail.md ]; then
+                echo "#### capture-last-fail.md (1280)"
+                echo ""
+                cat .local-shots/capture-last-fail.md
+              else
+                echo "No capture-last-fail.md after 1280 failure — check job logs; upload step still runs (\`if-no-files-found: ignore\`)."
+              fi
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.capture.outcome }}" = "failure" ]; then
             echo "::warning::capture:340-title failed (workflow continues)"
           fi
           if [ "${{ steps.capture1280.outcome }}" = "failure" ]; then
-            echo "::warning::capture:1280 failed (workflow continues)"
+            echo "::warning::capture:1280 failed (workflow continues; capture-last-fail upload when md present)"
           fi
       - name: Upload 340px capture PNG
         id: up_png
@@ -563,6 +587,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Artifact upload backfill
+        id: art_backfill
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -663,4 +688,6 @@ jobs:
             fi
             echo ""
             echo "API list retries used: **${RETRIES_USED}** (max 5 × 1s while expected short-SHA names missing)."
+            echo "Step output \`retries_used=${RETRIES_USED}\` (capture job); deploy exposes \`needs.deploy.outputs.redir_retries\` when a dependent job is added."
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "retries_used=${RETRIES_USED:-0}" >> "$GITHUB_OUTPUT"

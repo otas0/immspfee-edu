@@ -51,7 +51,8 @@ except Exception as e:
       echo "ok ready pid=$PID probe $URL"
     else
       echo "FAIL: pid $PID alive but HTTP probe of $URL failed"
-      echo "tip: \`bash scripts/ensure-dev-server.sh --quiet\` (or restart after clearing)"
+      # Alive pid that does not answer HTTP is still a bad sidecar — clear and restart.
+      clear_stale_sidecars "pid $PID alive but HTTP probe failed"
       fail=$((fail + 1))
     fi
   fi

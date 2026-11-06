@@ -257,6 +257,12 @@ if (!hasTwoRowTop(block768)) {
           } catch (e) {
             nthThrew = /:nth-child\(\)/.test(String(e && e.message));
           }
+          let nthTypeThrew = false;
+          try {
+            document.querySelector('span:nth-of-type(2)');
+          } catch (e) {
+            nthTypeThrew = /:nth-of-type\(\)/.test(String(e && e.message));
+          }
           if (!notThrew) {
             failed += 1;
             console.error('FAIL dom-lite must reject :not() with an Error');
@@ -272,8 +278,11 @@ if (!hasTwoRowTop(block768)) {
           } else if (!nthThrew) {
             failed += 1;
             console.error('FAIL dom-lite must reject :nth-child() with an Error');
+          } else if (!nthTypeThrew) {
+            failed += 1;
+            console.error('FAIL dom-lite must reject :nth-of-type() with an Error');
           } else {
-            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not/:is/:where/:has/:nth-child-reject');
+            console.log('ok uniFoldHintFromQuery DOM + compound/attr/multi/comma/descendant/child/pseudo/adjacent/mixed/:not/:is/:where/:has/:nth-child/:nth-of-type-reject');
           }
         }
       }
@@ -368,6 +377,61 @@ if (!hasTwoRowTop(block768)) {
     });
   } else {
     console.log('ok offline-first lockstep dry-run (shell stay off PRECACHE)');
+  }
+  // Temp fixture tree: OFFLINE_FIRST=1 lockstep green without touching main.
+  const fix = spawnSync(process.execPath, ['scripts/offline-first-lockstep-dry-run.mjs'], {
+    cwd: root,
+    env: { ...process.env, OFFLINE_FIRST_FIXTURE: '1' },
+    encoding: 'utf8',
+  });
+  if (fix.status !== 0 || !/OFFLINE_FIRST_FIXTURE=1 lockstep green/.test(fix.stdout || '')) {
+    failed += 1;
+    console.error('FAIL offline-first fixture lockstep green', {
+      status: fix.status, out: (fix.stdout || '').slice(0, 400), err: fix.stderr,
+    });
+  } else {
+    console.log('ok offline-first OFFLINE_FIRST_FIXTURE=1 lockstep green (temp tree)');
+  }
+}
+
+{
+  // Heartbeats FAIL mark fixture (job conclusion=failure → **FAIL** prefix).
+  const { spawnSync } = await import('node:child_process');
+  const hb = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
+    cwd: root,
+    env: { ...process.env, HEARTBEAT_FIXTURE: '1' },
+    encoding: 'utf8',
+  });
+  if (hb.status !== 0 || !/ok heartbeat FAIL fixture/.test(hb.stdout || '')) {
+    failed += 1;
+    console.error('FAIL heartbeat FAIL fixture', {
+      status: hb.status, out: (hb.stdout || '').slice(0, 400), err: hb.stderr,
+    });
+  } else {
+    console.log('ok heartbeat FAIL fixture (**FAIL** prefix on failure conclusion)');
+  }
+}
+
+{
+  // CAPTURE_FORCE_COLS_FAIL writes capture-last-fail.md (1280 three-column fail → upload path).
+  const { spawnSync } = await import('node:child_process');
+  const failPath = path.join(root, '.local-shots', 'capture-last-fail.md');
+  try { fs.unlinkSync(failPath); } catch { /* none */ }
+  const cols = spawnSync(process.execPath, ['scripts/capture-1280-desktop.mjs'], {
+    cwd: root,
+    env: { ...process.env, CAPTURE_FORCE_COLS_FAIL: '1' },
+    encoding: 'utf8',
+  });
+  const body = fs.existsSync(failPath) ? fs.readFileSync(failPath, 'utf8') : '';
+  try { fs.unlinkSync(failPath); } catch { /* none */ }
+  if (cols.status === 0 || !body.includes('### capture:1280 assertion failed')
+    || !body.includes('three columns')) {
+    failed += 1;
+    console.error('FAIL capture:1280 FORCE_COLS_FAIL must write capture-last-fail.md', {
+      status: cols.status, hasBody: !!body, err: (cols.stderr || '').slice(0, 200),
+    });
+  } else {
+    console.log('ok capture:1280 FORCE_COLS_FAIL → capture-last-fail.md (upload path)');
   }
 }
 

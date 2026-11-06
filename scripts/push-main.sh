@@ -8,6 +8,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=scripts/push-main-heartbeat.sh
+source "$ROOT/scripts/push-main-heartbeat.sh"
 
 REPO="otas0/immspfee-edu"
 TOKEN="$(gh auth token)"
@@ -38,15 +40,32 @@ while (( i <= attempts )); do
     cat "$err_log" >&2 || true
     err_txt="$(cat "$err_log" 2>/dev/null || true)"
     rm -f "$err_log"
-    git fetch "$AUTH_URL" main:refs/remotes/origin/main 2>/dev/null || git fetch origin
-    remote_main="$(git rev-parse origin/main 2>/dev/null || true)"
     local_head="$(git rev-parse HEAD)"
-    # "Everything up-to-date" can be a false calm if fetch lagged or refs drifted.
-    if [[ -z "$remote_main" || "$local_head" != "$remote_main" ]]; then
-      echo "push exited 0 but HEAD ($local_head) != origin/main (${remote_main:-missing})" >&2
-      if echo "$err_txt" | grep -qi 'Everything up-to-date'; then
-        echo "Ignoring false Everything up-to-date; will retry push." >&2
-      fi
+    # Post-push fetch often flakes (Empty reply / 443). Never treat a landed push as failure —
+    # soft-fetch, else confirm SHA via gh API and continue watch with that SHA.
+    fetch_ok=0
+    if git fetch "$AUTH_URL" main:refs/remotes/origin/main 2>/dev/null \
+      || git fetch origin 2>/dev/null; then
+      fetch_ok=1
+    else
+      echo "post-push fetch timed out/failed; confirming SHA via gh API (resume watch)" >&2
+    fi
+    remote_main="$(git rev-parse origin/main 2>/dev/null || true)"
+    if (( fetch_ok )) && [[ -n "$remote_main" && "$local_head" == "$remote_main" ]]; then
+      :
+    elif gh api "repos/${REPO}/commits/${local_head}" --jq .sha >/dev/null 2>&1 \
+      || gh api "repos/${REPO}/git/ref/heads/main" --jq .object.sha 2>/dev/null | grep -qx "$local_head"; then
+      echo "gh confirms $local_head on remote; continuing watch without local origin/main update"
+      git update-ref refs/remotes/origin/main "$local_head" 2>/dev/null || true
+    elif echo "$err_txt" | grep -qi 'Everything up-to-date'; then
+      echo "Ignoring false Everything up-to-date; will retry push." >&2
+      i=$(( i + 1 ))
+      sleep "$delay"
+      delay=$(( delay * 2 ))
+      if (( delay > 60 )); then delay=60; fi
+      continue
+    else
+      echo "push exited 0 but cannot confirm HEAD ($local_head) on origin/main (${remote_main:-missing})" >&2
       i=$(( i + 1 ))
       sleep "$delay"
       delay=$(( delay * 2 ))
@@ -162,7 +181,7 @@ summary_append() {
   } >> "$SUMMARY_MD"
 }
 summary_heartbeat() {
-  local ts line tmp prefix="" fail_n
+  local ts line tmp row fail_n
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   line="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | "\(.name)=\(.status)/\(.conclusion // "-")"] | join(" · ")
@@ -171,13 +190,11 @@ summary_heartbeat() {
     [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
     | length
   ' 2>/dev/null || echo 0)"
-  if [[ "$fail_n" =~ ^[1-9] ]]; then
-    prefix="**FAIL** "
-  fi
-  echo "heartbeat $ts ${prefix}$line"
+  row="$(heartbeat_format_row "$ts" "$line" "$fail_n")"
+  echo "heartbeat ${row#- }"
   # Insert inside ## Heartbeats (before marker), not after later summary sections.
   tmp="$(mktemp)"
-  awk -v row="- \`$ts\` ${prefix}$line" '
+  awk -v row="$row" '
     /<!-- HEARTBEATS_END -->/ { print row; print; next }
     { print }
   ' "$SUMMARY_MD" > "$tmp" && mv "$tmp" "$SUMMARY_MD"
@@ -364,15 +381,22 @@ print("upload:%s" % up_c)
   esac
 }
 
-# Mid-run: if any job already concluded failure/cancelled/timed_out, flip ISSUE_TITLE now.
+# Mid-run (incl. env waiting): if any job already failed (e.g. capture red while deploy waits), flip ISSUE_TITLE.
 maybe_mid_fail_title() {
-  local mid
+  local mid cap_note=""
   mid="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
     [.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")]
     | length
   ' 2>/dev/null || echo 0)"
-  if [[ "$mid" =~ ^[1-9] ]]; then
+  if heartbeat_jobs_have_fail "$mid"; then
     set_issue_title failure
+    cap_note="$(gh api "repos/${REPO}/actions/runs/${RID}/jobs" --jq '
+      [.jobs[] | select((.name | test("capture"; "i")) and .conclusion == "failure") | .name]
+      | if length > 0 then " (capture already red while run status may still be waiting/in_progress)" else "" end
+    ' 2>/dev/null || true)"
+    if [[ -n "$cap_note" ]]; then
+      echo "mid-FAIL title${cap_note}"
+    fi
   fi
 }
 
@@ -381,8 +405,9 @@ while true; do
   meta="$(gh run view "$RID" --repo "$REPO" --json status,conclusion,url 2>/dev/null || true)"
   status="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$meta" 2>/dev/null || true)"
   url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url",""))' "$meta" 2>/dev/null || true)"
-  summary_heartbeat
+  # Title first so Heartbeats FAIL mark and ISSUE_TITLE stay aligned during waiting.
   maybe_mid_fail_title
+  summary_heartbeat
   if [[ "$status" == "waiting" ]]; then
     now="$(date +%s)"
     if (( warned_waiting == 0 )); then
@@ -391,6 +416,7 @@ while true; do
       echo "Pages is WAITING on the github-pages environment (approval / protection rule)."
       echo "Open and approve: ${url:-https://github.com/$REPO/actions/runs/$RID}"
       echo "This script will keep waiting until the run leaves 'waiting' (timeout ${WAITING_TIMEOUT}s)."
+      echo "Sibling jobs (e.g. capture) can still finish red — mid-FAIL title + Heartbeats **FAIL** apply during waiting."
       echo ""
       warned_waiting=1
     elif (( now - waiting_since >= WAITING_TIMEOUT )); then

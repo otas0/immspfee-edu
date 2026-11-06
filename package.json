@@ -17,6 +17,7 @@
     "pw:pin-dry-run": "node scripts/playwright-pin-issue-dry-run.mjs",
     "doctor": "bash scripts/doctor.sh",
     "offline-first:dry-run": "node scripts/offline-first-lockstep-dry-run.mjs",
+    "heartbeat:fixture": "HEARTBEAT_FIXTURE=1 bash scripts/push-main-heartbeat.sh",
     "push:main": "bash scripts/push-main.sh"
   }
 }
