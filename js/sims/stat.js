@@ -384,12 +384,19 @@ export const packetSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.08;
-    const gy = h * 0.75;
-    const gw = w * 0.84;
-    const gh = h * 0.5;
-    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    // Wide: |ψ|² left / σ(t) panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const sigma = ui.wrong ? d.sigma0 : d.sigma;
+    const waveX = narrow ? w * 0.06 : w * 0.04;
+    const waveY = narrow ? h * 0.08 : h * 0.12;
+    const waveW = narrow ? w * 0.88 : w * 0.44;
+    const waveH = narrow ? h * 0.36 : h * 0.76;
+    text(ctx, lab(ui, '|ψ|²', '|ψ|²'), waveX + waveW / 2, waveY, MUTED, 12, 'center');
+    const gx = waveX + waveW * 0.08;
+    const gy = waveY + waveH * 0.78;
+    const gw = waveW * 0.84;
+    const gh = waveH * 0.55;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     const xMin = d.xc - 4 * sigma;
     const xMax = d.xc + 4 * sigma;
     ctx.beginPath();
@@ -404,7 +411,28 @@ export const packetSim = {
     ctx.strokeStyle = RAY2;
     ctx.lineWidth = 2;
     ctx.stroke();
-    text(ctx, `σ=${(ui.wrong ? d.sigma0 : d.sigma).toExponential(2)} m`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'σ(t) spread', 'σ(t) 展宽'));
+    const bx = panelX + panelW * 0.18;
+    const by = panelY + panelH * 0.78;
+    const bw = panelW * 0.28;
+    const bh = panelH * 0.45;
+    const s0 = Math.max(d.sigma0, 1e-40);
+    const sNow = Math.max(sigma, 1e-40);
+    const h0 = bh * (s0 / Math.max(s0, sNow));
+    const h1 = bh * (sNow / Math.max(s0, sNow));
+    ctx.fillStyle = MUTED;
+    ctx.fillRect(bx, by - h0, bw, h0);
+    ctx.fillStyle = RAY;
+    ctx.fillRect(bx + bw * 1.45, by - h1, bw, h1);
+    text(ctx, 'σ₀', bx + bw / 2, by + 14, MUTED, 11, 'center');
+    text(ctx, 'σ', bx + bw * 1.45 + bw / 2, by + 14, MUTED, 11, 'center');
+    text(ctx, `σ=${sigma.toExponential(2)} m`, panelX + panelW / 2, panelY + 28, ui.wrong ? '#a33' : INK, 13, 'center');
+    text(ctx, ui.wrong ? lab(ui, 'σ frozen', 'σ 冻结') : 'σ(t) ≥ σ₀', panelX + panelW / 2, panelY + 48, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

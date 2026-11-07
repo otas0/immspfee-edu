@@ -906,12 +906,31 @@ export const singleSlitSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    line(ctx, w * 0.2, h * 0.3, w * 0.2, h * 0.7, INK, 2);
-    line(ctx, w * 0.2, h * 0.48, w * 0.2, h * 0.52, '#f3efe6', 5);
-    line(ctx, w * 0.8, h * 0.2, w * 0.8, h * 0.8, MUTED, 2);
-    const yShow = ui.wrong ? (d.a * d.L) / d.lambda * 1e-6 : d.y;
-    text(ctx, `y=${(ui.wrong ? (d.m * d.a * d.L) / d.lambda : d.y).toExponential(2)} m`, w * 0.5, h * 0.15, ui.wrong ? '#a33' : INK, 14, 'center');
-    line(ctx, w * 0.78, h * 0.5 - 30, w * 0.82, h * 0.5 - 30, RAY, 2);
+    // Wide: slit→screen left / y_m panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const yShow = ui.wrong ? (d.m * d.a * d.L) / d.lambda : d.y;
+    const geoX = narrow ? w * 0.06 : w * 0.04;
+    const geoY = narrow ? h * 0.1 : h * 0.14;
+    const geoW = narrow ? w * 0.88 : w * 0.44;
+    const geoH = narrow ? h * 0.34 : h * 0.72;
+    const slitX = geoX + geoW * 0.22;
+    const screenX = geoX + geoW * 0.82;
+    const midY = geoY + geoH * 0.55;
+    line(ctx, slitX, geoY + geoH * 0.15, slitX, geoY + geoH * 0.85, INK, 2);
+    line(ctx, slitX, midY - 8, slitX, midY + 8, '#f3efe6', 5);
+    line(ctx, screenX, geoY + geoH * 0.1, screenX, geoY + geoH * 0.9, MUTED, 2);
+    const mark = Math.min(geoH * 0.28, 12 + Math.abs(yShow) * 1e5);
+    line(ctx, screenX - 8, midY - mark, screenX + 8, midY - mark, RAY, 2);
+    text(ctx, lab(ui, 'slit → screen', '单缝 → 屏'), geoX + geoW / 2, geoY, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'y_m minima', 'yₘ 极小'));
+    text(ctx, `y=${yShow.toExponential(2)} m`, panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, ui.wrong ? 'y ∝ a' : 'y_m ≈ m λ L / a', panelX + panelW / 2, panelY + panelH * 0.5, MUTED, 13, 'center');
+    text(ctx, `m=${fmt(d.m, 0)}`, panelX + panelW / 2, panelY + panelH * 0.7, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

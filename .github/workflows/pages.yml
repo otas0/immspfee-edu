@@ -464,6 +464,24 @@ jobs:
       - name: Ensure preview for capture
         if: steps.pw.outputs.have == '1'
         run: bash scripts/ensure-dev-server.sh --no-exec --quiet
+      - name: Optional slow-load toast (optics hang → 8s Reload)
+        if: steps.pw.outputs.have == '1'
+        continue-on-error: true
+        run: |
+          set +e
+          PREVIEW_BASE=http://127.0.0.1:4174 node scripts/smoke-slow-load-toast.mjs
+          code=$?
+          {
+            echo "### Optional smoke:slow-toast"
+            echo ""
+            if [ "$code" -eq 0 ]; then
+              echo "Loading → 8s \`simLoadSlow\` + Reload while \`optics.js\` hung — **ok**."
+            else
+              echo "slow-toast exited $code — **non-blocking** (\`continue-on-error\`)."
+            fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
       - name: Probe uni-cm + uni-qm prefetch (cross-check bench)
         if: steps.pw.outputs.have == '1'
         run: |
@@ -618,6 +636,27 @@ jobs:
         if: steps.pw.outputs.have == '1'
         continue-on-error: true
         run: npm run capture:1280
+      - name: Run capture:poster (A4 fit)
+        id: captureposter
+        if: steps.pw.outputs.have == '1'
+        continue-on-error: true
+        run: |
+          # Start a local preview for docs/promo (not on Pages staging).
+          ENSURE_QUIET=1 bash scripts/ensure-dev-server.sh --no-exec || true
+          npm run capture:poster
+      - name: Upload poster reference shots
+        if: always() && steps.captureposter.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: capture-poster-${{ env.SHORT }}
+          path: |
+            .local-shots/poster-a4-reference.png
+            .local-shots/poster-340px-screen.png
+            .local-shots/poster-speaker-zh.png
+            .local-shots/poster-a4.pdf
+            .local-shots/poster-a4-fit.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Optional 1280 pixel diff vs prior artifact
         id: capture1280diff
         if: always() && steps.pw.outputs.have == '1' && steps.capture1280.outcome == 'success'

@@ -308,6 +308,34 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('single-slit', 640, 400);
+  const narrow = await runDraw('single-slit', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL single-slit@640: y_m panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL single-slit@320: y_m panel should stack under slit→screen', np[0]);
+  } else console.log('ok single-slit dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('wave-packet', 640, 400);
+  const narrow = await runDraw('wave-packet', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL wave-packet@640: σ(t) panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL wave-packet@320: σ(t) panel should stack under |ψ|²', np[0]);
+  } else console.log('ok wave-packet dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);
