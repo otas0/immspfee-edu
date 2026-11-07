@@ -26,6 +26,7 @@ The hook runs on every `git commit`: each **staged** path must match a root in `
 
 3. Do **not** run `git add -A` / `git add --all` / `git add .` in agent scripts (`scripts/lint-teach-layout.mjs` forbids those command forms).
 4. Optional: enable `core.hooksPath` as above so a stray `git add` outside the list cannot commit.
+5. **Parallel agents:** `--default` can stage *your* allowlisted edits plus another agent’s WIP in the same trees. Always review `git diff --cached --stat` before commit. Unstage foreign paths (`git restore --staged -- …`). Prefer `bash scripts/git-stage-allow.sh -- path1 path2` for infra-only or lesson-only commits so a lesson message never lands on an infra index (and the reverse).
 
 ## CI note
 

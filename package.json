@@ -25,6 +25,7 @@
     "smoke:live-getsim": "node scripts/smoke-live-getsim.mjs",
     "smoke:hard-boot": "node scripts/smoke-hard-boot.mjs",
     "smoke:hard-boot-mismatch": "node scripts/smoke-hard-boot-mismatch.mjs",
+    "e2e:disk-stamp": "bash scripts/e2e-disk-stamp-preview.sh",
     "smoke:loading-ui": "node scripts/smoke-loading-ui.mjs",
     "smoke:slow-toast": "node scripts/smoke-slow-load-toast.mjs",
     "probe:ubuntu26": "bash scripts/pages-ubuntu26-probe.sh",

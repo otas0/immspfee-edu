@@ -10,6 +10,7 @@
  *   node scripts/smoke-hard-boot-mismatch.mjs
  *   HARD_BOOT_MISMATCH_E2E=1 CAPTURE_URL=http://127.0.0.1:4174/ node scripts/smoke-hard-boot-mismatch.mjs
  */
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -123,12 +124,37 @@ async function optionalMismatchE2e() {
     }
     return;
   }
-  const base = (process.env.CAPTURE_URL || 'http://127.0.0.1:4174/').replace(/\/?$/, '/');
-  // Route-stamp BUILD so local unstamped preview still asserts a real short SHA
-  // (not the literal __BUILD__ token). Override: BUILD_SHA=abcdef1
+  // Route-stamp BUILD by default (no dirty tree). Disk stamp: HARD_BOOT_E2E_DISK_STAMP=1
+  // → scripts/e2e-disk-stamp-preview.sh on :4175 (real stamped files, no route rewrite).
   const expectedSha = String(process.env.BUILD_SHA || process.env.GITHUB_SHA || 'e2e0001')
     .replace(/[^0-9a-f]/gi, '')
     .slice(0, 7) || 'e2e0001';
+  const diskStamp = process.env.HARD_BOOT_E2E_DISK_STAMP === '1';
+  let base = (process.env.CAPTURE_URL || 'http://127.0.0.1:4174/').replace(/\/?$/, '/');
+  if (diskStamp) {
+    const prep = spawnSync('bash', ['scripts/e2e-disk-stamp-preview.sh'], {
+      cwd: root,
+      env: { ...process.env, BUILD_SHA: expectedSha, PORT: process.env.E2E_PREVIEW_PORT || '4175' },
+      encoding: 'utf8',
+    });
+    if (prep.status !== 0) {
+      if (requireE2e) {
+        failed += 1;
+        console.error('FAIL e2e disk-stamp preview', {
+          status: prep.status,
+          out: (prep.stdout || '').slice(0, 400),
+          err: (prep.stderr || '').slice(0, 400),
+        });
+      } else {
+        console.log('skip hard-boot mismatch e2e: disk-stamp preview failed');
+      }
+      return;
+    }
+    const urlLine = (prep.stdout || '').trim().split('\n').filter(Boolean).pop() || '';
+    base = (urlLine.startsWith('http') ? urlLine : `http://127.0.0.1:${process.env.E2E_PREVIEW_PORT || '4175'}/`)
+      .replace(/\/?$/, '/');
+    console.log('ok e2e disk-stamp preview', { base, expectedSha });
+  }
   let browser;
   try {
     const launchOpts = {};
@@ -138,31 +164,33 @@ async function optionalMismatchE2e() {
     if (chrome) launchOpts.executablePath = chrome;
     browser = await pw.chromium.launch(launchOpts);
     const page = await browser.newPage();
-    // Stamp document/script responses in-flight (no dirty working tree).
-    await page.route('**/*', async (route) => {
-      const type = route.request().resourceType();
-      if (type !== 'document' && type !== 'script') {
-        await route.continue();
-        return;
-      }
-      try {
-        const res = await route.fetch();
-        const ct = (res.headers()['content-type'] || '').toLowerCase();
-        let body = await res.text();
-        if (body.includes('__BUILD__')) body = body.split('__BUILD__').join(expectedSha);
-        await route.fulfill({
-          response: res,
-          body,
-          headers: {
-            ...res.headers(),
-            'content-type': ct
-              || (type === 'script' ? 'application/javascript; charset=utf-8' : 'text/html; charset=utf-8'),
-          },
-        });
-      } catch {
-        await route.continue();
-      }
-    });
+    // Route rewrite only when not using a real disk-stamped preview tree.
+    if (!diskStamp) {
+      await page.route('**/*', async (route) => {
+        const type = route.request().resourceType();
+        if (type !== 'document' && type !== 'script') {
+          await route.continue();
+          return;
+        }
+        try {
+          const res = await route.fetch();
+          const ct = (res.headers()['content-type'] || '').toLowerCase();
+          let body = await res.text();
+          if (body.includes('__BUILD__')) body = body.split('__BUILD__').join(expectedSha);
+          await route.fulfill({
+            response: res,
+            body,
+            headers: {
+              ...res.headers(),
+              'content-type': ct
+                || (type === 'script' ? 'application/javascript; charset=utf-8' : 'text/html; charset=utf-8'),
+            },
+          });
+        } catch {
+          await route.continue();
+        }
+      });
+    }
     // Plant KEY once only — hard-boot sync-redirects with ?boot=; re-planting on
     // every document would loop and hang Playwright's domcontentloaded wait.
     await page.addInitScript(() => {
@@ -205,6 +233,7 @@ async function optionalMismatchE2e() {
       console.log('ok hard-boot mismatch e2e: KEY oldsha → stamped BUILD', {
         key: String(after.key).slice(0, 12),
         expectedSha,
+        diskStamp,
         hasBoot: after.hasBoot,
       });
     }

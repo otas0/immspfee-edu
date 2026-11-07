@@ -37,7 +37,7 @@ const DEFAULT_LIVE_GETSIM_IDS = [
   'charges', // charge
   'time-dilation', // modern
   'finite-well', // uni
-  'barrier-tunnel', // stat (rotated: ising → wave-packet → hydrogen-radial → barrier-tunnel)
+  'maxwell-speed', // stat (rotated: … → hydrogen-radial → barrier-tunnel → maxwell-speed)
   'length-contraction', // rel
 ].join(',');
 const ids = String(process.env.LIVE_GETSIM_IDS || DEFAULT_LIVE_GETSIM_IDS)

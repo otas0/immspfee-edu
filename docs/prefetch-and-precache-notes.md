@@ -42,12 +42,14 @@ Weekly check: if [#1](https://github.com/otas0/immspfee-edu/issues/1) gains a ch
 
 | Item | Hold |
 | --- | --- |
-| `deploy-pages` bump | Latest still **v5.0.1**; **#433 still open / unmerged** (re-checked 2026-11-07 evening) — hold pin; **bump the day #433 merges** and confirm DEP0040 gone in deploy logs |
-| `ubuntu-24.04` → 26 | Pin stays; on runner-images announcement change: `npm run probe:ubuntu26` then dry-branch Pages (`runs-on: ubuntu-latest`) before moving main (probe soft-skips when runner-images unreachable) |
-| Minkowski γ/Δt sticky | [#1](https://github.com/otas0/immspfee-edu/issues/1) still open / unchecked — β only |
+| `deploy-pages` bump | Latest still **v5.0.1**; **#433 still open / unmerged** (re-checked 2026-11-07 late) — hold pin; **bump the day #433 merges** and confirm DEP0040 gone in deploy logs |
+| `ubuntu-24.04` → 26 | Pin stays; on runner-images announcement change: `npm run probe:ubuntu26` then dry-branch Pages (`runs-on: ubuntu-latest`) before moving main |
+| Minkowski γ/Δt sticky | [#1](https://github.com/otas0/immspfee-edu/issues/1) still open / checkboxes unchecked — β only |
 | Close #1 as not planned | Only after explicit product “no” |
-| OFFLINE_FIRST flip PR | **Gate 1 unmet** (product has not asked for offline-first first paint) — do **not** open flip PR until gate 1 is explicit yes; local only `npm run offline-first:sidebranch` |
+| OFFLINE_FIRST flip PR | **Gate 1 unmet** — do **not** open flip PR until product explicit yes; local only `npm run offline-first:sidebranch` |
 | Safari 真机 320 | Computer Use ACL still required for 真机 topH / 「人教」abbrev confirm |
+| hard-boot e2e soft→hard | Capture job stays `continue-on-error` until repo var `HARD_BOOT_E2E_STRICT=true` (flip after ≥3 green `hard_boot_e2e` runs) |
+| Disk-stamp e2e preview | Optional `HARD_BOOT_E2E_DISK_STAMP=1` → `scripts/e2e-disk-stamp-preview.sh` (:4175); default remains Playwright route-stamp |
 | True L di/dt sim | See `docs/defer-eddy-inductance.md` |
 | cancel+queued dual URLs | Still no live pair; paste into `docs/pages-cancel-race.md` when seen |
 | SW Reload analytics | No product telemetry yet — DOM/CSSOM smoke only (`smoke-hard-boot`); true “did users click?” needs product ask |

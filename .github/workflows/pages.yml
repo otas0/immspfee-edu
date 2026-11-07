@@ -204,9 +204,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
-      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-07 PM:
-      # latest release still v5.0.1 (2026-09-01); #433 still open/unmerged — hold pin; bump day-of merge.
-      # When #413 ships a patch (v5.0.2+), bump immediately and confirm DEP0040 gone before merge.
+      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-07 evening:
+      # latest release still v5.0.1; #433 still open/unmerged — hold pin; bump the day #433 merges
+      # and confirm DEP0040 gone in deploy logs. Keep separate from ubuntu-26 pin moves.
       # Keep this bump track separate from push-main watch-flake soft-ok work.
       # ubuntu-24.04 pin: probe with `bash scripts/pages-ubuntu26-probe.sh` before moving to 26.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
@@ -248,8 +248,8 @@ jobs:
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          # One id per PATHS group (optics…rel). Stat rotation: barrier-tunnel (was hydrogen-radial ← wave-packet ← ising).
-          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,barrier-tunnel,length-contraction
+          # One id per PATHS group (optics…rel). Stat rotation: maxwell-speed (was barrier-tunnel ← hydrogen-radial ← …).
+          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,maxwell-speed,length-contraction
         run: node scripts/smoke-live-getsim.mjs
       - name: Upload live getSim fail diag
         if: failure() && steps.live_getsim.outcome == 'failure'
@@ -464,10 +464,11 @@ jobs:
       - name: Ensure preview for capture
         if: steps.pw.outputs.have == '1'
         run: bash scripts/ensure-dev-server.sh --no-exec --quiet
+      # Soft until repo variable HARD_BOOT_E2E_STRICT=true (flip after ≥3 green hard_boot_e2e runs).
       - name: Optional hard-boot mismatch e2e (stale KEY + ?v=)
         id: hard_boot_e2e
         if: steps.pw.outputs.have == '1'
-        continue-on-error: true
+        continue-on-error: ${{ vars.HARD_BOOT_E2E_STRICT != 'true' }}
         env:
           HARD_BOOT_MISMATCH_E2E: '1'
           CAPTURE_URL: http://127.0.0.1:4174/
@@ -481,11 +482,17 @@ jobs:
             echo ""
             if [ "$code" -eq 0 ]; then
               echo "Playwright planted KEY=oldsha + route-stamped BUILD — **ok**."
+              echo "Soft→hard: set repo variable \`HARD_BOOT_E2E_STRICT=true\` after ≥3 green runs."
             else
-              echo "hard-boot mismatch e2e exited $code — **non-blocking** (\`continue-on-error\`)."
+              if [ "${{ vars.HARD_BOOT_E2E_STRICT }}" = "true" ]; then
+                echo "hard-boot mismatch e2e exited $code — **strict** (HARD_BOOT_E2E_STRICT=true)."
+              else
+                echo "hard-boot mismatch e2e exited $code — **non-blocking** (soft until HARD_BOOT_E2E_STRICT=true)."
+              fi
             fi
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ vars.HARD_BOOT_E2E_STRICT }}" = "true" ]; then exit "$code"; fi
           exit 0
       - name: Optional slow-load toast (optics hang → 8s Reload)
         if: steps.pw.outputs.have == '1'

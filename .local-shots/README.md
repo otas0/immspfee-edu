@@ -29,7 +29,7 @@ Do not collapse these breakpoints: 340px is intentionally “stack + ellipsis”
 | `live-getsim-fail.md` / `live-getsim-diag/` | CI fail-only | Uploaded as `live-getsim-fail-<sha>` when post-deploy getSim smoke fails; summary includes **mirror file list**. |
 | `redirect-soft-skip.txt` | local doctor | Written when rename redirect soft-skips sandbox fake HTTP 200. Chains to `push-main-last-summary.md` (and push-main embeds the note when present). |
 | `push-main-last-summary.md` | local push-main | Paste-ready Pages watch summary; includes redirect soft-skip block when that file exists. |
-| `1280-desktop-diff.md` / `1280-desktop-diff-thumb.png` | optional | Decoded-pixel drift + small red-diff thumb vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`; ±8/channel, 1.5% default). **2026-11-07:** Pages `16460d3` vs prior desktop was byte-identical (md only, no thumb). Local synthetic patch confirms thumb paints clean red hotspots; sparse ±20 noise is below ±8 channel tol so useful drift ≫ noise. |
+| `1280-desktop-diff.md` / `1280-desktop-diff-thumb.png` | optional | Decoded-pixel drift + small red-diff thumb vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`; ±8/channel, 1.5% default). **2026-11-07:** Pages `5e536ed` decoded **0%** drift (zlib size differed; thumb all gray / no false red). Local synthetic patch earlier confirmed clean red hotspots for real Δ. |
 | `uni-sticky-hand.json` | local CDP | University explore sticky `.phases` at 320/360/768/1100 (`npm run capture:uni-sticky`). |
 | `poster-a4-reference.png` | A4 210×297mm | Education promo baseline (`npm run capture:poster`). Inner 10mm safe pad; square frames. |
 | `poster-340px-screen.png` | **340×720** screen | One column; hero line-height ≤1.25em; no horizontal overflow. |

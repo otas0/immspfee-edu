@@ -38,6 +38,10 @@ npm start -- --verbose   # 复用 4174 时恢复双语横幅（默认 quiet）
 npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 --no-exec 再拍）
 CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow/topH 摘要模板
 npm run pw:pin-dry-run     # Playwright pin → issue 逻辑 dry-run（不建 issue；见 package.json scripts）
+npm run heartbeat:fixture  # push-main heartbeat FAIL mark dry-run
+npm run push-resume:fixture
+npm run push-watch-flake:fixture
+npm run push-guard:fixture # HEAD move under GUARD_SHA → refuse
 npm run capture:poster     # A4 参考图 + 340 屏 + 讲解员版 + 单页 fit 断言
 npm run poster:pdf         # .local-shots/poster-a4.pdf（缺 Chromium 时有安装提示）
 npm run lint:poster        # 禁 lab 字体壳 + poster-books 与课表同步
@@ -67,6 +71,15 @@ curl -sI http://127.0.0.1:4174/ || npm start
 # Quiet escape hatch (restore banners):
 npm start -- --verbose
 #   or: ENSURE_QUIET=0 npm start
+
+# push-main fixtures (no network):
+npm run heartbeat:fixture
+npm run push-resume:fixture
+npm run push-watch-flake:fixture
+npm run push-guard:fixture   # HEAD move under GUARD_SHA → refuse
+
+# hard-boot mismatch e2e (Playwright): route-stamp by default; disk stamp:
+# HARD_BOOT_MISMATCH_E2E=1 HARD_BOOT_E2E_DISK_STAMP=1 npm run smoke:hard-boot-mismatch
 ```
 
 `push-main` waits on the github-pages environment; default `PAGES_WAITING_TIMEOUT=900` (seconds) — override if approval is slow.

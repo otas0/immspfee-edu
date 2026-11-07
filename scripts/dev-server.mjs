@@ -4,10 +4,13 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// STATIC_ROOT: serve a stamped copy (e.g. .local-shots/e2e-preview) without touching the repo tree.
+const root = path.resolve(process.env.STATIC_ROOT || repoRoot);
 const port = Number(process.env.PORT || 4174);
-const pidPath = path.join(root, `.dev-server-${port}.pid`);
-const readyPath = path.join(root, `.dev-server-${port}.ready`);
+// Sidecars always live on the real repo root (not inside STATIC_ROOT).
+const pidPath = path.join(repoRoot, `.dev-server-${port}.pid`);
+const readyPath = path.join(repoRoot, `.dev-server-${port}.ready`);
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
