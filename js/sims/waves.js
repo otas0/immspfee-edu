@@ -309,30 +309,45 @@ export const dopplerSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const sx = w * 0.3;
-    const ox = w * 0.7;
-    const y = h * 0.5;
+    // Wide: S–O schematic left / f′ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const sx = schX + schW * 0.28;
+    const ox = schX + schW * 0.72;
+    const y = schY + schH * 0.5;
     ctx.fillStyle = RAY;
     ctx.beginPath();
-    ctx.arc(sx, y, 18, 0, Math.PI * 2);
+    ctx.arc(sx, y, 16, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, lab(ui, 'S', '声源'), sx, y + 40, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'S', '声源'), sx, y + 36, MUTED, 12, 'center');
     ctx.fillStyle = RAY2;
     ctx.beginPath();
-    ctx.arc(ox, y, 18, 0, Math.PI * 2);
+    ctx.arc(ox, y, 16, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, lab(ui, 'O', '观察者'), ox, y + 40, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'O', '观察者'), ox, y + 36, MUTED, 12, 'center');
     // Toward the other: arrow points to the partner; away: arrow points outward.
     if (d.vs > 1e-6) {
-      if (d.sourceToward) arrow(ctx, sx + 24, y - 28, sx + 54, y - 28, RAY, 2);
-      else arrow(ctx, sx - 24, y - 28, sx - 54, y - 28, RAY, 2);
+      if (d.sourceToward) arrow(ctx, sx + 22, y - 26, sx + 48, y - 26, RAY, 2);
+      else arrow(ctx, sx - 22, y - 26, sx - 48, y - 26, RAY, 2);
     }
     if (d.vo > 1e-6) {
-      if (d.observerToward) arrow(ctx, ox - 24, y - 28, ox - 54, y - 28, RAY2, 2);
-      else arrow(ctx, ox + 24, y - 28, ox + 54, y - 28, RAY2, 2);
+      if (d.observerToward) arrow(ctx, ox - 22, y - 26, ox - 48, y - 26, RAY2, 2);
+      else arrow(ctx, ox + 22, y - 26, ox + 48, y - 26, RAY2, 2);
     }
+    text(ctx, lab(ui, 'S · O', 'S · O'), schX + schW / 2, schY + 12, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'f′ = f (v±vo)/(v±vs)', 'f′ = f (v±vo)/(v±vs)'));
     const fpShow = ui.wrong ? d.f * (d.v + (d.sourceToward ? -d.vs : d.vs)) / Math.max(d.v + (d.observerToward ? d.vo : -d.vo), 1e-9) : d.fp;
-    text(ctx, `f′=${fmt(fpShow, 1)} Hz`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `f′=${fmt(fpShow, 1)} Hz`, panelX + panelW / 2, panelY + panelH * 0.38, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `f=${fmt(d.f, 0)} Hz`, panelX + panelW / 2, panelY + panelH * 0.58, MUTED, 13, 'center');
+    text(ctx, ui.wrong ? 'num/den swapped' : 'classroom ± signs', panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

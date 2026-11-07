@@ -564,10 +564,18 @@ export const fourierSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.08;
-    const gy = h * 0.5;
-    const gw = w * 0.84;
-    const gh = h * 0.35;
+    // Wide: y(t) left / harmonic ladder right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const nShow = ui.wrong ? 1 : d.nTerms;
+    const waveX = narrow ? w * 0.06 : w * 0.04;
+    const waveY = narrow ? h * 0.08 : h * 0.1;
+    const waveW = narrow ? w * 0.88 : w * 0.52;
+    const waveH = narrow ? h * 0.4 : h * 0.8;
+    text(ctx, lab(ui, 'y(t)', 'y(t)'), waveX + waveW / 2, waveY + 4, MUTED, 12, 'center');
+    const gx = waveX + waveW * 0.08;
+    const gy = waveY + waveH * 0.55;
+    const gw = waveW * 0.84;
+    const gh = waveH * 0.32;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     ctx.beginPath();
     for (let i = 0; i <= 200; i += 1) {
@@ -581,7 +589,28 @@ export const fourierSim = {
     ctx.strokeStyle = ui.wrong ? '#a33' : RAY2;
     ctx.lineWidth = 2;
     ctx.stroke();
-    text(ctx, `N=${ui.wrong ? 1 : d.nTerms}`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'odd harmonics', '奇次谐波'));
+    text(ctx, `N=${nShow}`, panelX + panelW / 2, panelY + panelH * 0.28, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, '4A/π · sin(kωt)/k', panelX + panelW / 2, panelY + panelH * 0.48, MUTED, 12, 'center');
+    const barBase = panelY + panelH * 0.88;
+    const barMax = panelH * 0.28;
+    const odds = [];
+    for (let k = 1; k <= Math.max(1, 2 * nShow - 1); k += 2) odds.push(k);
+    const show = odds.slice(0, Math.min(6, odds.length));
+    const bw = panelW / (show.length + 1);
+    show.forEach((k, i) => {
+      const amp = 1 / k;
+      const bh = amp * barMax;
+      const x = panelX + bw * (i + 0.6);
+      ctx.fillStyle = ui.wrong && k > 1 ? '#a33' : RAY;
+      ctx.fillRect(x, barBase - bh, bw * 0.55, bh);
+      text(ctx, String(k), x + bw * 0.28, barBase + 12, MUTED, 10, 'center');
+    });
   },
   pointer() { return null; },
 };
@@ -758,11 +787,29 @@ export const cavitySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    line(ctx, w * 0.25, h * 0.3, w * 0.25, h * 0.7, INK, 4);
-    line(ctx, w * 0.75, h * 0.3, w * 0.75, h * 0.7, INK, 4);
-    line(ctx, w * 0.25, h * 0.5, w * 0.75, h * 0.5, RAY, 1.5, [4, 4]);
+    // Wide: cavity schematic left / Δν panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const cavX = narrow ? w * 0.06 : w * 0.04;
+    const cavY = narrow ? h * 0.08 : h * 0.12;
+    const cavW = narrow ? w * 0.88 : w * 0.5;
+    const cavH = narrow ? h * 0.4 : h * 0.76;
+    const left = cavX + cavW * 0.22;
+    const right = cavX + cavW * 0.78;
+    const midY = cavY + cavH * 0.55;
+    line(ctx, left, cavY + cavH * 0.22, left, cavY + cavH * 0.88, INK, 4);
+    line(ctx, right, cavY + cavH * 0.22, right, cavY + cavH * 0.88, INK, 4);
+    line(ctx, left, midY, right, midY, RAY, 1.5, [4, 4]);
+    text(ctx, lab(ui, 'Fabry–Pérot', '法布里–珀罗'), cavX + cavW / 2, cavY + 12, MUTED, 12, 'center');
+    text(ctx, `L=${fmt(d.L, 2)} m`, cavX + cavW / 2, cavY + cavH * 0.92, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Δν = c/(2L)', 'Δν = c/(2L)'));
     const dnu = ui.wrong ? d.c / d.L : d.dnu;
-    text(ctx, `Δν=${(dnu / 1e6).toFixed(2)} MHz`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `Δν=${(dnu / 1e6).toFixed(2)} MHz`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, ui.wrong ? 'Δν = c/L' : 'mode spacing only', panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
