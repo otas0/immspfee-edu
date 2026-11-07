@@ -24,12 +24,12 @@ Do not collapse these breakpoints: 340px is intentionally “stack + ellipsis”
 | `340px-projectile-ellipsis.png` | **340×720** (321–360 band) | Projectile **stacked** teachPanel (`w <= 360`); book-select still **`text-overflow: ellipsis`**. |
 | `340px-zh-long-title-ellipsis.png` | **340×720**, `lang=zh` | Force a long selected label. Expect **`ellipsis`** and canvas `measureText` width + padding **>** select `clientWidth`. Also asserts `.top` ≤100px. |
 | `320px-pep-zh-book.png` | 320×720, `lang=zh` | Book-select abbreviates to 「人教」 (full title in `title=`); computed `text-overflow: clip`. |
-| `320px-top-remeasure.json` | 320 / 360 / 768 | topH + sticky CTA — CDP. **2026-11-07 PM:** after `.top-nav` row + `#regions` nowrap, Chromium 320 **topH 57.5** (taps ≥28, title clip OK). Sticky phases clear primary at 360/768. Safari 真机 still pending Computer Use ACL. |
+| `320px-top-remeasure.json` | 320 / 360 / 768 | topH + sticky CTA — CDP. **2026-11-07 evening:** Chromium 320 **topH 57** with 「人教」 abbrev + `#regions` 初中/高中/大学 (≤60 → no further region shorten). Sticky phases clear primary at 360/768. Safari 真机 still pending Computer Use ACL. |
 | `320px-projectile-stack.png` | 320×720 | Strobe path above stacked x–t · y–t panel. |
 | `live-getsim-fail.md` / `live-getsim-diag/` | CI fail-only | Uploaded as `live-getsim-fail-<sha>` when post-deploy getSim smoke fails; summary includes **mirror file list**. |
 | `redirect-soft-skip.txt` | local doctor | Written when rename redirect soft-skips sandbox fake HTTP 200. Chains to `push-main-last-summary.md` (and push-main embeds the note when present). |
 | `push-main-last-summary.md` | local push-main | Paste-ready Pages watch summary; includes redirect soft-skip block when that file exists. |
-| `1280-desktop-diff.md` / `1280-desktop-diff-thumb.png` | optional | Decoded-pixel drift + small red-diff thumb vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`; ±8/channel, 1.5% default). |
+| `1280-desktop-diff.md` / `1280-desktop-diff-thumb.png` | optional | Decoded-pixel drift + small red-diff thumb vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`; ±8/channel, 1.5% default). **2026-11-07:** Pages `16460d3` vs prior desktop was byte-identical (md only, no thumb). Local synthetic patch confirms thumb paints clean red hotspots; sparse ±20 noise is below ±8 channel tol so useful drift ≫ noise. |
 | `uni-sticky-hand.json` | local CDP | University explore sticky `.phases` at 320/360/768/1100 (`npm run capture:uni-sticky`). |
 | `poster-a4-reference.png` | A4 210×297mm | Education promo baseline (`npm run capture:poster`). Inner 10mm safe pad; square frames. |
 | `poster-340px-screen.png` | **340×720** screen | One column; hero line-height ≤1.25em; no horizontal overflow. |

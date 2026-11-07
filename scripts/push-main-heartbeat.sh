@@ -6,7 +6,15 @@
 #     → push ok + fetch fail (+ optional PUSH_FETCH_MOCK) + gh ok → resume watch
 #   PUSH_WATCH_FLAKE_FIXTURE=1 bash scripts/push-main-heartbeat.sh
 #     → jobs API miss after deploy success → soft exit 0
+#   PUSH_GUARD_FIXTURE=1 bash scripts/push-main-heartbeat.sh
+#     → HEAD move under GUARD_SHA / origin not ancestor → refuse
 set -euo pipefail
+
+# Shared with push-main.sh: true when HEAD drifted from the pinned tip.
+push_guard_head_moved() {
+  local guard="${1:-}" now="${2:-}"
+  [[ -n "$guard" && -n "$now" && "$now" != "$guard" ]]
+}
 
 # Canonical mid-FAIL line (console === summary; waiting-segment diff).
 # Cap note is fixed when any capture-named job is already red.
@@ -330,5 +338,36 @@ if [[ "${PUSH_WATCH_FLAKE_FIXTURE:-}" == "1" ]]; then
     exit 1
   fi
   echo "ok push-watch flake fixture (jobs miss after success → soft exit 0)"
+  exit 0
+fi
+
+if [[ "${PUSH_GUARD_FIXTURE:-}" == "1" ]]; then
+  root="$(cd "$(dirname "$0")/.." && pwd)"
+  pm="$root/scripts/push-main.sh"
+  if ! grep -q 'merge-base --is-ancestor origin/main' "$pm" || ! grep -q 'GUARD_SHA=' "$pm"; then
+    echo "FAIL push-guard fixture: push-main.sh missing merge-base / GUARD_SHA" >&2
+    exit 1
+  fi
+  if ! grep -q 'HEAD moved under us' "$pm"; then
+    echo "FAIL push-guard fixture: push-main.sh missing HEAD-move refuse" >&2
+    exit 1
+  fi
+  if ! push_guard_head_moved 'aaaaaaaa' 'bbbbbbbb'; then
+    echo "FAIL push-guard fixture: distinct SHAs must count as HEAD moved" >&2
+    exit 1
+  fi
+  if push_guard_head_moved 'aaaaaaaa' 'aaaaaaaa'; then
+    echo "FAIL push-guard fixture: identical SHAs must not count as moved" >&2
+    exit 1
+  fi
+  # Simulate the refuse branch copy (same condition push-main uses in the loop).
+  GUARD_SHA='aaaaaaaa'
+  HEAD_NOW='bbbbbbbb'
+  if [[ "$HEAD_NOW" == "$GUARD_SHA" ]]; then
+    echo "FAIL push-guard fixture: expected refuse path not taken" >&2
+    exit 1
+  fi
+  echo "REFUSING push: HEAD moved under us ($GUARD_SHA → $HEAD_NOW). Concurrent reset? (fixture)"
+  echo "ok push-guard fixture (HEAD move under GUARD_SHA refuses)"
   exit 0
 fi

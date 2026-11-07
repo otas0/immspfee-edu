@@ -548,6 +548,19 @@ if (!hasTwoRowTop(block768)) {
   } else {
     console.log('ok push-watch flake fixture (jobs miss after success → soft exit 0)');
   }
+  const guardFix = spawnSync('bash', ['scripts/push-main-heartbeat.sh'], {
+    cwd: root,
+    env: { ...process.env, PUSH_GUARD_FIXTURE: '1' },
+    encoding: 'utf8',
+  });
+  if (guardFix.status !== 0 || !/ok push-guard fixture/.test(guardFix.stdout || '')) {
+    failed += 1;
+    console.error('FAIL push-guard fixture (HEAD move under GUARD_SHA)', {
+      status: guardFix.status, out: (guardFix.stdout || '').slice(0, 400), err: guardFix.stderr,
+    });
+  } else {
+    console.log('ok push-guard fixture (HEAD move under GUARD_SHA refuses)');
+  }
   const doc = spawnSync('bash', ['scripts/doctor.sh'], {
     cwd: root,
     env: { ...process.env, DOCTOR_FIXTURE: 'auto-ensure-0' },

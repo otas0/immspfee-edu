@@ -69,7 +69,7 @@ if push_preclear_enabled; then
 fi
 while (( i <= attempts )); do
   HEAD_NOW="$(git rev-parse HEAD)"
-  if [[ "$HEAD_NOW" != "$GUARD_SHA" ]]; then
+  if push_guard_head_moved "$GUARD_SHA" "$HEAD_NOW"; then
     echo "REFUSING push: HEAD moved under us ($GUARD_SHA → $HEAD_NOW). Concurrent reset?" >&2
     exit 1
   fi

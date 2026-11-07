@@ -248,8 +248,8 @@ jobs:
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          # One id per PATHS group (optics…rel). Stat rotation: hydrogen-radial (was wave-packet ← ising).
-          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,hydrogen-radial,length-contraction
+          # One id per PATHS group (optics…rel). Stat rotation: barrier-tunnel (was hydrogen-radial ← wave-packet ← ising).
+          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,barrier-tunnel,length-contraction
         run: node scripts/smoke-live-getsim.mjs
       - name: Upload live getSim fail diag
         if: failure() && steps.live_getsim.outcome == 'failure'
@@ -464,6 +464,29 @@ jobs:
       - name: Ensure preview for capture
         if: steps.pw.outputs.have == '1'
         run: bash scripts/ensure-dev-server.sh --no-exec --quiet
+      - name: Optional hard-boot mismatch e2e (stale KEY + ?v=)
+        id: hard_boot_e2e
+        if: steps.pw.outputs.have == '1'
+        continue-on-error: true
+        env:
+          HARD_BOOT_MISMATCH_E2E: '1'
+          CAPTURE_URL: http://127.0.0.1:4174/
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          set +e
+          node scripts/smoke-hard-boot-mismatch.mjs
+          code=$?
+          {
+            echo "### Optional smoke:hard-boot-mismatch e2e"
+            echo ""
+            if [ "$code" -eq 0 ]; then
+              echo "Playwright planted KEY=oldsha + route-stamped BUILD — **ok**."
+            else
+              echo "hard-boot mismatch e2e exited $code — **non-blocking** (\`continue-on-error\`)."
+            fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
       - name: Optional slow-load toast (optics hang → 8s Reload)
         if: steps.pw.outputs.have == '1'
         continue-on-error: true

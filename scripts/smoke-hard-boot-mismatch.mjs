@@ -124,6 +124,11 @@ async function optionalMismatchE2e() {
     return;
   }
   const base = (process.env.CAPTURE_URL || 'http://127.0.0.1:4174/').replace(/\/?$/, '/');
+  // Route-stamp BUILD so local unstamped preview still asserts a real short SHA
+  // (not the literal __BUILD__ token). Override: BUILD_SHA=abcdef1
+  const expectedSha = String(process.env.BUILD_SHA || process.env.GITHUB_SHA || 'e2e0001')
+    .replace(/[^0-9a-f]/gi, '')
+    .slice(0, 7) || 'e2e0001';
   let browser;
   try {
     const launchOpts = {};
@@ -133,6 +138,31 @@ async function optionalMismatchE2e() {
     if (chrome) launchOpts.executablePath = chrome;
     browser = await pw.chromium.launch(launchOpts);
     const page = await browser.newPage();
+    // Stamp document/script responses in-flight (no dirty working tree).
+    await page.route('**/*', async (route) => {
+      const type = route.request().resourceType();
+      if (type !== 'document' && type !== 'script') {
+        await route.continue();
+        return;
+      }
+      try {
+        const res = await route.fetch();
+        const ct = (res.headers()['content-type'] || '').toLowerCase();
+        let body = await res.text();
+        if (body.includes('__BUILD__')) body = body.split('__BUILD__').join(expectedSha);
+        await route.fulfill({
+          response: res,
+          body,
+          headers: {
+            ...res.headers(),
+            'content-type': ct
+              || (type === 'script' ? 'application/javascript; charset=utf-8' : 'text/html; charset=utf-8'),
+          },
+        });
+      } catch {
+        await route.continue();
+      }
+    });
     // Plant KEY once only — hard-boot sync-redirects with ?boot=; re-planting on
     // every document would loop and hang Playwright's domcontentloaded wait.
     await page.addInitScript(() => {
@@ -165,9 +195,16 @@ async function optionalMismatchE2e() {
     } else if (!after.key) {
       failed += 1;
       console.error('FAIL e2e: hard-boot KEY missing after load (expected stamped BUILD)', after);
+    } else if (after.key === '__BUILD__') {
+      failed += 1;
+      console.error('FAIL e2e: KEY still literal __BUILD__ (route-stamp missing)', after);
+    } else if (after.key !== expectedSha) {
+      failed += 1;
+      console.error('FAIL e2e: KEY !== route-stamped BUILD', { got: after.key, expectedSha });
     } else {
-      console.log('ok hard-boot mismatch e2e: KEY oldsha → BUILD', {
+      console.log('ok hard-boot mismatch e2e: KEY oldsha → stamped BUILD', {
         key: String(after.key).slice(0, 12),
+        expectedSha,
         hasBoot: after.hasBoot,
       });
     }
