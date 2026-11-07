@@ -38,7 +38,7 @@ export const COPY = {
     why: 'Why equations',
     whyBody: 'Every ready lesson’s drawing, sticky readout, and check is computed in js/physics/. Queued sections stay empty—no placeholder animation.',
     what: 'What it is',
-    whatBody: 'IMMSPFEE Education is the classroom edition. Shanghai junior/senior, PEP grade 8, and University physics mount equation-backed simulations. The standard lab stays in a separate repository.',
+    whatBody: 'Classroom edition: Shanghai junior/senior, PEP grade 8, and University physics mount equation-backed simulations. The standard lab is a separate repository.',
     open: 'Open',
     openBody: 'Scan or type the short path. Browser entry · briefing use.',
   },

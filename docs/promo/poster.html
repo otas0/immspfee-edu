@@ -17,14 +17,14 @@
       --line: #e4dccf;
       --edge: #cfc6b8;
       --dark: #141414;
-      --safe: 12mm; /* physical printer hard margin */
+      --safe: 10mm; /* physical printer hard margin */
       font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      background: #ffffff;
+      background: #e8e8e8; /* desk so A4 page reads as a sheet */
       color: var(--ink);
       font-family: inherit;
       -webkit-font-smoothing: antialiased;
@@ -40,19 +40,18 @@
     }
     .screen-hint code { font-size: 10.5px; color: var(--ink); }
 
-    /* Screen preview: full A4 box. Print: inset by --safe so printer margins cannot crop. */
+    /* True A4 page (210×297). Inner --safe padding = printer hard margin. */
     .sheet {
       width: 210mm;
-      min-height: 0;
-      height: auto;
-      margin: 0 auto 12px;
-      padding: 8mm; /* preview mirrors print @page margin */
+      height: 297mm;
+      margin: 0 auto 16px;
+      padding: var(--safe);
       background: #ffffff;
       border: none;
-      box-shadow: 0 0 0 1px #ddd; /* screen-only page edge, not printed */
+      box-shadow: 0 1px 8px rgba(0,0,0,0.12); /* screen desk only */
       display: flex;
       flex-direction: column;
-      overflow: visible;
+      overflow: hidden;
       position: relative;
     }
 
@@ -60,10 +59,11 @@
       display: grid;
       grid-template-columns: auto 1fr;
       align-items: center;
-      gap: 6px 10px;
-      padding: 4px 10px;
+      gap: 10px 14px;
+      padding: 4px 0 10px;
       background: #ffffff; /* logo bar */
       border-bottom: none;
+      flex: 0 0 auto;
     }
 
     .brand {
@@ -74,7 +74,7 @@
     .brand img {
       display: block;
       width: 100%;
-      max-width: 220px; /* print-safe; screen preview matches */
+      max-width: 260px;
       height: auto;
       aspect-ratio: 461 / 123;
       object-fit: contain;
@@ -83,23 +83,23 @@
 
     .hero { min-width: 0; }
     .hero .eyebrow {
-      font-size: 9px;
+      font-size: 10px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 2px;
-      line-height: 1.15;
-    }
-    .hero h1 {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
+      margin-bottom: 4px;
       line-height: 1.2;
     }
+    .hero h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
     .hero h1.zh {
-      margin-top: 2px;
+      margin-top: 4px;
       font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-      font-size: 12.5px;
+      font-size: 14px;
       font-weight: 700;
       letter-spacing: 0;
     }
@@ -134,7 +134,7 @@
       display: flex;
       align-items: stretch;
       gap: 0;
-      padding: 4px 10px;
+      padding: 6px 0 8px;
       border-bottom: none;
       background: transparent;
       flex: 0 0 auto;
@@ -145,8 +145,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
-      padding: 4px 2px;
+      gap: 4px;
+      padding: 6px 4px;
       position: relative;
       min-width: 0;
     }
@@ -162,63 +162,63 @@
       z-index: 1;
     }
     .flow-step .n {
-      width: 22px;
-      height: 22px;
+      width: 26px;
+      height: 26px;
       border-radius: 999px;
       background: var(--dark);
       color: #fff;
       display: grid;
       place-items: center;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
     }
     .flow-step .en {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
       text-align: center;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .flow-step .zh {
       font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-      font-size: 9px;
+      font-size: 10px;
       color: var(--muted);
       text-align: center;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .flow-step.out .n { background: var(--dark); }
     .flow-step.out .en { color: var(--ink); }
 
     .layout {
-      flex: 0 0 auto;
+      flex: 1 1 auto;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      padding: 4px 10px;
+      gap: 12px;
+      padding: 4px 0 10px;
       min-height: 0;
-      align-items: start;
+      align-items: stretch;
     }
 
     .pane {
       background: var(--panel);
       border: 1px solid var(--ink);
       border-radius: 0; /* square frames only */
-      padding: 8px 9px;
+      padding: 11px 12px;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
-      gap: 6px;
+      justify-content: space-between;
+      gap: 8px;
       min-width: 0;
       min-height: 0;
-      height: auto;
-      overflow: visible;
+      height: 100%;
+      overflow: hidden;
     }
 
-    .crumb { font-size: 10.5px; color: var(--muted); line-height: 1.25; }
+    .crumb { font-size: 11px; color: var(--muted); line-height: 1.3; }
     .pane h2 {
-      font-size: 12px;
+      font-size: 13.5px;
       font-weight: 600;
       letter-spacing: -0.02em;
-      line-height: 1.25;
+      line-height: 1.3;
     }
     .zh h2 {
       font-family: "Noto Sans SC", "PingFang SC", sans-serif;
@@ -227,35 +227,35 @@
     }
 
     .block h3 {
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--muted);
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      margin-bottom: 5px;
-      line-height: 1.2;
+      margin-bottom: 6px;
+      line-height: 1.25;
     }
     .zh .block h3 {
       font-family: "Noto Sans SC", "PingFang SC", sans-serif;
       text-transform: none;
       letter-spacing: 0;
-      font-size: 11.5px;
+      font-size: 12px;
     }
 
     .steps { list-style: none; display: grid; gap: 5px; }
     .steps li {
       display: grid;
-      grid-template-columns: 20px 1fr;
-      gap: 6px;
+      grid-template-columns: 24px 1fr;
+      gap: 8px;
       align-items: start;
-      font-size: 10.5px;
-      line-height: 1.3;
+      font-size: 12px;
+      line-height: 1.4;
     }
     .steps .n {
       display: grid;
       place-items: center;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border-radius: 999px;
       background: var(--dark);
       color: #fff;
@@ -267,14 +267,15 @@
     .phase-lines {
       list-style: none;
       display: grid;
-      gap: 4px;
+      gap: 5px;
     }
     .phase-lines li {
-      font-size: 10.5px;
-      line-height: 1.3;
-      padding: 4px 8px;
-      background: #ffffff;
-      border: 1px solid var(--ink);
+      font-size: 11.5px;
+      line-height: 1.4;
+      padding: 2px 0 2px 10px;
+      background: transparent;
+      border: none;
+      border-left: 2px solid var(--ink);
       border-radius: 0;
       color: var(--ink);
     }
@@ -283,21 +284,21 @@
     .callout {
       border: 1px solid var(--ink);
       border-left: 3px solid var(--ink);
-      padding: 6px 8px;
+      padding: 7px 9px;
       background: #ffffff;
       border-radius: 0;
     }
-    .callout p { font-size: 10.5px; font-weight: 500; line-height: 1.3; }
+    .callout p { font-size: 11.5px; font-weight: 500; line-height: 1.35; }
     .zh .callout p { font-family: "Noto Sans SC", "PingFang SC", sans-serif; }
 
     .facts {
       margin-top: 0;
-      padding-top: 6px;
+      padding-top: 8px;
       border-top: 1px solid var(--ink);
       display: grid;
-      gap: 4px;
+      gap: 6px;
     }
-    .facts p { font-size: 10px; line-height: 1.35; }
+    .facts p { font-size: 11px; line-height: 1.45; }
     .zh .facts p { font-family: "Noto Sans SC", "PingFang SC", sans-serif; }
     .facts a {
       color: var(--ink);
@@ -309,10 +310,10 @@
     .dock {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      gap: 8px;
+      gap: 12px;
       align-items: center;
-      margin: 4px 8px 4px;
-      padding: 8px 10px;
+      margin: 0 0 8px;
+      padding: 10px 12px;
       background: #ffffff;
       border: 1px solid var(--ink);
       border-radius: 0;
@@ -320,12 +321,12 @@
     }
 
     .dock .side h3 {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--muted);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
-    .dock .side p { font-size: 10.5px; line-height: 1.3; }
+    .dock .side p { font-size: 12px; line-height: 1.4; }
     .dock .side.zh {
       text-align: right;
       font-family: "Noto Sans SC", "PingFang SC", sans-serif;
@@ -338,23 +339,23 @@
     }
 
     .qr-box {
-      width: 28mm;
-      padding: 4px;
+      width: 34mm;
+      padding: 6px;
       background: var(--panel);
       border: 1px solid var(--ink);
       border-radius: 0;
       display: grid;
-      gap: 2px;
+      gap: 4px;
       justify-items: center;
     }
     .qr-box img {
-      width: 22mm;
-      height: 22mm;
+      width: 26mm;
+      height: 26mm;
       display: block;
       border-radius: 0;
     }
     .qr-box .short {
-      font-size: 8px;
+      font-size: 9px;
       font-weight: 600;
       text-align: center;
       color: var(--ink);
@@ -369,15 +370,15 @@
     }
 
     .books {
-      margin: 0 8px 4px;
-      padding: 5px 10px;
+      margin: 0;
+      padding: 8px 12px;
       border: 1px solid var(--ink);
       border-radius: 0;
       background: #ffffff;
       text-align: center;
-      font-size: 9.5px;
+      font-size: 11px;
       color: var(--ink);
-      line-height: 1.3;
+      line-height: 1.35;
       flex: 0 0 auto;
     }
     .books strong { font-weight: 600; }
@@ -420,8 +421,8 @@
         width: 100%;
         height: auto;
         min-height: 0;
-        border-left: 0;
-        border-right: 0;
+        padding: 12px;
+        box-shadow: none;
       }
       .top { grid-template-columns: 1fr; gap: 4px; padding: 8px; }
       .brand img { max-width: min(220px, calc(100vw - 40px)); }
@@ -443,50 +444,43 @@
     }
 
     @media print {
-      /* Let the printer keep hard margins; content is height:auto inside @page margin */
+      /* Exact A4 page; safe padding lives inside the sheet (not @page), so scale 100% + margins none works */
       html, body {
         background: #ffffff !important;
         margin: 0 !important;
         padding: 0 !important;
-        width: auto;
-        height: auto;
-        overflow: visible;
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
       .screen-hint { display: none !important; }
       .sheet {
-        width: 100% !important;
-        height: auto !important;
-        max-height: none !important;
+        width: 210mm !important;
+        height: 297mm !important;
         margin: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 0 !important;
+        padding: var(--safe) !important;
         background: #ffffff !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         page-break-inside: avoid;
         break-inside: avoid;
       }
       body[data-mode="speaker"] .lang { display: none !important; }
-      .brand img { max-width: 160px !important; }
-      .hero h1 { font-size: 11.5px !important; }
-      .hero h1.zh { font-size: 11px !important; }
-      .layout { padding: 2px 0 !important; gap: 10px !important; }
-      .pane { padding: 0 !important; gap: 5px !important; }
-      .dock { margin: 2px 0 !important; }
-      .books { margin: 0 !important; }
-      @page { size: A4 portrait; margin: var(--safe); }
+      .brand img { max-width: 240px !important; }
+      @page { size: A4 portrait; margin: 0; }
     }
   </style>
 </head>
 <body>
   <p class="screen-hint">
-    A4 · Prefer <code>npm run poster:pdf</code> · Browser Print: A4 · 100% · default margins OK ·
-    @page margin 12mm (no crop) · square frames ·
-    Speaker <code>?speaker=1</code>
+    True A4 (210×297mm) · Prefer <code>npm run poster:pdf</code> ·
+    Print: A4 · Scale 100% · Margins <strong>None</strong> (10mm safe padding is inside the page) ·
+    Square frames · Speaker <code>?speaker=1</code>
   </p>
 
   <article class="sheet" data-poster-sheet>

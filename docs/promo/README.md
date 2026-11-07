@@ -27,11 +27,11 @@ Do not expect `https://otas0.github.io/immspfee-edu/docs/promo/poster.html`.
 
 ## Print / PDF (A4 打全)
 
-Physical printers keep hard margins. The poster uses **`@page { margin: 12mm }`** (`--safe`) and **height:auto** content (no full-bleed sheet), so A4 does not crop. Frames are **1px square** (`border-radius: 0`)—no rounded cards.
+The sheet is a true **210×297mm A4** page. A **10mm** inner `--safe` padding keeps content inside printer hard margins (print with **Margins None** + Scale 100%). Frames are **1px square** (`border-radius: 0`).
 
 1. Prefer **`npm run poster:pdf`** → `.local-shots/poster-a4.pdf` (Chromium, one page; gitignored).
-2. Or browser Print → **A4 · Scale 100%** (default margins OK; do not force “None” + 100% on a full-bleed layout).
-3. `npm run capture:poster` asserts **1 PDF page**, content ≤ printable height, no decorative borders, and writes `.local-shots/poster-a4-fit.json`.
+2. Or browser Print → **A4 · Scale 100% · Margins None**.
+3. `npm run capture:poster` asserts **210×297mm**, **1 PDF page**, no clip, square frames → `.local-shots/poster-a4-fit.json`.
 
 Speaker PDF: `POSTER_SPEAKER=1 POSTER_LANG=zh npm run poster:pdf`.
 

@@ -105,19 +105,19 @@ const browser = await chromium.launch(launchOpts());
     const sr = sheetEl.getBoundingClientRect();
     const br = books ? books.getBoundingClientRect() : null;
     const pxPerMm = 96 / 25.4;
+    const wMm = sr.width / pxPerMm;
     const hMm = sr.height / pxPerMm;
-    // @page margin 12mm → printable height ≈ 273mm
-    const printableMm = 297 - 24;
     const panes = [...document.querySelectorAll('.pane')].map((p) => ({
       client: p.clientHeight,
       scroll: p.scrollHeight,
       clipped: p.scrollHeight > p.clientHeight + 2,
     }));
     return {
+      sheetWMm: Math.round(wMm * 10) / 10,
       sheetHMm: Math.round(hMm * 10) / 10,
-      printableMm,
-      fitsPrintable: hMm <= printableMm + 1,
-      booksVisible: !!br,
+      isA4: Math.abs(wMm - 210) < 3 && Math.abs(hMm - 297) < 3,
+      sheetOverflow: sheetEl.scrollHeight > sheetEl.clientHeight + 2,
+      booksVisible: br ? br.bottom <= sr.bottom + 2 : false,
       panesClipped: panes.some((p) => p.clipped),
       panes,
       brandMax: getComputedStyle(document.querySelector('.brand img')).maxWidth,
@@ -146,12 +146,12 @@ const browser = await chromium.launch(launchOpts());
     pdfBytes: pdfBuf.length,
     pdfPages: pages,
     a4CssPx: Math.round((297 * 96) / 25.4),
-    ok: pages === 1 && fit.fitsPrintable && fit.booksVisible && !fit.panesClipped && fit.squareFrames,
+    ok: pages === 1 && fit.isA4 && !fit.sheetOverflow && fit.booksVisible && !fit.panesClipped && fit.squareFrames,
   };
   fs.writeFileSync(outFit, `${JSON.stringify(report, null, 2)}\n`);
   console.log('A4 fit', report);
   if (!report.ok) {
-    console.error('FAIL: A4 must be 1 page, content ≤ printable area, square (non-rounded) frames');
+    console.error('FAIL: must be true 210×297mm A4, 1 PDF page, no clip, square frames');
     await browser.close();
     process.exit(2);
   }
