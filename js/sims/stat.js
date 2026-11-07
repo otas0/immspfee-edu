@@ -748,14 +748,31 @@ export const sternSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: ± bars left / P(+) panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const pUp = ui.wrong ? Math.cos((d.theta * Math.PI) / 180) ** 2 : d.pUp;
+    const barX = narrow ? w * 0.06 : w * 0.04;
+    const barY = narrow ? h * 0.08 : h * 0.12;
+    const barW = narrow ? w * 0.88 : w * 0.5;
+    const barH = narrow ? h * 0.4 : h * 0.76;
+    const base = barY + barH * 0.82;
+    const maxH = barH * 0.55;
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.25, h * 0.7 - pUp * h * 0.4, 60, pUp * h * 0.4);
+    ctx.fillRect(barX + barW * 0.22, base - pUp * maxH, barW * 0.2, pUp * maxH);
     ctx.fillStyle = RAY2;
-    ctx.fillRect(w * 0.55, h * 0.7 - (1 - pUp) * h * 0.4, 60, (1 - pUp) * h * 0.4);
-    text(ctx, '+', w * 0.28 + 20, h * 0.78, MUTED, 14, 'center');
-    text(ctx, '−', w * 0.58 + 20, h * 0.78, MUTED, 14, 'center');
-    text(ctx, `P(+)=${fmt(pUp, 3)}`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+    ctx.fillRect(barX + barW * 0.58, base - (1 - pUp) * maxH, barW * 0.2, (1 - pUp) * maxH);
+    text(ctx, '+', barX + barW * 0.32, base + 16, MUTED, 13, 'center');
+    text(ctx, '−', barX + barW * 0.68, base + 16, MUTED, 13, 'center');
+    text(ctx, lab(ui, 'outcomes', '结果'), barX + barW / 2, barY + 12, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'P(+) = cos²(θ/2)', 'P(+) = cos²(θ/2)'));
+    text(ctx, `P(+)=${fmt(pUp, 3)}`, panelX + panelW / 2, panelY + panelH * 0.38, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `P(−)=${fmt(1 - pUp, 3)}`, panelX + panelW / 2, panelY + panelH * 0.58, MUTED, 13, 'center');
+    text(ctx, ui.wrong ? 'cos²θ' : `θ=${fmt(d.theta, 0)}°`, panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

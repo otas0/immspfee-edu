@@ -341,10 +341,17 @@ export const halfLifeSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.78;
-    const gw = w * 0.76;
-    const gh = h * 0.55;
+    // Wide: N(t) left / decay panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const plotX = narrow ? w * 0.06 : w * 0.04;
+    const plotY = narrow ? h * 0.08 : h * 0.1;
+    const plotW = narrow ? w * 0.88 : w * 0.52;
+    const plotH = narrow ? h * 0.42 : h * 0.8;
+    text(ctx, lab(ui, 'N(t)', 'N(t)'), plotX + plotW / 2, plotY + 4, MUTED, 12, 'center');
+    const gx = plotX + plotW * 0.12;
+    const gy = plotY + plotH * 0.88;
+    const gw = plotW * 0.78;
+    const gh = plotH * 0.68;
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
     const tEnd = Math.max(d.T * 4, d.t + 1);
@@ -365,7 +372,15 @@ export const halfLifeSim = {
     ctx.beginPath();
     ctx.arc(gx + (d.t / tEnd) * gw, gy - (Nnow / d.N0) * gh, 5, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, `N=${fmt(Nnow, 0)}`, w * 0.7, h * 0.18, ui.wrong ? '#a33' : INK, 14);
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'N = N0 e^{−λt}', 'N = N0 e^{−λt}'));
+    text(ctx, `N=${fmt(Nnow, 0)}`, panelX + panelW / 2, panelY + panelH * 0.35, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `T½=${fmt(d.T, 0)} s`, panelX + panelW / 2, panelY + panelH * 0.55, MUTED, 12, 'center');
+    text(ctx, ui.wrong ? 'N = N0 − t' : `λ=${fmt(d.lambda, 4)}`, panelX + panelW / 2, panelY + panelH * 0.75, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -533,14 +548,28 @@ export const resistivitySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.5;
-    const len = Math.min(w * 0.7, 40 + d.L * 40);
-    const thick = Math.min(40, 6 + Math.sqrt(d.A) * 20000);
+    // Wide: wire left / R=ρL/A panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.55;
+    const len = Math.min(schW * 0.8, 36 + d.L * 28);
+    const thick = Math.min(36, 6 + Math.sqrt(d.A) * 20000);
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.15, y - thick / 2, len, thick);
+    ctx.fillRect(schX + schW * 0.1, y - thick / 2, len, thick);
+    text(ctx, lab(ui, 'wire', '导线'), schX + schW / 2, schY + 14, MUTED, 12, 'center');
+    text(ctx, `L=${fmt(d.L, 1)} m`, schX + schW / 2, schY + schH * 0.9, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'R = ρ L / A', 'R = ρ L / A'));
     const Rshow = ui.wrong ? d.rho * d.L * d.A : d.R;
-    text(ctx, `R=${fmt(Rshow, 4)} Ω`, w * 0.5, h * 0.22, ui.wrong ? '#a33' : INK, 16, 'center');
-    text(ctx, `L=${fmt(d.L, 1)} m`, w * 0.5, h * 0.78, MUTED, 12, 'center');
+    text(ctx, `R=${fmt(Rshow, 4)} Ω`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, ui.wrong ? 'R = ρ L A' : `ρ=${d.rho.toExponential(1)}`, panelX + panelW / 2, panelY + panelH * 0.7, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
