@@ -68,6 +68,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/phase.js', id: 'sublimation', needles: ['Q = m Ls', 'w <= 360'] },
   { file: 'js/sims/mech.js', id: 'friction', needles: ['f ≤ μ N', 'w <= 360'] },
   { file: 'js/sims/fluids.js', id: 'density', needles: ['ρ = m / V', 'w <= 360'] },
+  { file: 'js/sims/optics.js', id: 'pinhole', needles: ['h = H v / u', 'w <= 360'] },
+  { file: 'js/sims/optics.js', id: 'reflection', needles: ['θᵢ = θᵣ', 'w <= 360'] },
+  { file: 'js/sims/optics.js', id: 'plane-mirror', needles: ["d' = d", 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

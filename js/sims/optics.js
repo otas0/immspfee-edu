@@ -11,8 +11,19 @@ function q(id, en, zh, options, answer) {
 function opt(en, zh) { return { en, zh }; }
 function ro(en, zh, value) { return { en, zh, value }; }
 
-function pinholeGeom(w, h) {
-  return { y0: h * 0.22, y1: h * 0.78, holeX: w * 0.48, mid: h * 0.5 };
+function pinholeGeom(w, h, narrow) {
+  // Wide: schematic left of teachPanel. Narrow: upper band only.
+  const schX = narrow ? w * 0.04 : w * 0.02;
+  const schW = narrow ? w * 0.92 : w * 0.52;
+  const schY = narrow ? h * 0.06 : h * 0.08;
+  const schH = narrow ? h * 0.44 : h * 0.84;
+  return {
+    schX, schW, schY, schH,
+    y0: schY + schH * 0.08,
+    y1: schY + schH * 0.92,
+    holeX: schX + schW * 0.48,
+    mid: schY + schH * 0.5,
+  };
 }
 
 export const pinhole = {
@@ -51,13 +62,17 @@ export const pinhole = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const g = pinholeGeom(w, h);
-    const px = Math.min((g.holeX - 28) / Math.max(p.u, 1), (w - 28 - g.holeX) / Math.max(p.v, 1));
+    // Wide: pinhole left / h=Hv/u panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const g = pinholeGeom(w, h, narrow);
+    const leftPad = g.schX + 12;
+    const rightPad = g.schX + g.schW - 12;
+    const px = Math.min((g.holeX - leftPad) / Math.max(p.u, 1), (rightPad - g.holeX) / Math.max(p.v, 1));
     const objX = g.holeX - p.u * px;
     const scrX = g.holeX + p.v * px;
     const objH = p.H * px;
     const imgH = d.hImg * px;
-    line(ctx, 24, g.mid, w - 24, g.mid, '#d9d2c5', 1);
+    line(ctx, leftPad, g.mid, rightPad, g.mid, '#d9d2c5', 1);
     line(ctx, g.holeX, g.y0, g.holeX, g.mid - 8, INK, 3);
     line(ctx, g.holeX, g.mid + 8, g.holeX, g.y1, INK, 3);
     line(ctx, scrX, g.y0, scrX, g.y1, MUTED, 2);
@@ -67,14 +82,23 @@ export const pinhole = {
     line(ctx, g.holeX, g.mid, scrX, g.mid + imgH, RAY2, 1);
     if (ui.wrong) {
       const bad = (p.H * p.u / p.v) * px;
-      line(ctx, scrX + 14, g.mid, scrX + 14, g.mid + bad, '#a33', 2, [4, 3]);
-      text(ctx, 'H·u/v', scrX + 18, g.mid + bad + 12, '#a33', 11);
+      line(ctx, scrX + 10, g.mid, scrX + 10, g.mid + bad, '#a33', 2, [4, 3]);
+      text(ctx, 'H·u/v', scrX + 14, g.mid + bad + 10, '#a33', 10);
     }
-    text(ctx, lab(ui, 'object', '物体'), objX, g.mid + 16, MUTED, 11, 'center');
-    text(ctx, lab(ui, 'screen', '光屏'), scrX, g.y0 - 10, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'object', '物体'), objX, Math.min(g.y1 - 4, g.mid + 14), MUTED, 10, 'center');
+    text(ctx, lab(ui, 'screen', '光屏'), scrX, g.y0 - 8, MUTED, 10, 'center');
     handle(ctx, objX, g.mid - objH, ui.drag === 'obj');
     handle(ctx, scrX, g.mid, ui.drag === 'scr');
-    ui._geo = { ...g, px, objX, scrX, objH };
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    const hShow = ui.wrong ? (p.H * p.u / p.v) : d.hImg;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'h = H v / u', 'h = H v / u'));
+    text(ctx, `h=${fmt(hShow, 2)} cm`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, lab(ui, 'inverted', '倒立'), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { ...g, px, objX, scrX, objH, panelY };
   },
   pointer(ev, p, _d, ui) {
     const g = ui._geo;
@@ -128,9 +152,15 @@ export const reflection = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cx = w * 0.5;
-    const cy = h * 0.62;
-    const L = Math.min(w, h) * 0.42;
+    // Wide: mirror left / θi=θr panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const cx = schX + schW * 0.5;
+    const cy = schY + schH * 0.72;
+    const L = Math.min(schW, schH) * 0.42;
     const th = (d.theta * Math.PI) / 180;
     line(ctx, cx - L, cy, cx + L, cy, INK, 3);
     line(ctx, cx, cy, cx, cy - L, MUTED, 1.5, [4, 4]);
@@ -140,14 +170,23 @@ export const reflection = {
     const ry = cy - L * 0.85 * Math.cos(th);
     arrow(ctx, ix, iy, cx, cy, RAY, 2.5);
     arrow(ctx, cx, cy, rx, ry, RAY2, 2.5);
-    text(ctx, lab(ui, 'normal', '法线'), cx + 8, cy - L + 8, MUTED, 12);
-    text(ctx, lab(ui, 'mirror', '镜面'), cx - L, cy + 16, MUTED, 12);
-    text(ctx, `θ=${fmt(d.theta, 0)}°`, cx - 36, cy - 28, RAY, 12);
+    text(ctx, lab(ui, 'normal', '法线'), cx + 6, cy - L + 8, MUTED, 11);
+    text(ctx, lab(ui, 'mirror', '镜面'), cx - L, cy + 14, MUTED, 11);
+    text(ctx, `θ=${fmt(d.theta, 0)}°`, cx - 32, cy - 24, RAY, 11);
     if (ui.wrong) {
-      text(ctx, lab(ui, `surface ${fmt(d.fromSurface, 0)}°`, `界面 ${fmt(d.fromSurface, 0)}°`), cx + 16, cy - 18, '#a33', 12);
+      text(ctx, lab(ui, `surface ${fmt(d.fromSurface, 0)}°`, `界面 ${fmt(d.fromSurface, 0)}°`), cx + 12, cy - 16, '#a33', 11);
     }
     handle(ctx, ix, iy, ui.drag === 'ray');
-    ui._geo = { cx, cy, ix, iy };
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    const thShow = ui.wrong ? d.fromSurface : d.thetaR;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'θᵢ = θᵣ', 'θᵢ = θᵣ'));
+    text(ctx, `θᵣ=${fmt(thShow, 1)}°`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? lab(ui, 'from surface', '从镜面') : lab(ui, 'from normal', '从法线'), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { cx, cy, ix, iy, panelY };
   },
   pointer(ev, _p, _d, ui) {
     const g = ui._geo;
@@ -205,10 +244,16 @@ export const planeMirror = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const mx = w * 0.52;
-    const mid = h * 0.62;
-    const px = Math.min((mx - 40) / 32, (w - mx - 40) / 32, 14);
-    line(ctx, mx, 28, mx, h - 28, INK, 3);
+    // Wide: object/image left / d'=d panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.04 : w * 0.02;
+    const schY = narrow ? h * 0.06 : h * 0.08;
+    const schW = narrow ? w * 0.92 : w * 0.52;
+    const schH = narrow ? h * 0.44 : h * 0.84;
+    const mx = schX + schW * 0.52;
+    const mid = schY + schH * 0.72;
+    const px = Math.min((mx - schX - 16) / 32, (schX + schW - mx - 16) / 32, 14);
+    line(ctx, mx, schY + 8, mx, schY + schH - 8, INK, 3);
     const ox = mx - p.d * px;
     const ix = mx + d.imageD * px;
     const drawF = (x0, yBase, scale, color, dash, flip) => {
@@ -230,9 +275,18 @@ export const planeMirror = {
     drawF(ix, mid, scale, RAY2, [5, 4], true);
     line(ctx, ox, mid, ix, mid, MUTED, 1, [3, 3]);
     if (ui.wrong) drawF(mx + (p.d / 2) * px, mid - 8, scale, '#a33', [3, 3], true);
-    text(ctx, lab(ui, 'mirror', '镜面'), mx + 8, 40, MUTED, 12);
+    text(ctx, lab(ui, 'mirror', '镜面'), mx + 6, schY + 16, MUTED, 11);
     handle(ctx, ox, mid - scale, ui.drag === 'obj');
-    ui._geo = { mx, mid, px, ox, scale };
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    const dShow = ui.wrong ? p.d / 2 : d.imageD;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, "d' = d", "d' = d"));
+    text(ctx, `d'=${fmt(dShow, 1)} cm`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, lab(ui, 'virtual, erect', '虚像 · 正立'), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { mx, mid, px, ox, scale, panelY };
   },
   pointer(ev, _p, _d, ui) {
     const g = ui._geo;

@@ -375,9 +375,20 @@ export const frictionSim = {
     const pressure = d.N / Math.max(p.area, 1e-9);
     ctx.fillStyle = `rgba(196, 73, 29, ${Math.min(0.55, pressure / 2000)})`;
     ctx.fillRect(x - bw / 2, ground - 6, bw, 6);
-    const fScale = Math.min(6, (schW * 0.25) / Math.max(Math.abs(p.F), Math.abs(d.friction), 1));
-    arrow(ctx, x + bw / 2, ground - 18, x + bw / 2 + p.F * fScale, ground - 18, RAY, 3);
-    arrow(ctx, x - bw / 2, ground - 18, x - bw / 2 + d.friction * fScale, ground - 18, RAY2, 3);
+    // Keep force arrows inside the schematic band (above teachPanel on narrow).
+    const arrowY = ground - 18;
+    const roomR = (schX + schW - 8) - (x + bw / 2);
+    const roomL = (x - bw / 2) - (schX + 8);
+    const fScale = Math.min(
+      6,
+      roomR / Math.max(Math.abs(p.F), 1e-6),
+      roomL / Math.max(Math.abs(d.friction), 1e-6),
+      (schW * 0.25) / Math.max(Math.abs(p.F), Math.abs(d.friction), 1),
+    );
+    const fTipX = x + bw / 2 + p.F * fScale;
+    const frTipX = x - bw / 2 + d.friction * fScale;
+    arrow(ctx, x + bw / 2, arrowY, fTipX, arrowY, RAY, 3);
+    arrow(ctx, x - bw / 2, arrowY, frTipX, arrowY, RAY2, 3);
     text(ctx, lab(ui, d.regime, d.regime === 'static' ? '静止' : '滑动'), schX + schW / 2, ground + 18, MUTED, 12, 'center');
 
     const panelX = narrow ? w * 0.06 : w * 0.58;
@@ -388,6 +399,7 @@ export const frictionSim = {
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'f ≤ μ N', 'f ≤ μ N'));
     text(ctx, `f=${fmt(fShow, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
     text(ctx, ui.wrong ? lab(ui, 'f ∝ A', 'f ∝ A') : `μN=${fmt(d.muK * d.N, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { arrowY, fTipX, frTipX, schX, schW, panelY, ground };
   },
   pointer() { return null; },
 };

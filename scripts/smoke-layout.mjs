@@ -985,6 +985,63 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('pinhole', 640, 400);
+  const narrow = await runDraw('pinhole', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL pinhole@640: h=Hv/u panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL pinhole@320: h panel should stack under schematic', np[0]);
+  } else console.log('ok pinhole dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('reflection', 640, 400);
+  const narrow = await runDraw('reflection', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL reflection@640: θi=θr panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL reflection@320: θ panel should stack under mirror', np[0]);
+  } else console.log('ok reflection dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('plane-mirror', 640, 400);
+  const narrow = await runDraw('plane-mirror', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL plane-mirror@640: d′=d panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL plane-mirror@320: d′ panel should stack under object/image', np[0]);
+  } else console.log('ok plane-mirror dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  // Narrow friction: force arrows stay in schematic band (above μN panel).
+  const { ctx, h, ui } = await runDraw('friction', 320, 400, {}, { F: 18, m: 1, muS: 0.2, muK: 0.15 });
+  const np = panelFills(ctx.ops);
+  const g = ui._geo;
+  const panelY = np[0]?.[2] ?? h;
+  if (!g || !(g.arrowY < panelY - 8)) {
+    failed += 1;
+    console.error('FAIL friction@320: force arrows should sit above μN panel', { arrowY: g?.arrowY, panelY });
+  } else if (!(g.fTipX >= g.schX && g.fTipX <= g.schX + g.schW && g.frTipX >= g.schX && g.frTipX <= g.schX + g.schW)) {
+    failed += 1;
+    console.error('FAIL friction@320: arrow tips should stay inside schematic width', g);
+  } else console.log('ok friction@320 arrows above panel', { arrowY: g.arrowY.toFixed(0), panelY: panelY.toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);
