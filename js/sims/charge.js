@@ -232,15 +232,28 @@ export const potentialSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y0 = h * 0.3;
-    const y1 = y0 + Math.min(h * 0.4, d.d * h * 4);
-    line(ctx, w * 0.25, y0, w * 0.75, y0, RAY, 4);
-    line(ctx, w * 0.25, y1, w * 0.75, y1, RAY2, 4);
-    text(ctx, '+', w * 0.2, y0, RAY, 16, 'center');
-    text(ctx, '−', w * 0.2, y1, RAY2, 16, 'center');
-    arrow(ctx, w * 0.5, y0 + 10, w * 0.5, y1 - 10, INK, 2);
+    // Wide: plates left / U=Ed panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y0 = schY + schH * 0.22;
+    const y1 = y0 + Math.min(schH * 0.5, d.d * schH * 4);
+    line(ctx, schX + schW * 0.15, y0, schX + schW * 0.85, y0, RAY, 4);
+    line(ctx, schX + schW * 0.15, y1, schX + schW * 0.85, y1, RAY2, 4);
+    text(ctx, '+', schX + schW * 0.08, y0, RAY, 16, 'center');
+    text(ctx, '−', schX + schW * 0.08, y1, RAY2, 16, 'center');
+    arrow(ctx, schX + schW * 0.5, y0 + 10, schX + schW * 0.5, y1 - 10, INK, 2);
     const Ushow = ui.wrong ? d.E / d.d : d.U;
-    text(ctx, `U=${fmt(Ushow, 2)} V`, w * 0.5, h * 0.85, ui.wrong ? '#a33' : INK, 16, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'U = E d', 'U = E d'));
+    text(ctx, `U=${fmt(Ushow, 2)} V`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? 'U = E / d' : `W=${d.W.toExponential(2)} J`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

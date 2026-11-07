@@ -56,6 +56,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/uni.js', id: 'carnot', needles: ['η = 1 − Tc/Th', 'w <= 360'] },
   { file: 'js/sims/uni.js', id: 'ideal-gas', needles: ['p V = n R T', 'w <= 360'] },
   { file: 'js/sims/charge.js', id: 'point-field', needles: ['E = k |q| / r²', 'w <= 360'] },
+  { file: 'js/sims/uni.js', id: 'kinetic-gas', needles: ['p = (1/3) ρ v_rms²', 'w <= 360'] },
+  { file: 'js/sims/uni.js', id: 'infinite-well', needles: ['Eₙ ∝ n² / L²', 'w <= 360'] },
+  { file: 'js/sims/charge.js', id: 'field-potential', needles: ['U = E d', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

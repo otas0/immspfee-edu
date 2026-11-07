@@ -757,7 +757,7 @@ let failed = 0;
 
 {
   // Narrow induction: rod handle stays in the schematic band (above the Φ panel).
-  const { ctx, w, h, ui, sim, p, d } = await runDraw('induction', 320, 400, { x: 0.25 });
+  const { ctx, w, h, ui, sim, p, d } = await runDraw('induction', 320, 400, {}, { x: 0.25 });
   const np = panelFills(ctx.ops);
   const g = ui._geo;
   const panelY = np[0]?.[2] ?? h;
@@ -772,6 +772,67 @@ let failed = 0;
       failed += 1;
       console.error('FAIL induction@320: rod drag should update x in schematic', { from: p.x, to: moved?.x });
     } else console.log('ok induction@320 rod drag above panel', { gy: g.y.toFixed(0), panelY: panelY.toFixed(0), x: moved.x.toFixed(2) });
+  }
+}
+
+{
+  const wide = await runDraw('kinetic-gas', 640, 400);
+  const narrow = await runDraw('kinetic-gas', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL kinetic-gas@640: p=(1/3)ρv² panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL kinetic-gas@320: p panel should stack under particles', np[0]);
+  } else console.log('ok kinetic-gas dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('field-potential', 640, 400);
+  const narrow = await runDraw('field-potential', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL field-potential@640: U=Ed panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL field-potential@320: U panel should stack under plates', np[0]);
+  } else console.log('ok field-potential dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('infinite-well', 640, 400);
+  const narrow = await runDraw('infinite-well', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL infinite-well@640: Eₙ panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL infinite-well@320: Eₙ panel should stack under ψ', np[0]);
+  } else console.log('ok infinite-well dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  // Narrow point-field: r handle stays in the schematic band (above the E panel).
+  const { ctx, h, ui, sim, p, d } = await runDraw('point-field', 320, 400, {}, { r: 0.2 });
+  const np = panelFills(ctx.ops);
+  const g = ui._geo;
+  const panelY = np[0]?.[2] ?? h;
+  if (!g || g.cy >= panelY - 8) {
+    failed += 1;
+    console.error('FAIL point-field@320: r handle should sit above E panel', { cy: g?.cy, panelY });
+  } else {
+    sim.pointer({ type: 'down', x: g.cx + p.r * g.scale, y: g.cy }, p, d, ui);
+    const moved = sim.pointer({ type: 'move', x: g.cx + 0.55 * g.scale, y: g.cy }, p, d, ui);
+    if (!moved || !(moved.r > p.r + 0.05)) {
+      failed += 1;
+      console.error('FAIL point-field@320: r drag should update in schematic', { from: p.r, to: moved?.r });
+    } else console.log('ok point-field@320 r drag above panel', { cy: g.cy.toFixed(0), panelY: panelY.toFixed(0), r: moved.r.toFixed(2) });
   }
 }
 

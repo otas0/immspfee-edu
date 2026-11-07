@@ -203,14 +203,31 @@ export const kineticSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: particle field left / p=(1/3)ρv² panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
     const pShow = ui.wrong ? d.rho * d.vrms * d.vrms : d.p;
     for (let i = 0; i < 40; i += 1) {
       ctx.fillStyle = RAY;
       ctx.beginPath();
-      ctx.arc(w * 0.15 + (i % 8) * w * 0.09, h * 0.25 + Math.floor(i / 8) * h * 0.1, 4, 0, Math.PI * 2);
+      ctx.arc(
+        schX + schW * 0.12 + (i % 8) * schW * 0.1,
+        schY + schH * 0.18 + Math.floor(i / 8) * schH * 0.14,
+        4, 0, Math.PI * 2,
+      );
       ctx.fill();
     }
-    text(ctx, `p=${fmt(pShow, 0)} Pa`, w * 0.5, h * 0.85, ui.wrong ? '#a33' : INK, 16, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'p = (1/3) ρ v_rms²', 'p = (1/3) ρ v_rms²'));
+    text(ctx, `p=${fmt(pShow, 0)} Pa`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? 'p = ρ v_rms²' : `ρ=${fmt(d.rho, 2)}`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -244,10 +261,16 @@ export const wellSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.7;
-    const gw = w * 0.76;
-    const gh = h * 0.4;
+    // Wide: ψ left / Eₙ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.42 : h * 0.8;
+    const gx = schX + schW * 0.1;
+    const gy = schY + schH * 0.82;
+    const gw = schW * 0.8;
+    const gh = schH * 0.55;
     line(ctx, gx, gy, gx, gy - gh, INK, 2);
     line(ctx, gx + gw, gy, gx + gw, gy - gh, INK, 2);
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
@@ -264,7 +287,15 @@ export const wellSim = {
     ctx.strokeStyle = ui.wrong ? '#a33' : RAY2;
     ctx.lineWidth = 2;
     ctx.stroke();
-    text(ctx, `n=${d.n}`, w * 0.5, h * 0.12, INK, 14, 'center');
+    text(ctx, `n=${d.n}`, schX + schW / 2, schY + 12, INK, 13, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Eₙ ∝ n² / L²', 'Eₙ ∝ n² / L²'));
+    text(ctx, `Eₙ=${d.En.toExponential(2)} J`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 13, 'center');
+    text(ctx, ui.wrong ? 'E ∝ n/L' : `ψ(L/2)=${fmt(d.psi, 3)}`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
