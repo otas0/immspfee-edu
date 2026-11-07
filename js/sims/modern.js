@@ -171,19 +171,34 @@ export const convertSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.55;
-    const maxH = h * 0.4;
+    // Wide: store bars left / E1+E2=E0 panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.62;
+    const maxH = schH * 0.45;
     const e1 = ui.wrong ? d.E0 : d.E1;
     const e2 = d.E2;
     const h1 = (e1 / Math.max(d.E0, 1)) * maxH;
     const h2 = (e2 / Math.max(d.E0, 1)) * maxH;
+    const bx1 = schX + schW * 0.28;
+    const bx2 = schX + schW * 0.72;
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.25 - 30, y - h1, 60, h1);
+    ctx.fillRect(bx1 - 30, y - h1, 60, h1);
     ctx.fillStyle = RAY2;
-    ctx.fillRect(w * 0.65 - 30, y - h2, 60, h2);
-    text(ctx, `E1=${fmt(e1, 0)}`, w * 0.25, y + 24, MUTED, 13, 'center');
-    text(ctx, `E2=${fmt(e2, 0)}`, w * 0.65, y + 24, MUTED, 13, 'center');
-    text(ctx, ui.wrong ? lab(ui, 'total grows', '总量变大了') : `E1+E2=${fmt(d.total, 0)}`, w * 0.5, h * 0.14, ui.wrong ? '#a33' : INK, 15, 'center');
+    ctx.fillRect(bx2 - 30, y - h2, 60, h2);
+    text(ctx, `E1=${fmt(e1, 0)}`, bx1, y + 24, MUTED, 13, 'center');
+    text(ctx, `E2=${fmt(e2, 0)}`, bx2, y + 24, MUTED, 13, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'E1 + E2 = E0', 'E1 + E2 = E0'));
+    text(ctx, ui.wrong ? lab(ui, 'total grows', '总量变大了') : `E1+E2=${fmt(d.total, 0)}`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `f=${fmt(d.f, 2)}`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 13, 'center');
   },
   pointer() { return null; },
 };
@@ -218,19 +233,33 @@ export const efficiencySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.5;
+    // Wide: useful/waste bar left / η panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.5;
     const total = Math.max(d.Ein, 1);
-    const wu = (d.Eu / total) * w * 0.7;
-    const ww = (d.waste / total) * w * 0.7;
-    const x0 = w * 0.15;
+    const barW = schW * 0.78;
+    const wu = (d.Eu / total) * barW;
+    const ww = (d.waste / total) * barW;
+    const x0 = schX + schW * 0.11;
     ctx.fillStyle = RAY;
     ctx.fillRect(x0, y - 24, wu, 48);
     ctx.fillStyle = MUTED;
     ctx.fillRect(x0 + wu, y - 24, ww, 48);
-    const etaShow = ui.wrong ? d.Ein / Math.max(d.Eu, 1e-9) : d.eta;
-    text(ctx, `η=${fmt(etaShow, 3)}`, w * 0.5, h * 0.22, ui.wrong ? '#a33' : INK, 18, 'center');
     text(ctx, lab(ui, 'useful', '有用'), x0 + wu / 2, y + 50, MUTED, 12, 'center');
     text(ctx, lab(ui, 'waste', '损耗'), x0 + wu + ww / 2, y + 50, MUTED, 12, 'center');
+    const etaShow = ui.wrong ? d.Ein / Math.max(d.Eu, 1e-9) : d.eta;
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'η = Eu / Ein', 'η = Eu / Ein'));
+    text(ctx, `η=${fmt(etaShow, 3)}`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 16, 'center');
+    text(ctx, ui.wrong ? 'η = Ein / Eu' : `waste=${fmt(d.waste, 0)} J`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

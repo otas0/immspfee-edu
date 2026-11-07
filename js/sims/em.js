@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js?v=__BUILD__';
 import { barMagnet, solenoidField, ampereForce, inductionRod, lorentzForce, cyclotronRadius } from '../physics/em.js?v=__BUILD__';
-import { num, tog, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
+import { num, tog, clear, line, text, handle, hit, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -243,10 +243,16 @@ export const inductionSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const x0 = w * 0.18;
-    const y0 = h * 0.28;
-    const y1 = h * 0.72;
-    const scale = (w * 0.55) / 0.6;
+    // Wide: rails left / Φ·ε·I panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
+    const x0 = schX + schW * 0.12;
+    const y0 = schY + schH * 0.22;
+    const y1 = schY + schH * 0.82;
+    const scale = (schW * 0.75) / 0.6;
     const rodX = x0 + d.x * scale;
     line(ctx, x0, y0, x0 + 0.65 * scale, y0, INK, 2);
     line(ctx, x0, y1, x0 + 0.65 * scale, y1, INK, 2);
@@ -266,10 +272,15 @@ export const inductionSim = {
       text(ctx, 'v', rodX + dir * 18, y0 - 38, RAY2, 12, 'center');
     }
     const emfShow = ui.wrong && Math.abs(d.v) > 1e-6 ? (d.B * d.ell) / d.v : d.emf;
-    text(ctx, `Φ=${fmt(d.flux, 3)} Wb`, w * 0.72, h * 0.3, INK, 13);
-    text(ctx, `ε=${fmt(emfShow, 3)} V`, w * 0.72, h * 0.4, ui.wrong ? '#a33' : RAY, 13);
-    text(ctx, `I=${fmt(ui.wrong && Math.abs(d.v) > 1e-6 ? emfShow / d.R : d.I, 3)} A`, w * 0.72, h * 0.5, MUTED, 13);
-    text(ctx, lab(ui, 'Φ = B ℓ x', 'Φ = B ℓ x'), w * 0.5, h * 0.9, MUTED, 12, 'center');
+    const Ishow = ui.wrong && Math.abs(d.v) > 1e-6 ? emfShow / d.R : d.I;
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Φ = B ℓ x', 'Φ = B ℓ x'));
+    text(ctx, `Φ=${fmt(d.flux, 3)} Wb`, panelX + panelW / 2, panelY + panelH * 0.28, INK, 13, 'center');
+    text(ctx, `ε=${fmt(emfShow, 3)} V`, panelX + panelW / 2, panelY + panelH * 0.5, ui.wrong ? '#a33' : RAY, 13, 'center');
+    text(ctx, `I=${fmt(Ishow, 3)} A`, panelX + panelW / 2, panelY + panelH * 0.72, MUTED, 13, 'center');
     ui._geo = { x0, scale, y: (y0 + y1) / 2 };
   },
   pointer(ev, p, _d, ui) {
