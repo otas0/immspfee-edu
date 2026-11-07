@@ -21,9 +21,13 @@ for (const needle of banned) {
     console.error(`FAIL poster.html: ban lab chassis font ${JSON.stringify(needle)}`);
   }
 }
-if (!html.includes('--accent: #c4491d') && !html.includes('--accent:#c4491d')) {
+if (!html.includes('--paper: #f3efe6') && !html.includes('--paper:#f3efe6')) {
   failed += 1;
-  console.error('FAIL poster.html: keep Education terracotta --accent #c4491d');
+  console.error('FAIL poster.html: keep Education cream --paper #f3efe6 for sheet background');
+}
+if (!/\.top\s*\{[^}]*background:\s*#fff/.test(html)) {
+  failed += 1;
+  console.error('FAIL poster.html: .top (logo bar) must stay white');
 }
 if (!html.includes('var(--safe)') && !html.includes('--safe:')) {
   failed += 1;

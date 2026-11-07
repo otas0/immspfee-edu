@@ -8,16 +8,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
-    /* edu.css tokens — white sheet; print uses safe margins so physical A4 is not cropped */
+    /* Cream sheet (edu --paper); white logo top bar; pure white + black elsewhere */
     :root {
       --ink: #161616;
       --muted: #5c564c;
-      --paper: #ffffff;
-      --panel: #fffdf8;
+      --paper: #f3efe6;
+      --panel: #ffffff;
       --line: #e4dccf;
       --edge: #cfc6b8;
       --dark: #141414;
-      --accent: #c4491d;
       --safe: 6mm;
       font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
     }
@@ -25,7 +24,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      background: #ffffff;
+      background: var(--paper);
       color: var(--ink);
       font-family: inherit;
       -webkit-font-smoothing: antialiased;
@@ -46,7 +45,7 @@
       width: 210mm;
       height: 297mm;
       margin: 0 auto 12px;
-      background: #ffffff;
+      background: var(--paper);
       border: 1px solid var(--edge);
       display: flex;
       flex-direction: column;
@@ -60,7 +59,7 @@
       align-items: center;
       gap: 8px 12px;
       padding: 6px 10px;
-      background: #fff;
+      background: #ffffff; /* logo bar */
       border-bottom: 1px solid var(--edge);
     }
 
@@ -134,7 +133,7 @@
       gap: 0;
       padding: 6px 10px;
       border-bottom: 1px solid var(--line);
-      background: #fff;
+      background: transparent;
       flex: 0 0 auto;
     }
     .flow-step {
@@ -184,8 +183,8 @@
       text-align: center;
       line-height: 1.15;
     }
-    .flow-step.out .n { background: var(--accent); }
-    .flow-step.out .en { color: var(--accent); }
+    .flow-step.out .n { background: var(--dark); }
+    .flow-step.out .en { color: var(--ink); }
 
     .layout {
       /* Fill the sheet middle; panes space blocks evenly (no single hollow gap) */
@@ -273,16 +272,17 @@
       font-size: 11px;
       line-height: 1.35;
       padding: 4px 8px;
-      background: #fff;
+      background: #ffffff;
       border: 1px solid var(--line);
       border-radius: 8px;
+      color: var(--ink);
     }
     .zh .phase-lines li { font-family: "Noto Sans SC", "PingFang SC", sans-serif; }
 
     .callout {
-      border-left: 3px solid var(--accent);
+      border-left: 3px solid var(--dark);
       padding: 7px 9px;
-      background: #fff;
+      background: #ffffff;
       border-radius: 0 8px 8px 0;
       border-top: 1px solid var(--line);
       border-right: 1px solid var(--line);
@@ -302,7 +302,7 @@
     .facts p { font-size: 10.5px; line-height: 1.4; }
     .zh .facts p { font-family: "Noto Sans SC", "PingFang SC", sans-serif; }
     .facts a {
-      color: var(--accent);
+      color: var(--ink);
       text-underline-offset: 2px;
       word-break: break-all;
       font-size: 11px;
@@ -315,7 +315,7 @@
       align-items: center;
       margin: 0 10px 6px;
       padding: 8px 10px;
-      background: #fff;
+      background: #ffffff;
       border: 1px solid var(--edge);
       border-radius: 10px;
       flex: 0 0 auto;
@@ -446,7 +446,7 @@
 
     @media print {
       html, body {
-        background: #ffffff !important;
+        background: var(--paper) !important;
         margin: 0 !important;
         padding: 0 !important;
         width: auto;
@@ -463,7 +463,7 @@
         max-height: calc(297mm - 2 * var(--safe)) !important;
         margin: var(--safe) auto !important;
         border: none !important;
-        background: #ffffff !important;
+        background: var(--paper) !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;

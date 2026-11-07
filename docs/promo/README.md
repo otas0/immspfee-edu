@@ -1,6 +1,6 @@
 # Education promo
 
-A4 briefing sheet for IMMSPFEE Education (classroom edition). Visual language matches `css/edu.css` (white sheet, terracotta accent, phase flow, Avenir/PingFang)—**not** the lab instrument chassis.
+A4 briefing sheet for IMMSPFEE Education (classroom edition). Cream sheet (`--paper` `#f3efe6`), white logo top bar, pure white + black cards—**not** the lab instrument chassis.
 
 | File | Role |
 | --- | --- |
