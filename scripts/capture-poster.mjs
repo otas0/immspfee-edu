@@ -121,15 +121,16 @@ const browser = await chromium.launch(launchOpts());
       panesClipped: panes.some((p) => p.clipped),
       panes,
       brandMax: getComputedStyle(document.querySelector('.brand img')).maxWidth,
-      decorativeBorders: [...document.querySelectorAll('.sheet, .pane, .dock, .qr-box, .books, .callout, .phase-lines li, .top, .flow')]
-        .some((el) => {
+      squareFrames: (() => {
+        const framed = [...document.querySelectorAll('.pane, .dock, .qr-box, .books, .callout')];
+        return framed.every((el) => {
           const st = getComputedStyle(el);
-          return ['Top', 'Right', 'Bottom', 'Left'].some((side) => {
-            const w = parseFloat(st[`border${side}Width`]);
-            const style = st[`border${side}Style`];
-            return w > 0 && style && style !== 'none';
-          });
-        }),
+          const hasBox = parseFloat(st.borderTopWidth) > 0 && st.borderTopStyle !== 'none';
+          const radius = ['TopLeft', 'TopRight', 'BottomRight', 'BottomLeft']
+            .map((c) => parseFloat(st[`border${c}Radius`]) || 0);
+          return hasBox && radius.every((r) => r === 0);
+        });
+      })(),
     };
   });
   const pdfBuf = await page.pdf({
@@ -145,12 +146,12 @@ const browser = await chromium.launch(launchOpts());
     pdfBytes: pdfBuf.length,
     pdfPages: pages,
     a4CssPx: Math.round((297 * 96) / 25.4),
-    ok: pages === 1 && fit.fitsPrintable && fit.booksVisible && !fit.panesClipped && !fit.decorativeBorders,
+    ok: pages === 1 && fit.fitsPrintable && fit.booksVisible && !fit.panesClipped && fit.squareFrames,
   };
   fs.writeFileSync(outFit, `${JSON.stringify(report, null, 2)}\n`);
   console.log('A4 fit', report);
   if (!report.ok) {
-    console.error('FAIL: A4 must be 1 page, content ≤ printable area, no decorative borders');
+    console.error('FAIL: A4 must be 1 page, content ≤ printable area, square (non-rounded) frames');
     await browser.close();
     process.exit(2);
   }

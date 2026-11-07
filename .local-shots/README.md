@@ -28,7 +28,7 @@ Do not collapse these breakpoints: 340px is intentionally “stack + ellipsis”
 | `320px-projectile-stack.png` | 320×720 | Strobe path above stacked x–t · y–t panel. |
 | `live-getsim-fail.md` / `live-getsim-diag/` | CI fail-only | Uploaded as `live-getsim-fail-<sha>` when post-deploy getSim smoke fails. |
 | `1280-desktop-diff.md` | optional | Byte-level drift vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`). |
-| `poster-a4-reference.png` | A4 sheet crop | Education promo baseline (`npm run capture:poster`). Print `@page` margin 12mm; no decorative borders. |
+| `poster-a4-reference.png` | A4 sheet crop | Education promo baseline (`npm run capture:poster`). Print `@page` margin 12mm; square frames. |
 | `poster-340px-screen.png` | **340×720** screen | One column; hero line-height ≤1.25em; no horizontal overflow. |
 | `poster-speaker-zh.png` | A4 speaker `?speaker=1&lang=zh` | Larger projection QR; site-style lang pills. |
 | `poster-a4.pdf` / `poster-a4-fit.json` | A4 | `npm run poster:pdf` / capture fit assert (1 page, no clip). |
