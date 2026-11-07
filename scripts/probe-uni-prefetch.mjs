@@ -4,6 +4,7 @@
  *
  * Default: uni-cm-1 → advance.js only (no optics/stat/phase).
  * Set PROBE_LESSON=uni-qm-1 (or pass arg) to expect uni.js + stat.js, still no optics.
+ * Set PROBE_LESSON=uni-rel-1 for modern.js (relativity volume; no optics).
  *
  *   node scripts/probe-uni-prefetch.mjs
  *   PROBE_LESSON=uni-qm-1 node scripts/probe-uni-prefetch.mjs

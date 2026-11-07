@@ -223,6 +223,35 @@ let failed = 0;
 }
 
 {
+  const { ctx, h } = await runDraw('circuit', 320, 440, {}, {
+    layout: 'household', links: CIRCUIT_LINKS.household, E: 220, r: 2, R1: 484, R2: 0, Rs: 0, t: 1, closed: true,
+  });
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1 || panels[0][2] > h * 0.52 || panels[0][4] < h * 0.45) {
+    failed += 1;
+    console.error('FAIL circuit@320: I–U panel should expand under compressed schematic', panels[0]);
+  } else console.log('ok circuit@320 narrow I–U', { y: panels[0][2].toFixed(0), h: panels[0][4].toFixed(0) });
+}
+
+{
+  const { ctx, h } = await runDraw('st-graph', 320, 400);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1 || panels[0][2] > h * 0.3 || panels[0][4] < h * 0.65) {
+    failed += 1;
+    console.error('FAIL st-graph@320: s–t panel should dominate after track shrink', panels[0]);
+  } else console.log('ok st-graph@320 narrow stack', { y: panels[0][2].toFixed(0) });
+}
+
+{
+  const { ctx, h } = await runDraw('vt-area', 320, 400);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1 || panels[0][2] > h * 0.28 || panels[0][4] < h * 0.68) {
+    failed += 1;
+    console.error('FAIL vt-area@320: v–t panel should dominate after cart shrink', panels[0]);
+  } else console.log('ok vt-area@320 narrow stack', { y: panels[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);
@@ -416,6 +445,22 @@ let failed = 0;
         panelBottom, trackY, midGutter, dragY: dragLabel?.[3], betaY: betaLabel?.[3], w,
       });
     } else console.log('ok minkowski β gutter', { midGutter: midGutter.toFixed(0) });
+  }
+}
+
+{
+  const { ctx, h } = await runDraw('simultaneity', 320, 400, {}, { beta: 0.5 });
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1 || panels[0][4] > h * 0.58 || panels[0][4] < h * 0.5) {
+    failed += 1;
+    console.error('FAIL minkowski@320: panel should shrink for β track', panels[0]);
+  } else {
+    const panelBottom = panels[0][2] + panels[0][4];
+    const trackY = h * 0.88;
+    if (panelBottom >= trackY - 20) {
+      failed += 1;
+      console.error('FAIL minkowski@320: panel crowds β track', { panelBottom, trackY });
+    } else console.log('ok minkowski@320 narrow panel', { h: panels[0][4].toFixed(0) });
   }
 }
 
