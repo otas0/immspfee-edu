@@ -336,11 +336,11 @@ function lensGeom(w, h, p, image) {
   const narrow = w <= 360;
   const midY = narrow ? h * 0.28 : h * 0.56;
   const cx = w * 0.48;
-  const reach = Math.max(
-    p.u, p.f * 2.3, p.screen,
-    Number.isFinite(image.v) ? Math.abs(image.v) : p.f * 2,
-    20,
-  );
+  // Cap |v| in the scale so u→f (v→∞) does not collapse px on every slider tick.
+  const bench = Math.max(p.u, p.screen, p.f * 2.3, 20);
+  const vAbs = Number.isFinite(image.v) ? Math.abs(image.v) : 0;
+  const vReach = vAbs > 0 ? Math.min(vAbs, bench * 2.5) : p.f * 2;
+  const reach = Math.max(bench, vReach);
   const px = Math.min((cx - 28) / reach, (w - 28 - cx) / reach);
   return { midY, cx, px, narrow };
 }

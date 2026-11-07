@@ -850,6 +850,18 @@ let failed = 0;
 }
 
 {
+  // u→f must not collapse px (was the main “slider feels stuck” bug).
+  const nearF = await runDraw('convex-lens', 640, 400, {}, { u: 10.05, f: 10, screen: 18 });
+  const mid = await runDraw('convex-lens', 640, 400, {}, { u: 30, f: 10, screen: 18 });
+  const pxNear = nearF.ui._geo?.px;
+  const pxMid = mid.ui._geo?.px;
+  if (!(pxNear > 0) || !(pxMid > 0) || pxNear < pxMid * 0.35) {
+    failed += 1;
+    console.error('FAIL convex-lens scale: |v| near ∞ must not collapse px', { pxNear, pxMid });
+  } else console.log('ok convex-lens scale near f', { pxNear: pxNear.toFixed(2), pxMid: pxMid.toFixed(2) });
+}
+
+{
   // Convex-lens 2F hysteresis: no flicker when crossing the landmark.
   const sim = await getSim('convex-lens');
   const ui = { lang: 'en' };

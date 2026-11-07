@@ -328,8 +328,10 @@ export const hydrogenRadialSim = {
     const rMax = d.a * (3 * d.n * d.n + 2);
     let maxY = 1e-40;
     const pts = [];
-    for (let i = 0; i <= 160; i += 1) {
-      const r = (rMax * i) / 160;
+    // Fewer radial samples while dragging — shape stays clear, phones stay responsive.
+    const nSamp = w <= 360 ? 72 : 100;
+    for (let i = 0; i <= nSamp; i += 1) {
+      const r = (rMax * i) / nSamp;
       const pt = hydrogenRadial({ n: d.n, l: d.l, r });
       const y = ui.wrong ? Math.abs(pt.R) : pt.dens;
       pts.push({ r, y });
@@ -654,8 +656,9 @@ export const membraneSim = {
     const gy = h * 0.15;
     const gw = w * 0.7;
     const gh = h * 0.65;
-    const nx = 24;
-    const ny = 18;
+    // Keep the eigenmode grid modest — 24×18 fillRect every frame felt sticky on phones.
+    const nx = 16;
+    const ny = 12;
     const omegaShow = ui.wrong
       ? Math.PI * d.c * (d.m / d.a + d.n / d.b)
       : d.omega;

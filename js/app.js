@@ -219,12 +219,22 @@ function applyPointer(patch) {
     marked = false;
     syncBench();
   }
-  draw();
+  scheduleDraw();
 }
 
 function schemaOf(s) {
   if (!s) return [];
   return typeof s.schema === 'function' ? s.schema(params) : s.schema;
+}
+
+let drawRaf = 0;
+/** Coalesce slider / pointer redraws to one paint+readout rebuild per frame. */
+function scheduleDraw() {
+  if (drawRaf) return;
+  drawRaf = requestAnimationFrame(() => {
+    drawRaf = 0;
+    draw();
+  });
 }
 
 function setParam(key, value) {
@@ -241,7 +251,7 @@ function setParam(key, value) {
   if (field && field.type !== 'number') renderTeach();
   else if (extra && Object.keys(extra).length) renderTeach();
   else syncBench();
-  draw();
+  scheduleDraw();
 }
 
 function cssSize() {
