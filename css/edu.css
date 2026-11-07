@@ -321,7 +321,12 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
   aside { order: 1; }
   .teach { order: 2; }
   main { order: 3; }
-  aside, .teach { max-height: none; }
+  /* Cap chapter list so long university volumes do not bury phases below the fold. */
+  aside {
+    max-height: min(30vh, 220px);
+    overflow: auto;
+  }
+  .teach { max-height: none; }
   .stage-wrap { min-height: 300px; }
   canvas { height: min(52vw, 360px); }
   .phases {

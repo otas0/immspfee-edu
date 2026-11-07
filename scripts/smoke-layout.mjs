@@ -252,6 +252,34 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('ac-rms', 640, 400);
+  const narrow = await runDraw('ac-rms', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL ac-rms@640: Im→Irms panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4 || np[0][4] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL ac-rms@320: Im→Irms panel should stack under waveform', np[0]);
+  } else console.log('ok ac-rms dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('transformer', 640, 400);
+  const narrow = await runDraw('transformer', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL transformer@640: U·n·P panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4 || np[0][4] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL transformer@320: U·n·P panel should stack under coils', np[0]);
+  } else console.log('ok transformer dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

@@ -11,6 +11,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const requiredTeachPanel = [
   { file: 'js/sims/circuits.js', id: 'circuit', needles: ['portsOf', 'teachPanel', 'w <= 360'] },
+  { file: 'js/sims/circuits.js', id: 'ac-rms', needles: ['Im → Irms', 'w <= 360'] },
+  { file: 'js/sims/circuits.js', id: 'transformer', needles: ['U · n · P', 'w <= 360'] },
   { file: 'js/sims/motion.js', id: 'projectile', needles: ['teachPanel', 'x–t', 'w <= 360'] },
   { file: 'js/sims/motion.js', id: 'st-graph / vt', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/optics.js', id: 'double-slit', needles: ['teachPanel', 'screen intensity', 'w <= 360'] },
@@ -100,8 +102,11 @@ if (!block1100 || !/\.teach\s*\{\s*order:\s*2\s*;/.test(block1100) || !/main\s*\
 } else if (!/\.phases\s*\{[^}]*position:\s*sticky/.test(block1100)) {
   failed += 1;
   console.error('FAIL edu.css@1100: .phases must be sticky so phase CTAs stay reachable while scrolling');
+} else if (!/aside\s*\{[^}]*max-height:\s*min\(\s*30vh\s*,\s*220px\s*\)/.test(block1100)) {
+  failed += 1;
+  console.error('FAIL edu.css@1100: aside must cap at min(30vh, 220px) so long chapters do not bury teach');
 } else {
-  console.log('ok edu.css@1100 teach-before-stage + sticky phases');
+  console.log('ok edu.css@1100 teach-before-stage + sticky phases + capped aside');
 }
 if (!hasTwoRowAreas(block768)) {
   failed += 1;
@@ -173,6 +178,31 @@ function lint420AreasOrInherit(block) {
     console.error('FAIL pages.yml: OFFLINE_FIRST must not appear as an env key (ADR 001)');
   } else {
     console.log('ok pages.yml: no OFFLINE_FIRST env key');
+  }
+}
+
+// LIVE_GETSIM_IDS default + Pages env must cover every PATHS group (one id each).
+{
+  const reg = fs.readFileSync(path.join(root, 'js/sims/registry.js'), 'utf8');
+  const pathKeys = [...reg.matchAll(/^\s*(\w+)\s*:\s*'\.\/[\w.-]+\.js'/gm)].map((m) => m[1]);
+  const liveSrc = fs.readFileSync(path.join(root, 'scripts/smoke-live-getsim.mjs'), 'utf8');
+  const pagesYml = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
+  const defaultBlock = liveSrc.match(/DEFAULT_LIVE_GETSIM_IDS\s*=\s*\[([\s\S]*?)\]/);
+  const defaultIds = defaultBlock
+    ? [...defaultBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
+    : [];
+  const pagesMatch = pagesYml.match(/LIVE_GETSIM_IDS:\s*([^\n]+)/);
+  const pagesIds = pagesMatch
+    ? pagesMatch[1].split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+  if (defaultIds.length !== pathKeys.length) {
+    failed += 1;
+    console.error('FAIL smoke-live-getsim DEFAULT_LIVE_GETSIM_IDS count', defaultIds.length, '!= PATHS', pathKeys.length);
+  } else if (pagesIds.length !== pathKeys.length) {
+    failed += 1;
+    console.error('FAIL pages.yml LIVE_GETSIM_IDS count', pagesIds.length, '!= PATHS', pathKeys.length);
+  } else {
+    console.log('ok LIVE_GETSIM_IDS covers', pathKeys.length, 'PATHS groups');
   }
 }
 

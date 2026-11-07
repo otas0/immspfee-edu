@@ -9,7 +9,7 @@
  *   PAGES_BASE=https://otas0.github.io/immspfee-edu SHORT=abc1234 \
  *     node scripts/smoke-live-getsim.mjs
  *
- * LIVE_GETSIM_IDS defaults to a cross-group sample.
+ * LIVE_GETSIM_IDS defaults to one sim id per PATHS group (18 groups).
  */
 import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -19,7 +19,28 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const base = String(process.env.PAGES_BASE || '').replace(/\/$/, '');
 const short = String(process.env.SHORT || '').trim();
-const ids = String(process.env.LIVE_GETSIM_IDS || 'convex-lens,finite-well,barrier-tunnel,ising,melting,length-contraction,oscillator,circuit')
+/** One ready id per PATHS key in registry.js (optics…rel). */
+const DEFAULT_LIVE_GETSIM_IDS = [
+  'convex-lens', // optics
+  'friction', // mech
+  'density', // fluids
+  'lever', // machines
+  'circuit', // circuits
+  'projectile', // motion
+  'melting', // phase
+  'oscillator', // advance
+  'heat-engine', // thermal
+  'ruler', // measure
+  'sound-wave', // waves
+  'induction', // em
+  'collide', // collide
+  'charges', // charge
+  'time-dilation', // modern
+  'finite-well', // uni
+  'ising', // stat
+  'length-contraction', // rel
+].join(',');
+const ids = String(process.env.LIVE_GETSIM_IDS || DEFAULT_LIVE_GETSIM_IDS)
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);

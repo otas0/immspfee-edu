@@ -327,10 +327,17 @@ export const acSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.1;
-    const gy = h * 0.55;
-    const gw = w * 0.8;
-    const gh = h * 0.3;
+    // Wide: waveform left / Im→Irms panel right. Narrow (≤360): waveform on top, panel below.
+    const narrow = w <= 360;
+    const waveX = narrow ? w * 0.06 : w * 0.04;
+    const waveY = narrow ? h * 0.08 : h * 0.12;
+    const waveW = narrow ? w * 0.88 : w * 0.44;
+    const waveH = narrow ? h * 0.36 : h * 0.76;
+    text(ctx, lab(ui, 'i(t)', 'i(t)'), waveX + waveW / 2, waveY - 2, MUTED, 12, 'center');
+    const gx = waveX + waveW * 0.08;
+    const gy = waveY + waveH * 0.55;
+    const gw = waveW * 0.84;
+    const gh = waveH * 0.35;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     ctx.beginPath();
     for (let i = 0; i <= 120; i += 1) {
@@ -345,7 +352,27 @@ export const acSim = {
     ctx.lineWidth = 2;
     ctx.stroke();
     const Ishow = ui.wrong ? d.Im : d.Irms;
-    text(ctx, `Irms=${fmt(Ishow, 3)} A`, w * 0.5, h * 0.15, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `i=${fmt(d.i, 3)} A`, waveX + waveW / 2, waveY + waveH - 8, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Im → Irms', 'Im → Irms'));
+    const bx = panelX + panelW * 0.18;
+    const by = panelY + panelH * 0.82;
+    const bw = panelW * 0.28;
+    const bh = panelH * 0.55;
+    const peakH = bh;
+    const rmsH = bh * (Ishow / Math.max(d.Im, 1e-6));
+    ctx.fillStyle = RAY2;
+    ctx.fillRect(bx, by - peakH, bw, peakH);
+    ctx.fillStyle = RAY;
+    ctx.fillRect(bx + bw * 1.45, by - rmsH, bw, rmsH);
+    text(ctx, 'Im', bx + bw / 2, by + 14, MUTED, 11, 'center');
+    text(ctx, 'Irms', bx + bw * 1.45 + bw / 2, by + 14, MUTED, 11, 'center');
+    text(ctx, `Irms=${fmt(Ishow, 3)} A`, panelX + panelW / 2, panelY + 28, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, ui.wrong ? lab(ui, 'Irms = Im', 'Irms = Im') : 'Irms = Im/√2', panelX + panelW / 2, panelY + 48, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -381,15 +408,41 @@ export const transformerSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: coils left / ratio panel right. Narrow (≤360): coils on top, panel below.
+    const narrow = w <= 360;
+    const coilX = narrow ? w * 0.08 : w * 0.04;
+    const coilY = narrow ? h * 0.1 : h * 0.18;
+    const coilW = narrow ? w * 0.84 : w * 0.44;
+    const coilH = narrow ? h * 0.32 : h * 0.64;
+    const left = coilX + coilW * 0.08;
+    const right = coilX + coilW * 0.58;
+    const boxW = coilW * 0.28;
+    const boxH = coilH * 0.7;
+    const boxY = coilY + coilH * 0.15;
     ctx.strokeStyle = INK;
-    ctx.strokeRect(w * 0.2, h * 0.3, w * 0.2, h * 0.35);
-    ctx.strokeRect(w * 0.6, h * 0.3, w * 0.2, h * 0.35);
-    line(ctx, w * 0.4, h * 0.35, w * 0.6, h * 0.35, MUTED, 2);
-    line(ctx, w * 0.4, h * 0.6, w * 0.6, h * 0.6, MUTED, 2);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(left, boxY, boxW, boxH);
+    ctx.strokeRect(right, boxY, boxW, boxH);
+    line(ctx, left + boxW, boxY + boxH * 0.2, right, boxY + boxH * 0.2, MUTED, 2);
+    line(ctx, left + boxW, boxY + boxH * 0.8, right, boxY + boxH * 0.8, MUTED, 2);
     const U2 = ui.wrong ? d.U1 * (d.n1 / d.n2) : d.U2;
-    text(ctx, `U1=${fmt(d.U1, 0)} V`, w * 0.3, h * 0.22, MUTED, 12, 'center');
-    text(ctx, `U2=${fmt(U2, 1)} V`, w * 0.7, h * 0.22, ui.wrong ? '#a33' : INK, 12, 'center');
-    text(ctx, `n1:${fmt(d.n1, 0)}  n2:${fmt(d.n2, 0)}`, w * 0.5, h * 0.8, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'coils', '线圈'), coilX + coilW / 2, coilY, MUTED, 12, 'center');
+    text(ctx, `U1=${fmt(d.U1, 0)} V`, left + boxW / 2, boxY - 10, MUTED, 11, 'center');
+    text(ctx, `U2=${fmt(U2, 1)} V`, right + boxW / 2, boxY - 10, ui.wrong ? '#a33' : INK, 11, 'center');
+    text(ctx, `n1=${fmt(d.n1, 0)}`, left + boxW / 2, boxY + boxH + 14, MUTED, 11, 'center');
+    text(ctx, `n2=${fmt(d.n2, 0)}`, right + boxW / 2, boxY + boxH + 14, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'U · n · P', 'U · n · P'));
+    text(ctx, `U2/U1 = ${fmt(U2 / Math.max(d.U1, 1e-9), 3)}`, panelX + panelW / 2, panelY + panelH * 0.28, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, `n2/n1 = ${fmt(d.n2 / Math.max(d.n1, 1e-9), 3)}`, panelX + panelW / 2, panelY + panelH * 0.42, MUTED, 13, 'center');
+    text(ctx, ui.wrong
+      ? lab(ui, 'ratio inverted', '匝数比颠倒')
+      : `P=${fmt(d.Pin, 1)} W`, panelX + panelW / 2, panelY + panelH * 0.58, ui.wrong ? '#a33' : INK, 13, 'center');
+    text(ctx, lab(ui, 'ideal: U1/U2 = n1/n2', '理想：U1/U2 = n1/n2'), panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

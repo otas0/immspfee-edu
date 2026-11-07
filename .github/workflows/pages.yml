@@ -248,8 +248,8 @@ jobs:
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          # University extras: barrier-tunnel + ising; keep lens + finite-well; add phase/rel/mech samples.
-          LIVE_GETSIM_IDS: convex-lens,finite-well,barrier-tunnel,ising,melting,length-contraction,oscillator,circuit
+          # One id per PATHS group (optics…rel); override only if a group id is renamed.
+          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,ising,length-contraction
         run: node scripts/smoke-live-getsim.mjs
       - name: Upload live getSim fail diag
         if: failure() && steps.live_getsim.outcome == 'failure'
