@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js?v=__BUILD__';
 import { lever, pulley, workPower } from '../physics/machines.js?v=__BUILD__';
-import { num, clear, line, arrow, text, handle, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
+import { num, clear, line, arrow, text, handle, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -46,25 +46,38 @@ export const leverSim = {
   },
   draw(ctx, w, h, _p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.55;
-    const cx = w * 0.5;
-    const px = Math.min(w * 0.42, h * 0.55);
+    // Wide: bar left / F1L1=F2L2 panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.44 : h * 0.8;
+    const y = schY + schH * 0.48;
+    const cx = schX + schW * 0.5;
+    const px = Math.min(schW * 0.42, schH * 0.55);
     line(ctx, cx - px, y, cx + px, y, INK, 6);
-    line(ctx, cx, y, cx, y + 36, INK, 3);
+    line(ctx, cx, y, cx, y + 28, INK, 3);
     const x1 = cx - d.L1 * px;
     const x2 = cx + d.L2 * px;
-    const len1 = 16 + d.F1 * 4;
-    const len2 = 16 + d.F2 * 4;
+    const len1 = Math.min(schH * 0.28, 16 + d.F1 * 4);
+    const len2 = Math.min(schH * 0.28, 16 + d.F2 * 4);
     arrow(ctx, x1, y, x1, y + len1, RAY, 3);
     arrow(ctx, x2, y, x2, y + len2, RAY2, 3);
-    text(ctx, 'F1', x1, y + len1 + 14, RAY, 12, 'center');
-    text(ctx, 'F2', x2, y + len2 + 14, RAY2, 12, 'center');
-    text(ctx, lab(ui, 'fulcrum', '支点'), cx, y + 52, MUTED, 12, 'center');
-    text(ctx, d.balanced ? lab(ui, 'balanced', '平衡') : lab(ui, 'not balanced', '不平衡'), w * 0.5, h * 0.16, INK, 16, 'center');
-    if (ui.wrong) text(ctx, `F1+F2=${fmt(d.F1 + d.F2, 1)}`, w * 0.5, h * 0.26, '#a33', 13, 'center');
+    text(ctx, 'F1', x1, y + len1 + 12, RAY, 11, 'center');
+    text(ctx, 'F2', x2, y + len2 + 12, RAY2, 11, 'center');
+    text(ctx, lab(ui, 'fulcrum', '支点'), cx, y + 42, MUTED, 11, 'center');
     handle(ctx, x1, y, ui.drag === 'L1');
     handle(ctx, x2, y, ui.drag === 'L2');
-    ui._geo = { cx, y, px };
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'F1 L1 = F2 L2', 'F1 L1 = F2 L2'));
+    const bal = d.balanced ? lab(ui, 'balanced', '平衡') : lab(ui, 'not balanced', '不平衡');
+    text(ctx, ui.wrong ? `F1+F2=${fmt(d.F1 + d.F2, 1)}` : bal, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `τ1=${fmt(d.tau1, 2)}  τ2=${fmt(d.tau2, 2)}`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { cx, y, px, panelY };
   },
   pointer(ev, _p, _d, ui) {
     const g = ui._geo;
@@ -119,40 +132,42 @@ export const pulleySim = {
   },
   draw(ctx, w, h, _p, d, ui) {
     clear(ctx, w, h);
-    const cx = w * 0.34;
-    const top = h * 0.22;
-    const span = Math.min(70, w * 0.12);
+    // Wide: pulley left / η panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.44 : h * 0.8;
+    const cx = schX + schW * 0.38;
+    const top = schY + schH * 0.12;
+    const span = Math.min(54, schW * 0.18);
     line(ctx, cx - span, top, cx + span, top, INK, 4);
-    const loadY = top + 70 + d.h * 80;
+    const loadY = Math.min(schY + schH * 0.78, top + 50 + d.h * 60);
     for (let i = 0; i < d.n; i += 1) {
       const x = cx - span + (2 * span * i) / Math.max(1, d.n - 1);
       line(ctx, x, top, d.n === 1 ? x : cx, loadY, '#8a8175', 2);
     }
     ctx.fillStyle = RAY2;
-    ctx.fillRect(cx - 28, loadY, 56, 22);
-    text(ctx, lab(ui, 'load', '重物'), cx, loadY + 34, MUTED, 12, 'center');
-    const endX = w * 0.72;
-    const endY = top + d.s * 90;
+    ctx.fillRect(cx - 24, loadY, 48, 18);
+    text(ctx, lab(ui, 'load', '重物'), cx, loadY + 28, MUTED, 11, 'center');
+    const endX = schX + schW * 0.82;
+    const sScale = Math.min(70, schH * 0.55);
+    const endY = Math.min(schY + schH * 0.85, top + d.s * sScale);
     line(ctx, cx + span, top, endX, endY, RAY, 2);
     handle(ctx, endX, endY, ui.drag === 'rope');
-    text(ctx, `s=${fmt(d.s, 2)}`, endX + 16, endY, RAY, 12);
-    text(ctx, `h=${fmt(d.h, 2)}`, cx, loadY - 16, INK, 12, 'center');
-    const barX = w * 0.78;
-    const maxJ = Math.max(d.total, 0.5);
-    const scale = (h * 0.45) / maxJ;
-    const bars = [
-      [lab(ui, 'useful', '有用'), d.useful, '#2a6b3a'],
-      [lab(ui, 'extra', '额外'), d.extra, '#a33'],
-      [lab(ui, 'total', '总功'), d.total, INK],
-    ];
-    bars.forEach((bar, i) => {
-      const x = barX + i * 28;
-      ctx.fillStyle = bar[2];
-      ctx.fillRect(x, h * 0.72 - bar[1] * scale, 18, bar[1] * scale);
-      text(ctx, bar[0], x + 9, h * 0.78, MUTED, 10, 'center');
-    });
-    if (ui.wrong) text(ctx, `G·s=${fmt(d.G * d.s, 2)}`, w * 0.34, h * 0.9, '#a33', 13, 'center');
-    ui._geo = { endX, top };
+    text(ctx, `s=${fmt(d.s, 2)}`, endX, endY + 14, RAY, 11, 'center');
+    text(ctx, `h=${fmt(d.h, 2)}`, cx, loadY - 12, INK, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    const usefulShow = ui.wrong ? d.G * d.s : d.useful;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'η = G h / (F s)', 'η = G h / (F s)'));
+    text(ctx, `η=${d.eta == null ? '—' : fmt(d.eta, 3)}`, panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? `G·s=${fmt(usefulShow, 1)}` : `W_u=${fmt(d.useful, 1)} J`, panelX + panelW / 2, panelY + panelH * 0.55, ui.wrong ? '#a33' : MUTED, 12, 'center');
+    text(ctx, `F=${fmt(d.F, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 12, 'center');
+    ui._geo = { endX, top, sScale, panelY };
   },
   pointer(ev, p, _d, ui) {
     const g = ui._geo;
@@ -163,7 +178,8 @@ export const pulleySim = {
     }
     if (ev.type === 'up') { ui.drag = null; return {}; }
     if (ui.drag !== 'rope') return null;
-    return { s: Math.min(2, Math.max(0, (ev.y - g.top) / 90)) };
+    const scale = g.sScale || 90;
+    return { s: Math.min(2, Math.max(0, (ev.y - g.top) / scale)) };
   },
 };
 
@@ -203,20 +219,35 @@ export const workSim = {
   },
   draw(ctx, w, h, _p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.62;
-    const x0 = w * 0.18;
-    const px = Math.min(w * 0.55, 80);
-    line(ctx, x0, y, x0 + Math.max(d.s, 0.2) * px + 40, y, '#cfc6b8', 2);
+    // Wide: block left / W=Fs cosθ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.68;
+    const x0 = schX + schW * 0.12;
+    const px = Math.min(schW * 0.55, 70);
+    line(ctx, x0, y, x0 + Math.max(d.s, 0.2) * px + 28, y, '#cfc6b8', 2);
     const x = x0 + d.s * px;
     ctx.fillStyle = INK;
-    ctx.fillRect(x - 16, y - 28, 32, 28);
+    ctx.fillRect(x - 14, y - 24, 28, 24);
     const rad = (d.theta * Math.PI) / 180;
-    const len = 30 + d.F * 2;
-    arrow(ctx, x, y - 14, x + len * Math.cos(rad), y - 14 - len * Math.sin(rad), RAY, 3);
-    text(ctx, `W=${fmt(d.W, 1)} J`, w * 0.5, h * 0.18, INK, 16, 'center');
-    if (ui.wrong) text(ctx, `F·s=${fmt(d.F * d.s, 1)}`, w * 0.5, h * 0.28, '#a33', 13, 'center');
-    handle(ctx, x, y - 14, ui.drag === 's');
-    ui._geo = { x0, y, px };
+    const len = Math.min(schH * 0.45, 28 + d.F * 1.5);
+    const tipX = x + len * Math.cos(rad);
+    const tipY = y - 12 - len * Math.sin(rad);
+    arrow(ctx, x, y - 12, tipX, tipY, RAY, 3);
+    handle(ctx, x, y - 12, ui.drag === 's');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    const wShow = ui.wrong ? d.F * d.s : d.W;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'W = F s cosθ', 'W = F s cosθ'));
+    text(ctx, `W=${fmt(wShow, 1)} J`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? 'drop cosθ' : `P=${fmt(d.P, 1)} W`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { x0, y, px, panelY };
   },
   pointer(ev, _p, _d, ui) {
     const g = ui._geo;

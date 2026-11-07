@@ -1042,6 +1042,67 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('lever', 640, 400);
+  const narrow = await runDraw('lever', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL lever@640: F1L1=F2L2 panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL lever@320: moment panel should stack under bar', np[0]);
+  } else console.log('ok lever dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('pulley', 640, 400);
+  const narrow = await runDraw('pulley', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL pulley@640: η panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL pulley@320: η panel should stack under ropes', np[0]);
+  } else console.log('ok pulley dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('work', 640, 400);
+  const narrow = await runDraw('work', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL work@640: W=Fs cosθ panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL work@320: W panel should stack under block', np[0]);
+  } else console.log('ok work dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  // Narrow pinhole: object/screen handles stay in the upper schematic band.
+  const { ctx, h, ui, sim, p, d } = await runDraw('pinhole', 320, 400);
+  const np = panelFills(ctx.ops);
+  const g = ui._geo;
+  const panelY = np[0]?.[2] ?? h;
+  const objY = g ? g.mid - g.objH : null;
+  if (!g || !(objY < panelY - 8) || !(g.mid < panelY - 8)) {
+    failed += 1;
+    console.error('FAIL pinhole@320: object/screen handles should sit above h panel', { objY, mid: g?.mid, panelY });
+  } else {
+    const moved = sim.pointer({ type: 'move', x: g.objX - 20, y: objY }, { ...p }, d, { ...ui, drag: 'obj' });
+    if (!moved || !(moved.u > 0)) {
+      failed += 1;
+      console.error('FAIL pinhole@320: object drag should update u in schematic', moved);
+    } else console.log('ok pinhole@320 handles above panel', { objY: objY.toFixed(0), mid: g.mid.toFixed(0), panelY: panelY.toFixed(0), u: moved.u.toFixed(1) });
+  }
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);
