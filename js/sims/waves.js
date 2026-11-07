@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js?v=__BUILD__';
 import { tuningFork, emWave, soundAbsorb, echoRange, doppler, beats, dispersion } from '../physics/waves.js?v=__BUILD__';
-import { num, tog, clear, line, text, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
+import { num, tog, clear, line, text, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -354,12 +354,19 @@ export const beatsSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.08;
-    const gy = h * 0.5;
-    const gw = w * 0.84;
-    const gh = h * 0.28;
-    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    // Wide: waveform left / Δf panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const dfShow = ui.wrong ? d.f1 + d.f2 : d.df;
+    const waveX = narrow ? w * 0.06 : w * 0.04;
+    const waveY = narrow ? h * 0.08 : h * 0.12;
+    const waveW = narrow ? w * 0.88 : w * 0.44;
+    const waveH = narrow ? h * 0.36 : h * 0.76;
+    text(ctx, lab(ui, 'y(t)', 'y(t)'), waveX + waveW / 2, waveY, MUTED, 12, 'center');
+    const gx = waveX + waveW * 0.08;
+    const gy = waveY + waveH * 0.55;
+    const gw = waveW * 0.84;
+    const gh = waveH * 0.35;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     ctx.beginPath();
     for (let i = 0; i <= 200; i += 1) {
       const tt = d.t - (1 - i / 200) * Math.min(1, 4 / Math.max(dfShow, 0.5));
@@ -374,7 +381,15 @@ export const beatsSim = {
     ctx.strokeStyle = RAY2;
     ctx.lineWidth = 2;
     ctx.stroke();
-    text(ctx, `Δf=${fmt(dfShow, 2)} Hz`, w * 0.5, h * 0.12, ui.wrong ? '#a33' : INK, 14, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Δf = |f1−f2|', 'Δf = |f1−f2|'));
+    text(ctx, `Δf=${fmt(dfShow, 2)} Hz`, panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `f̄=${fmt(d.favg, 1)} Hz`, panelX + panelW / 2, panelY + panelH * 0.5, MUTED, 13, 'center');
+    text(ctx, ui.wrong ? 'Δf = f1+f2' : 'envelope ∝ cos(π Δf t)', panelX + panelW / 2, panelY + panelH * 0.7, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

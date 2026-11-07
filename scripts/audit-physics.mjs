@@ -61,6 +61,24 @@ near(phys.ampereForce({ B: 1, I: 2, L: 0.5 }).F, 1, 1e-12, 'F=BIL');
 near(phys.solenoidField({ n: 500, I: 1, turns: 4 }).B, 4e-7 * Math.PI * 500, 1e-12, 'μ0 n I');
 near(phys.oscillator({ m: 1, k: 4, A: 0.1 }, 0).x, 0.1, 1e-12, 'SHO x(0)');
 near(phys.oscillator({ m: 1, k: 4, A: 0.1 }, Math.PI / 4).x, 0, 1e-9, 'SHO x(T/4)'); // ω=2 → T=π, T/4=π/4
+// Horizontal projection (沪科/人教平抛): x=v0 t, range=v0√(2H/g) — not angled range.
+near(phys.projectile({ v0: 4, H: 5, g: 10 }, 0).range, 4 * Math.sqrt(1), 1e-9, '平抛 range');
+near(phys.beats({ f1: 440, f2: 444 }).df, 4, 1e-12, 'beats Δf');
+near(phys.beats({ f1: 440, f2: 444 }).favg, 442, 1e-12, 'beats favg');
+near(phys.doppler({ f: 440, v: 340, vo: 0, vs: 0, observerToward: true, sourceToward: true }).fp, 440, 1e-9, 'doppler at rest');
+near(phys.doppler({ f: 440, v: 340, vo: 0, vs: 34, observerToward: true, sourceToward: true }).fp, 440 * 340 / 306, 1e-6, 'doppler source toward');
+near(phys.capacitance({ Q: 1e-5, U: 5 }).C, 2e-6, 1e-18, 'C=Q/U');
+near(phys.telescope({ fObj: 50, fEye: 5 }).M, -10, 1e-9, 'telescope M');
+near(phys.singleSlit({ a: 1e-4, lambda: 5e-7, L: 1, m: 1 }).y, 5e-3, 1e-12, 'single-slit y1');
+{
+  const mx = phys.maxwellSpeed({ m: 4.65e-26, T: 300 });
+  const kB = 1.380649e-23;
+  const a = Math.sqrt((kB * 300) / 4.65e-26);
+  near(mx.vmp, a * Math.SQRT2, 1e-6, 'Maxwell vmp');
+  assert(mx.vmp < mx.vavg && mx.vavg < mx.vrms, 'Maxwell vmp < ⟨v⟩ < vrms');
+}
+near(phys.transformer({ n1: 100, n2: 20, U1: 220, I2: 5 }).U2, 44, 1e-9, 'transformer U2');
+near(phys.acPeakRms({ Im: 2, Vm: 10, f: 50 }, 0).Irms, 2 / Math.SQRT2, 1e-12, 'AC Irms');
 const fw = phys.finiteWell({ m: 9.1e-31, L: 1e-9, V0: 1.6e-18, E: 2e-18 });
 assert(fw.E1f != null && fw.E1f < fw.E1inf, 'finite-well E1f < E1∞');
 assert(fw.bound.length >= 2, `finite-well ≥2 bound states (got ${fw.bound.length})`);
@@ -117,6 +135,29 @@ for (const row of ready) {
 
 for (const id of Object.keys(SIMS)) {
   assert(seenSim.has(id), `sim ${id} never mounted on a ready lesson`);
+}
+
+// Sim module must stay wired to the physics export (defaults).
+{
+  const wiring = [
+    ['convex-lens', (p) => phys.thinLens(p), (d) => d.v],
+    ['malus', (p) => phys.malus(p), (d) => d.I],
+    ['beats', (p) => phys.beats(p, 0), (d) => d.df],
+    ['doppler', (p) => phys.doppler(p), (d) => d.fp],
+    ['maxwell-speed', (p) => phys.maxwellHistogram(p), (d) => d.vmp],
+    ['projectile', (p) => phys.projectile(p, 0), (d) => d.range],
+    ['transformer', (p) => phys.transformer(p), (d) => d.U2],
+    ['ac-rms', (p) => phys.acPeakRms(p, 0), (d) => d.Irms],
+    ['single-slit', (p) => phys.singleSlit(p), (d) => d.y],
+    ['telescope', (p) => phys.telescope(p), (d) => d.M],
+    ['time-dilation', (p) => phys.timeDilation(p), (d) => d.gamma],
+    ['length-contraction', (p) => phys.lengthContraction(p), (d) => d.L],
+  ];
+  for (const [id, phy, pick] of wiring) {
+    const sim = await getSim(id);
+    const p = { ...sim.params };
+    near(pick(sim.compute(p, 0)), pick(phy(p)), 1e-9, `${id} sim↔physics`);
+  }
 }
 
 // Corner: schema extremes for each sim (min/max of first numeric field)

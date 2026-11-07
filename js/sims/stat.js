@@ -467,10 +467,17 @@ export const maxwellHistSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.1;
-    const gy = h * 0.78;
-    const gw = w * 0.8;
-    const gh = h * 0.55;
+    // Wide: histogram left / speed ladder right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const histX = narrow ? w * 0.06 : w * 0.04;
+    const histY = narrow ? h * 0.08 : h * 0.1;
+    const histW = narrow ? w * 0.88 : w * 0.52;
+    const histH = narrow ? h * 0.4 : h * 0.82;
+    text(ctx, lab(ui, 'f(v)', 'f(v)'), histX + histW / 2, histY, MUTED, 12, 'center');
+    const gx = histX + histW * 0.08;
+    const gy = histY + histH * 0.88;
+    const gw = histW * 0.84;
+    const gh = histH * 0.7;
     const fPeak = maxwellSpeed({ m: d.m, T: d.T, v: d.vmp }).f;
     const scale = Math.max(fPeak, ...d.heights, 1e-12);
     const bw = gw / d.bins;
@@ -479,7 +486,6 @@ export const maxwellHistSim = {
       ctx.fillStyle = RAY2;
       ctx.fillRect(gx + i * bw, gy - bh, bw * 0.9, bh);
     });
-    // Overlay continuous f(v) on the same peak normalisation as the bars.
     ctx.beginPath();
     for (let i = 0; i <= 100; i += 1) {
       const v = (d.vmax * i) / 100;
@@ -500,16 +506,29 @@ export const maxwellHistSim = {
     ctx.arc(px, gy - gh, 5, 0, Math.PI * 2);
     ctx.fill();
     text(ctx, ui.wrong ? 'vrms?' : 'vmp', px, gy - gh - 12, ui.wrong ? '#a33' : INK, 12, 'center');
+    ui._maxwellGeo = { gx, gw, vmax: d.vmax, narrow };
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'vmp · ⟨v⟩ · vrms', 'vmp · ⟨v⟩ · vrms'));
+    text(ctx, `vmp=${fmt(d.vmp, 0)}`, panelX + panelW / 2, panelY + panelH * 0.28, ui.wrong ? '#a33' : INK, 13, 'center');
+    text(ctx, `⟨v⟩=${fmt(d.vavg, 0)}`, panelX + panelW / 2, panelY + panelH * 0.48, MUTED, 13, 'center');
+    text(ctx, `vrms=${fmt(d.vrms, 0)}`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 13, 'center');
+    text(ctx, 'vmp < ⟨v⟩ < vrms', panelX + panelW / 2, panelY + panelH * 0.88, MUTED, 11, 'center');
   },
   pointer(ev, _p, d, ui) {
     if (ev.type === 'down') { ui.drag = 'vmp'; return {}; }
     if (ev.type === 'up') { ui.drag = null; return {}; }
     if (ev.type !== 'move' || ui.drag !== 'vmp') return null;
+    const g = ui._maxwellGeo;
     const host = typeof document !== 'undefined' ? document.getElementById('stage') : null;
     const W = host ? host.getBoundingClientRect().width : 640;
-    const gx = W * 0.1;
-    const gw = W * 0.8;
-    const v = Math.max(50, Math.min(d.vmax * 0.98, ((ev.x - gx) / gw) * d.vmax));
+    const gx = g?.gx ?? W * 0.1;
+    const gw = g?.gw ?? W * 0.8;
+    const vmax = g?.vmax ?? d.vmax;
+    const v = Math.max(50, Math.min(vmax * 0.98, ((ev.x - gx) / gw) * vmax));
     const T = (d.m * v * v) / (2 * KB);
     return { T: Math.max(50, Math.min(2000, T)) };
   },

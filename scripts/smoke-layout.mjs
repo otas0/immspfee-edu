@@ -336,6 +336,34 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('beats', 640, 400);
+  const narrow = await runDraw('beats', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL beats@640: Δf panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL beats@320: Δf panel should stack under y(t)', np[0]);
+  } else console.log('ok beats dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('maxwell-speed', 640, 400);
+  const narrow = await runDraw('maxwell-speed', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL maxwell-speed@640: speed ladder should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL maxwell-speed@320: speed ladder should stack under f(v)', np[0]);
+  } else console.log('ok maxwell-speed dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

@@ -21,6 +21,8 @@ const requiredTeachPanel = [
   { file: 'js/sims/optics.js', id: 'telescope', needles: ['M · tube', 'w <= 360'] },
   { file: 'js/sims/optics.js', id: 'single-slit', needles: ['y_m minima', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'wave-packet', needles: ['σ(t) spread', 'w <= 360'] },
+  { file: 'js/sims/stat.js', id: 'maxwell-speed', needles: ['vmp · ⟨v⟩ · vrms', 'w <= 360'] },
+  { file: 'js/sims/waves.js', id: 'beats', needles: ['Δf = |f1−f2|', 'w <= 360'] },
   { file: 'js/sims/thermal.js', id: 'heat-engine', needles: ['teachPanel', 'p–V', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'ising', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/advance.js', id: 'coupled-pendula', needles: ['teachPanel', 'w <= 360'] },
