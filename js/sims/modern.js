@@ -302,10 +302,27 @@ export const massEnergySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: mass mark left / E=mc² panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const Eshow = ui.wrong ? d.m * d.c : d.E;
-    text(ctx, 'E = m c²', w * 0.5, h * 0.35, INK, 22, 'center');
-    text(ctx, `E = ${Eshow.toExponential(3)} J`, w * 0.5, h * 0.55, ui.wrong ? '#a33' : RAY, 18, 'center');
-    text(ctx, `m = ${d.m.toExponential(2)} kg`, w * 0.5, h * 0.72, MUTED, 13, 'center');
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(schX + schW * 0.5, schY + schH * 0.48, Math.min(schW, schH) * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, 'm', schX + schW * 0.5, schY + schH * 0.48 + 5, '#fff', 16, 'center');
+    text(ctx, `m=${d.m.toExponential(2)} kg`, schX + schW / 2, schY + schH * 0.88, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'E = m c²', 'E = m c²'));
+    text(ctx, `E=${Eshow.toExponential(3)} J`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? 'E = m c' : 'rest energy only', panelX + panelW / 2, panelY + panelH * 0.7, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -603,12 +620,30 @@ export const dilationSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: Δτ/Δt bars left / γ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const dtShow = ui.wrong ? d.dtau / d.gamma : d.dt;
-    line(ctx, w * 0.2, h * 0.55, w * 0.45, h * 0.55, RAY, 8);
-    line(ctx, w * 0.55, h * 0.55, w * 0.55 + Math.min(w * 0.35, d.gamma * w * 0.12), h * 0.55, RAY2, 8);
-    text(ctx, `Δτ=${fmt(d.dtau, 2)} s`, w * 0.32, h * 0.45, MUTED, 12, 'center');
-    text(ctx, `Δt=${fmt(dtShow, 2)} s`, w * 0.75, h * 0.45, ui.wrong ? '#a33' : INK, 12, 'center');
-    text(ctx, `γ=${fmt(d.gamma, 3)}`, w * 0.5, h * 0.25, INK, 16, 'center');
+    const barX = narrow ? w * 0.06 : w * 0.04;
+    const barY = narrow ? h * 0.08 : h * 0.12;
+    const barW = narrow ? w * 0.88 : w * 0.5;
+    const barH = narrow ? h * 0.4 : h * 0.76;
+    const y = barY + barH * 0.55;
+    const tauLen = barW * 0.28;
+    const tLen = Math.min(barW * 0.42, Math.max(barW * 0.18, d.gamma * barW * 0.14));
+    line(ctx, barX + barW * 0.08, y, barX + barW * 0.08 + tauLen, y, RAY, 8);
+    line(ctx, barX + barW * 0.5, y, barX + barW * 0.5 + tLen, y, RAY2, 8);
+    text(ctx, `Δτ=${fmt(d.dtau, 2)} s`, barX + barW * 0.08 + tauLen / 2, y - 18, MUTED, 11, 'center');
+    text(ctx, `Δt=${fmt(dtShow, 2)} s`, barX + barW * 0.5 + tLen / 2, y - 18, ui.wrong ? '#a33' : INK, 11, 'center');
+    text(ctx, lab(ui, 'clocks', '时钟'), barX + barW / 2, barY + 12, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Δt = γ Δτ', 'Δt = γ Δτ'));
+    text(ctx, `γ=${fmt(d.gamma, 3)}`, panelX + panelW / 2, panelY + panelH * 0.35, INK, 15, 'center');
+    text(ctx, `β=${fmt(d.beta, 3)}`, panelX + panelW / 2, panelY + panelH * 0.55, MUTED, 13, 'center');
+    text(ctx, ui.wrong ? 'Δt = Δτ / γ' : 'lab stretches', panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

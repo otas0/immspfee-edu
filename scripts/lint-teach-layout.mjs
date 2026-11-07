@@ -35,6 +35,7 @@ const requiredTeachPanel = [
   { file: 'js/sims/stat.js', id: 'laser-cavity', needles: ['Δν = c/(2L)', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'thin-film', needles: ['bright 2nt', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'stern-gerlach', needles: ['P(+) = cos²(θ/2)', 'w <= 360'] },
+  { file: 'js/sims/stat.js', id: 'bell-singlet', needles: ['⟨σσ⟩ = −cos(α−β)', 'w <= 360'] },
   { file: 'js/sims/motion.js', id: 'circular', needles: ['v · a · F', 'w <= 360'] },
   { file: 'js/sims/advance.js', id: 'coupled-pendula', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/uni.js', id: 'finite-well', needles: ['teachPanel', 'E ladder', 'w <= 360'] },
@@ -44,6 +45,8 @@ const requiredTeachPanel = [
   { file: 'js/sims/modern.js', id: 'capacitance', needles: ['C = Q / U', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'half-life', needles: ['N = N0 e^{−λt}', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'resistivity', needles: ['R = ρ L / A', 'w <= 360'] },
+  { file: 'js/sims/modern.js', id: 'mass-energy', needles: ['E = m c²', 'w <= 360'] },
+  { file: 'js/sims/modern.js', id: 'time-dilation', needles: ['Δt = γ Δτ', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

@@ -588,6 +588,48 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('bell-singlet', 640, 400);
+  const narrow = await runDraw('bell-singlet', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL bell-singlet@640: ⟨σσ⟩ panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL bell-singlet@320: ⟨σσ⟩ panel should stack under shares', np[0]);
+  } else console.log('ok bell-singlet dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('mass-energy', 640, 400);
+  const narrow = await runDraw('mass-energy', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL mass-energy@640: E=mc² panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL mass-energy@320: E=mc² panel should stack under m', np[0]);
+  } else console.log('ok mass-energy dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('time-dilation', 640, 400);
+  const narrow = await runDraw('time-dilation', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL time-dilation@640: Δt=γΔτ panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL time-dilation@320: Δt=γΔτ panel should stack under clocks', np[0]);
+  } else console.log('ok time-dilation dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

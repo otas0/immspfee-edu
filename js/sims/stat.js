@@ -703,16 +703,33 @@ export const bellSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: same/opp bars left / ⟨σσ⟩ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const corr = ui.wrong ? -d.corr : d.corr;
-    text(ctx, `⟨σσ⟩=${fmt(corr, 3)}`, w * 0.5, h * 0.25, ui.wrong ? '#a33' : INK, 18, 'center');
-    text(ctx, lab(ui, 'not a protocol', '不是通信协议'), w * 0.5, h * 0.45, MUTED, 13, 'center');
-    const bar = (x, val, label) => {
+    const barX = narrow ? w * 0.06 : w * 0.04;
+    const barY = narrow ? h * 0.08 : h * 0.12;
+    const barW = narrow ? w * 0.88 : w * 0.5;
+    const barH = narrow ? h * 0.4 : h * 0.76;
+    const base = barY + barH * 0.82;
+    const maxH = barH * 0.5;
+    const bar = (xFrac, val, label) => {
+      const x = barX + barW * xFrac;
       ctx.fillStyle = RAY2;
-      ctx.fillRect(x, h * 0.7 - val * h * 0.25, 40, val * h * 0.25);
-      text(ctx, label, x + 20, h * 0.78, MUTED, 11, 'center');
+      ctx.fillRect(x, base - val * maxH, barW * 0.16, val * maxH);
+      text(ctx, label, x + barW * 0.08, base + 14, MUTED, 11, 'center');
     };
-    bar(w * 0.3, d.pSame, 'same');
-    bar(w * 0.55, d.pOpp, 'opp');
+    bar(0.22, d.pSame, 'same');
+    bar(0.58, d.pOpp, 'opp');
+    text(ctx, lab(ui, 'shares', '份额'), barX + barW / 2, barY + 12, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, '⟨σσ⟩ = −cos(α−β)', '⟨σσ⟩ = −cos(α−β)'));
+    text(ctx, `⟨σσ⟩=${fmt(corr, 3)}`, panelX + panelW / 2, panelY + panelH * 0.35, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, lab(ui, 'not a protocol', '不是通信协议'), panelX + panelW / 2, panelY + panelH * 0.58, MUTED, 12, 'center');
+    text(ctx, ui.wrong ? '+cos(θ)' : 'singlet only', panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };
