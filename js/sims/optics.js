@@ -340,13 +340,19 @@ export const refraction = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cx = w * 0.5;
-    const cy = h * 0.5;
-    const L = Math.min(w, h) * 0.38;
+    // Wide: interface left / Snell panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.44 : h * 0.8;
+    const cx = schX + schW * 0.5;
+    const cy = schY + schH * 0.5;
+    const L = Math.min(schW, schH) * 0.38;
     ctx.fillStyle = 'rgba(70,130,170,0.28)';
-    ctx.fillRect(0, cy, w, h - cy);
-    line(ctx, 20, cy, w - 20, cy, INK, 2);
-    line(ctx, cx, 24, cx, h - 24, MUTED, 1, [4, 4]);
+    ctx.fillRect(schX, cy, schW, schY + schH - cy);
+    line(ctx, schX + 8, cy, schX + schW - 8, cy, INK, 2);
+    line(ctx, cx, schY + 8, cx, schY + schH - 8, MUTED, 1, [4, 4]);
     const th1 = (d.theta * Math.PI) / 180;
     const ix = cx - L * Math.sin(th1);
     const iy = cy - L * Math.cos(th1);
@@ -355,19 +361,28 @@ export const refraction = {
     if (!d.tir) {
       const th2 = (d.theta2 * Math.PI) / 180;
       arrow(ctx, cx, cy, cx + L * Math.sin(th2), cy + L * Math.cos(th2), RAY2, 2.5);
-      text(ctx, `θ2=${fmt(d.theta2, 1)}°`, cx + 16, cy + 28, RAY2, 12);
+      text(ctx, `θ2=${fmt(d.theta2, 1)}°`, cx + 12, cy + 24, RAY2, 11);
     } else {
-      text(ctx, lab(ui, 'TIR', '全反射'), cx + 16, cy + 28, RAY2, 14);
+      text(ctx, lab(ui, 'TIR', '全反射'), cx + 12, cy + 24, RAY2, 12);
     }
     if (ui.wrong && !d.tir) {
       const wrong = d.theta * (d.n1 / d.n2);
       const thw = (Math.min(wrong, 89) * Math.PI) / 180;
       line(ctx, cx, cy, cx + L * 0.7 * Math.sin(thw), cy + L * 0.7 * Math.cos(thw), '#a33', 1.5, [4, 3]);
     }
-    text(ctx, `n1=${fmt(d.n1, 2)}`, cx - 70, cy - 16, MUTED, 12);
-    text(ctx, `n2=${fmt(d.n2, 2)}`, cx - 70, cy + 16, MUTED, 12);
+    text(ctx, `n1=${fmt(d.n1, 2)}`, cx - 58, cy - 14, MUTED, 11);
+    text(ctx, `n2=${fmt(d.n2, 2)}`, cx - 58, cy + 14, MUTED, 11);
     handle(ctx, ix, iy, ui.drag === 'ray');
-    ui._geo = { cx, cy, ix, iy };
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    const th2Show = d.tir ? null : (ui.wrong ? Math.min(d.theta * (d.n1 / d.n2), 89) : d.theta2);
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'n1 sin θ1 = n2 sin θ2', 'n1 sin θ1 = n2 sin θ2'));
+    text(ctx, d.tir ? lab(ui, 'TIR', '全反射') : `θ2=${fmt(th2Show, 1)}°`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong && !d.tir ? lab(ui, 'no sine', '无正弦') : `θ1=${fmt(d.theta, 1)}°`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { cx, cy, ix, iy, panelY };
   },
   pointer(ev, _p, _d, ui) {
     const g = ui._geo;
@@ -609,34 +624,52 @@ export const vision = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.55;
-    const lensX = w * 0.42;
-    const eyeX = w * 0.72;
-    line(ctx, 20, y, w - 20, y, '#cfc6b8', 1);
+    // Wide: spectacle + eye left / P=100/f panel right. Narrow (≤360): stack.
+    // (Lesson mounts for 眼睛/眼镜 share this vision sim — there is no separate spectacle id.)
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.55;
+    const lensX = schX + schW * 0.38;
+    const eyeX = schX + schW * 0.68;
+    line(ctx, schX + 8, y, schX + schW - 8, y, '#cfc6b8', 1);
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(lensX, y - 50);
-    ctx.quadraticCurveTo(lensX + (d.kind === 'diverging' ? -12 : 14), y, lensX, y + 50);
-    ctx.quadraticCurveTo(lensX + (d.kind === 'diverging' ? 12 : -14), y, lensX, y - 50);
+    const lensH = Math.min(44, schH * 0.45);
+    ctx.moveTo(lensX, y - lensH);
+    ctx.quadraticCurveTo(lensX + (d.kind === 'diverging' ? -10 : 12), y, lensX, y + lensH);
+    ctx.quadraticCurveTo(lensX + (d.kind === 'diverging' ? 10 : -12), y, lensX, y - lensH);
     ctx.stroke();
     ctx.strokeStyle = MUTED;
-    ctx.strokeRect(eyeX, y - 28, 54, 56);
-    text(ctx, lab(ui, 'eye', '眼睛'), eyeX + 27, y, MUTED, 12, 'center');
-    const px = 1.6;
+    const eyeW = Math.min(48, schW * 0.22);
+    ctx.strokeRect(eyeX, y - 24, eyeW, 48);
+    text(ctx, lab(ui, 'eye', '眼睛'), eyeX + eyeW / 2, y, MUTED, 11, 'center');
+    const px = Math.min(1.4, (schW * 0.28) / Math.max(Math.abs(d.fCm), 20));
     const mark = d.kind === 'diverging' ? -Math.abs(d.fCm) : Math.abs(d.fCm);
     const fx = lensX + mark * px;
-    line(ctx, fx, y - 10, fx, y + 10, RAY2, 2);
-    text(ctx, `f=${fmt(d.fCm, 1)} cm`, fx, y - 18, RAY2, 12, 'center');
-    arrow(ctx, 30, y - 26, lensX, y - 10, RAY, 2);
-    arrow(ctx, 30, y + 26, lensX, y + 10, RAY, 2);
+    line(ctx, fx, y - 8, fx, y + 8, RAY2, 2);
+    text(ctx, `f=${fmt(d.fCm, 1)}`, fx, y - 16, RAY2, 11, 'center');
+    arrow(ctx, schX + 12, y - 22, lensX, y - 8, RAY, 2);
+    arrow(ctx, schX + 12, y + 22, lensX, y + 8, RAY, 2);
     if (ui.wrong) {
       const bad = lensX - mark * px;
-      line(ctx, bad, y - 14, bad, y + 14, '#a33', 2, [4, 3]);
-      text(ctx, lab(ui, 'swapped', '装反了'), bad, y + 28, '#a33', 11, 'center');
+      line(ctx, bad, y - 12, bad, y + 12, '#a33', 2, [4, 3]);
+      text(ctx, lab(ui, 'swapped', '装反了'), bad, y + 24, '#a33', 10, 'center');
     }
-    text(ctx, lab(ui, d.kind, { diverging: '发散', converging: '会聚' }[d.kind] || d.kind), lensX, y + 68, INK, 13, 'center');
-    ui._geo = { lensX, y };
+    text(ctx, lab(ui, d.kind, { diverging: '发散', converging: '会聚' }[d.kind] || d.kind), lensX, y + lensH + 14, INK, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    const pShow = ui.wrong ? -d.power : d.power;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'P = 100 / f(cm)', 'P = 100 / f(cm)'));
+    text(ctx, `P=${fmt(pShow, 2)} D`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `f=${fmt(ui.wrong ? -d.fCm : d.fCm, 1)} cm`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { lensX, y, panelY };
   },
   pointer() { return null; },
 };

@@ -152,14 +152,16 @@ export const pulleySim = {
     text(ctx, lab(ui, 'load', '重物'), cx, loadY + 28, MUTED, 11, 'center');
     const endX = schX + schW * 0.82;
     const sScale = Math.min(70, schH * 0.55);
-    const endY = Math.min(schY + schH * 0.85, top + d.s * sScale);
+    // Keep rope-end handle strictly above the stacked η panel on narrow.
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const endYMax = narrow ? panelY - 18 : schY + schH * 0.85;
+    const endY = Math.min(endYMax, top + d.s * sScale);
     line(ctx, cx + span, top, endX, endY, RAY, 2);
     handle(ctx, endX, endY, ui.drag === 'rope');
-    text(ctx, `s=${fmt(d.s, 2)}`, endX, endY + 14, RAY, 11, 'center');
+    text(ctx, `s=${fmt(d.s, 2)}`, endX, Math.min(endY + 14, endYMax + 4), RAY, 11, 'center');
     text(ctx, `h=${fmt(d.h, 2)}`, cx, loadY - 12, INK, 11, 'center');
 
     const panelX = narrow ? w * 0.06 : w * 0.58;
-    const panelY = narrow ? h * 0.54 : h * 0.12;
     const panelW = narrow ? w * 0.88 : w * 0.38;
     const panelH = narrow ? h * 0.42 : h * 0.76;
     const usefulShow = ui.wrong ? d.G * d.s : d.useful;
@@ -167,19 +169,22 @@ export const pulleySim = {
     text(ctx, `η=${d.eta == null ? '—' : fmt(d.eta, 3)}`, panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : RAY, 14, 'center');
     text(ctx, ui.wrong ? `G·s=${fmt(usefulShow, 1)}` : `W_u=${fmt(d.useful, 1)} J`, panelX + panelW / 2, panelY + panelH * 0.55, ui.wrong ? '#a33' : MUTED, 12, 'center');
     text(ctx, `F=${fmt(d.F, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 12, 'center');
-    ui._geo = { endX, top, sScale, panelY };
+    ui._geo = { endX, endY, top, sScale, panelY, endYMax };
   },
   pointer(ev, p, _d, ui) {
     const g = ui._geo;
     if (!g) return null;
     if (ev.type === 'down') {
+      if (g.panelY != null && ev.y >= g.panelY - 4) return null;
       ui.drag = 'rope';
       return {};
     }
     if (ev.type === 'up') { ui.drag = null; return {}; }
     if (ui.drag !== 'rope') return null;
     const scale = g.sScale || 90;
-    return { s: Math.min(2, Math.max(0, (ev.y - g.top) / scale)) };
+    const yMax = g.endYMax != null ? g.endYMax : Infinity;
+    const y = Math.min(ev.y, yMax);
+    return { s: Math.min(2, Math.max(0, (y - g.top) / scale)) };
   },
 };
 

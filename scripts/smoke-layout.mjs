@@ -1103,6 +1103,53 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('refraction', 640, 400);
+  const narrow = await runDraw('refraction', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL refraction@640: Snell panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL refraction@320: Snell panel should stack under interface', np[0]);
+  } else console.log('ok refraction dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('vision', 640, 400);
+  const narrow = await runDraw('vision', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL vision@640: P=100/f panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL vision@320: P panel should stack under spectacle', np[0]);
+  } else console.log('ok vision (spectacle) dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  // Narrow pulley: rope-end handle stays above η panel.
+  const { ctx, h, ui, sim, p, d } = await runDraw('pulley', 320, 400, {}, { s: 1.6 });
+  const np = panelFills(ctx.ops);
+  const g = ui._geo;
+  const panelY = np[0]?.[2] ?? h;
+  if (!g || !(g.endY < panelY - 8)) {
+    failed += 1;
+    console.error('FAIL pulley@320: rope-end handle should sit above η panel', { endY: g?.endY, panelY });
+  } else {
+    const down = sim.pointer({ type: 'down', x: g.endX, y: g.endY }, p, d, ui);
+    const moved = sim.pointer({ type: 'move', x: g.endX, y: panelY + 40 }, { ...p, ...down }, d, ui);
+    if (moved && moved.s > p.s + 0.2 && g.endYMax != null && (g.top + moved.s * g.sScale) > g.endYMax + 1) {
+      failed += 1;
+      console.error('FAIL pulley@320: rope drag must clamp above panel', { s: moved.s, endYMax: g.endYMax });
+    } else console.log('ok pulley@320 rope handle above panel', { endY: g.endY.toFixed(0), panelY: panelY.toFixed(0), s: (moved?.s ?? p.s).toFixed(2) });
+  }
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

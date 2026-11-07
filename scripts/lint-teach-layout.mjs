@@ -74,6 +74,8 @@ const requiredTeachPanel = [
   { file: 'js/sims/machines.js', id: 'lever', needles: ['F1 L1 = F2 L2', 'w <= 360'] },
   { file: 'js/sims/machines.js', id: 'pulley', needles: ['η = G h / (F s)', 'w <= 360'] },
   { file: 'js/sims/machines.js', id: 'work', needles: ['W = F s cosθ', 'w <= 360'] },
+  { file: 'js/sims/optics.js', id: 'refraction', needles: ['n1 sin θ1 = n2 sin θ2', 'w <= 360'] },
+  { file: 'js/sims/optics.js', id: 'vision (spectacle)', needles: ['P = 100 / f(cm)', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */
