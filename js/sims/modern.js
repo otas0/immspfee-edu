@@ -573,10 +573,12 @@ export const simultaneitySim = {
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
     // Minkowski sketch (axes + rod line + A/B). Light cones stay faint so the slope is readable.
+    // Narrow (≤360): slightly shorter panel so the β track + gutter stay tappable.
+    const narrow = w <= 360;
     const panelX = w * 0.06;
     const panelY = h * 0.06;
     const panelW = w * 0.88;
-    const panelH = h * 0.62;
+    const panelH = narrow ? h * 0.54 : h * 0.62;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Minkowski (x, ct)', '闵可夫斯基 (x, ct)'));
     const ox = panelX + panelW * 0.08;
     const oy = panelY + panelH * 0.82;

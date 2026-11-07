@@ -10,16 +10,16 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const requiredTeachPanel = [
-  { file: 'js/sims/circuits.js', id: 'circuit', needles: ['portsOf', 'teachPanel'] },
+  { file: 'js/sims/circuits.js', id: 'circuit', needles: ['portsOf', 'teachPanel', 'w <= 360'] },
   { file: 'js/sims/motion.js', id: 'projectile', needles: ['teachPanel', 'x–t', 'w <= 360'] },
-  { file: 'js/sims/motion.js', id: 'st-graph / vt', needles: ['teachPanel'] },
+  { file: 'js/sims/motion.js', id: 'st-graph / vt', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/optics.js', id: 'double-slit', needles: ['teachPanel', 'screen intensity', 'w <= 360'] },
   { file: 'js/sims/optics.js', id: 'convex-lens', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/thermal.js', id: 'heat-engine', needles: ['teachPanel', 'p–V', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'ising', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/advance.js', id: 'coupled-pendula', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/uni.js', id: 'finite-well', needles: ['teachPanel', 'E ladder', 'w <= 360'] },
-  { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel', 'midGutter'] },
+  { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel', 'midGutter', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */
@@ -89,9 +89,20 @@ function mediaInner(src, maxWidthPx) {
   }
   return null;
 }
+const block1100 = mediaInner(css, 1100);
 const block768 = mediaInner(css, 768);
 const block420 = mediaInner(css, 420);
 const block320 = mediaInner(css, 320);
+// Mobile single-column: teach (phases / params / CTA) before stage so users need not scroll past canvas.
+if (!block1100 || !/\.teach\s*\{\s*order:\s*2\s*;/.test(block1100) || !/main\s*\{\s*order:\s*3\s*;/.test(block1100)) {
+  failed += 1;
+  console.error('FAIL edu.css@1100: .teach order:2 must precede main order:3 (mobile teach-before-stage)');
+} else if (!/\.phases\s*\{[^}]*position:\s*sticky/.test(block1100)) {
+  failed += 1;
+  console.error('FAIL edu.css@1100: .phases must be sticky so phase CTAs stay reachable while scrolling');
+} else {
+  console.log('ok edu.css@1100 teach-before-stage + sticky phases');
+}
 if (!hasTwoRowAreas(block768)) {
   failed += 1;
   console.error('FAIL edu.css@768: .top grid-template-areas must be brand lang / nav nav (covers 340px)');

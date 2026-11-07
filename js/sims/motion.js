@@ -102,18 +102,20 @@ export const stSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const yRoad = h * 0.22;
+    // Narrow (≤360): shrink the track band so the s–t panel keeps readable height.
+    const narrow = w <= 360;
+    const yRoad = narrow ? h * 0.14 : h * 0.22;
     const x0 = w * 0.12;
     const px = 36;
-    text(ctx, lab(ui, 'track', '轨道'), w * 0.5, h * 0.08, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'track', '轨道'), w * 0.5, narrow ? h * 0.05 : h * 0.08, MUTED, 12, 'center');
     line(ctx, x0, yRoad, w - 24, yRoad, '#cfc6b8', 2);
     const x = x0 + d.x * px;
     ctx.fillStyle = RAY;
     ctx.fillRect(x - 10, yRoad - 18, 20, 16);
     const panelX = w * 0.06;
-    const panelY = h * 0.36;
+    const panelY = narrow ? h * 0.26 : h * 0.36;
     const panelW = w * 0.88;
-    const panelH = h * 0.58;
+    const panelH = narrow ? h * 0.7 : h * 0.58;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 's–t graph', 's–t 图像'));
     const gx = panelX + panelW * 0.08;
     const gy = panelY + panelH * 0.82;
@@ -201,18 +203,20 @@ export const vtSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const roadY = h * 0.18;
+    // Narrow (≤360): shrink the cart band so the v–t panel keeps readable height.
+    const narrow = w <= 360;
+    const roadY = narrow ? h * 0.12 : h * 0.18;
     const x0 = w * 0.08;
     const span = Math.max(4, Math.abs(uniformAccel(p, d.tEnd).x));
     const cart = x0 + ((d.x + span) / (2 * span)) * (w * 0.84);
     line(ctx, x0, roadY, w - 16, roadY, '#cfc6b8', 2);
     ctx.fillStyle = RAY;
     ctx.fillRect(cart - 12, roadY - 18, 24, 16);
-    text(ctx, lab(ui, 'cart', '小车'), cart, roadY - 28, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'cart', '小车'), cart, roadY - (narrow ? 22 : 28), MUTED, 11, 'center');
     const panelX = w * 0.06;
-    const panelY = h * 0.32;
+    const panelY = narrow ? h * 0.24 : h * 0.32;
     const panelW = w * 0.88;
-    const panelH = h * 0.62;
+    const panelH = narrow ? h * 0.72 : h * 0.62;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'v–t graph', 'v–t 图像'));
     const gx = panelX + panelW * 0.08;
     const gy = panelY + panelH * 0.55;

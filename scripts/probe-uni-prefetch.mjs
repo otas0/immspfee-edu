@@ -37,6 +37,11 @@ const PROFILES = {
     allow: ['stat.js', 'uni.js', 'registry.js', 'kit.js'],
     forbid: ['optics.js', 'phase.js', 'rel.js', 'advance.js', 'thermal.js'],
   },
+  'uni-rel-1': {
+    // time-dilation → modern; chapter also length-contraction → rel, simultaneity → modern
+    expectAny: ['modern.js'],
+    forbid: ['optics.js', 'phase.js', 'stat.js', 'advance.js', 'thermal.js', 'uni.js'],
+  },
 };
 
 const profile = PROFILES[lesson];

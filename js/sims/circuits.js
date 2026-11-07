@@ -20,9 +20,9 @@ function layoutChoices(p) {
 }
 
 /** Schematic ports live in the upper band only; the I–U panel is drawn below. */
-function portsOf(w, h) {
-  const yTop = h * 0.2;
-  const yBot = h * 0.44;
+function portsOf(w, h, narrow = false) {
+  const yTop = narrow ? h * 0.14 : h * 0.2;
+  const yBot = narrow ? h * 0.36 : h * 0.44;
   const yMid = (yTop + yBot) / 2;
   return {
     bp: [w * 0.1, yTop],
@@ -149,7 +149,9 @@ export const circuitSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const ports = portsOf(w, h);
+    // Narrow (≤360): compress schematic so the I–U teachPanel keeps readable height.
+    const narrow = w <= 360;
+    const ports = portsOf(w, h, narrow);
     const household = p.layout === 'household';
     // Status strip (never overlaps the I–U panel).
     // Red「短路」/ E/r only for a battery short (bp–bn), including the debug overlay wire.
@@ -184,7 +186,7 @@ export const circuitSim = {
       text(ctx, lab(ui, 'live', '火线'), ports.s1[0], ports.s1[1] - 18, RAY, 12, 'center');
       text(ctx, lab(ui, 'neutral', '零线'), ports.bn[0] + 36, ports.bn[1] + 16, MUTED, 12);
       // Earth stays inside the schematic band (above the I–U panel).
-      const earthY = Math.min(ports.bn[1] + h * 0.05, h * 0.5);
+      const earthY = Math.min(ports.bn[1] + h * 0.05, narrow ? h * 0.42 : h * 0.5);
       line(ctx, ports.bn[0] + 56, ports.bn[1], ports.a2[0], earthY, MUTED, 1.5, [3, 3]);
       text(ctx, lab(ui, 'earth', '地线'), (ports.bn[0] + 56 + ports.a2[0]) / 2, earthY + 12, MUTED, 11, 'center');
       text(ctx, lab(ui, 'appliance R', '用电器 R'), (ports.a1[0] + ports.a2[0]) / 2, ports.a1[1] - 22, INK, 12, 'center');
@@ -211,9 +213,9 @@ export const circuitSim = {
 
     // Dedicated I–U teaching panel under the schematic (opaque — no bleed).
     const panelX = w * 0.06;
-    const panelY = h * 0.56;
+    const panelY = narrow ? h * 0.46 : h * 0.56;
     const panelW = w * 0.88;
-    const panelH = h * 0.4;
+    const panelH = narrow ? h * 0.5 : h * 0.4;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'I–U of the load', '负载的 I–U'));
     const gx = panelX + panelW * 0.1;
     const gy = panelY + panelH * 0.82;

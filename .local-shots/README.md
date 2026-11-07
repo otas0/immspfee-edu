@@ -24,7 +24,7 @@ Do not collapse these breakpoints: 340px is intentionally “stack + ellipsis”
 | `340px-projectile-ellipsis.png` | **340×720** (321–360 band) | Projectile **stacked** teachPanel (`w <= 360`); book-select still **`text-overflow: ellipsis`**. |
 | `340px-zh-long-title-ellipsis.png` | **340×720**, `lang=zh` | Force a long selected label. Expect **`ellipsis`** and canvas `measureText` width + padding **>** select `clientWidth`. Also asserts `.top` ≤100px. |
 | `320px-pep-zh-book.png` | 320×720, `lang=zh` | 「人教版初中物理」 fully visible; computed `text-overflow: clip`. |
-| `320px-top-remeasure.json` | 320×720 CSSOM | `.top` height, book-select `min-height` (≥28), overflow — regenerate via `npm run capture:320-remeasure` when present; Safari 真机 still authoritative for subpixel. |
+| `320px-top-remeasure.json` | 320×720 | `.top` height, book-select `min-height` (≥28), overflow — `npm run capture:320-remeasure` or CDP. **2026-11-07:** topH **91.5** (pre-tweak), book/lang/region **≥28**, overflow **clip**, 「人教版初中物理」 fully readable. CSS then tightened brand/padding toward ~75–85 without dropping taps below 28. Safari 真机 still authoritative for subpixel. |
 | `320px-projectile-stack.png` | 320×720 | Strobe path above stacked x–t · y–t panel. |
 | `live-getsim-fail.md` / `live-getsim-diag/` | CI fail-only | Uploaded as `live-getsim-fail-<sha>` when post-deploy getSim smoke fails. |
 | `1280-desktop-diff.md` | optional | Byte-level drift vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`). |

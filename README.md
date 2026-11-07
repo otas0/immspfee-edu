@@ -41,7 +41,7 @@ npm run pw:pin-dry-run     # Playwright pin → issue 逻辑 dry-run（不建 is
 
 无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。本地：`npm run doctor`（清 sidecar 后默认 `DOCTOR_AUTO_ENSURE=1` 调 ensure-dev-server；不进 Pages）· hooksPath → [docs/hooks/stage-allow.md](docs/hooks/stage-allow.md) / [CONTRIBUTING.md](CONTRIBUTING.md)。`npm run offline-first:dry-run`（`OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` 绿路径；main 勿设 OFFLINE_FIRST）。CI：`CAPTURE_FORCE_FAIL` + `CAPTURE_FORCE_COLS_FAIL`（**verify only**，绿跑不上传 `capture-cols-fail`；真失败走 `capture-last-fail`）+ `redir-retries-diag`。提交用 `bash scripts/git-stage-allow.sh --default`。
 
-CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`（详见 [`.local-shots/README.md`](.local-shots/README.md)）。
+CI artifact 命名（短 SHA）：`capture-340px-zh-long-title-<sha>`、`capture-1280-desktop-<sha>`、`capture-1280-diff-<sha>`（可选）、`live-getsim-fail-<sha>`（失败才传）、`capture-last-fail-<sha>`、`redirect-fail-headers-<sha>`（详见 [`.local-shots/README.md`](.local-shots/README.md)）。
 
 ## Run
 

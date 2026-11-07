@@ -161,6 +161,8 @@ function writeHash() {
   if (brand) brand.setAttribute('href', next);
 }
 
+const LOAD_TOAST_MS = 8000;
+
 async function loadLesson(nextId, nextPhase) {
   const token = ++loadToken;
   lessonId = nextId;
@@ -181,8 +183,13 @@ async function loadLesson(nextId, nextPhase) {
     if (token === loadToken) draw();
     return;
   }
+  const slowToast = setTimeout(() => {
+    if (token !== loadToken || loadingSim !== wanted) return;
+    showToast(t(lang, 'simLoadSlow'), { reload: true });
+  }, LOAD_TOAST_MS);
   let s = await getSim(wanted);
   if (!s) s = await getSim(wanted, { reload: true });
+  clearTimeout(slowToast);
   if (token !== loadToken) return;
   loadingSim = null;
   currentSim = s;

@@ -42,6 +42,7 @@ export const STR = {
     simLoading: 'Loading simulation…',
     simLoadingBody: 'Fetching the module for this section. The stage stays blank until it arrives.',
     simLoadFail: 'Simulation failed to load',
+    simLoadSlow: 'Still loading this simulation. Check the network, or tap Reload.',
     isingCanvasNeed: 'This lattice needs OffscreenCanvas (or a browser canvas). Try Reload, or open in a normal browser tab.',
   },
   zh: {
@@ -87,6 +88,7 @@ export const STR = {
     simLoading: '正在加载仿真…',
     simLoadingBody: '正在拉取这一节的模块。加载完成前舞台保持空白。',
     simLoadFail: '模拟加载失败',
+    simLoadSlow: '仿真仍在加载。可检查网络，或点刷新重试。',
     isingCanvasNeed: '这张点阵需要 OffscreenCanvas（或浏览器 canvas）。请刷新，或在普通浏览器标签页打开。',
   },
 };

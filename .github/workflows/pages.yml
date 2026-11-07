@@ -242,13 +242,14 @@ jobs:
             echo "$path -> $code"
             test "$code" = "200"
           done
-      - name: Smoke live getSim (lens, finite-well, barrier-tunnel, ising)
+      - name: Smoke live getSim (cross-group sample)
         id: live_getsim
         if: success()
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          LIVE_GETSIM_IDS: convex-lens,finite-well,barrier-tunnel,ising
+          # University extras: barrier-tunnel + ising; keep lens + finite-well; add phase/rel/mech samples.
+          LIVE_GETSIM_IDS: convex-lens,finite-well,barrier-tunnel,ising,melting,length-contraction,oscillator,circuit
         run: node scripts/smoke-live-getsim.mjs
       - name: Upload live getSim fail diag
         if: failure() && steps.live_getsim.outcome == 'failure'
@@ -468,9 +469,11 @@ jobs:
         run: |
           cm=$(PREVIEW_BASE=http://127.0.0.1:4174 node scripts/probe-uni-prefetch.mjs)
           qm=$(PREVIEW_BASE=http://127.0.0.1:4174 PROBE_LESSON=uni-qm-1 node scripts/probe-uni-prefetch.mjs)
+          rel=$(PREVIEW_BASE=http://127.0.0.1:4174 PROBE_LESSON=uni-rel-1 node scripts/probe-uni-prefetch.mjs)
           bench=$(node scripts/bench-uni-first-frame.mjs)
           echo "$cm"
           echo "$qm"
+          echo "$rel"
           echo "$bench"
           {
             echo "### University prefetch ↔ first-frame bench"
@@ -479,6 +482,7 @@ jobs:
             echo "| --- | --- | --- |"
             echo "| \`uni-cm-1\` Network | \`advance.js\` only (no optics/stat) | see JSON |"
             echo "| \`uni-qm-1\` Network | \`stat.js\` (+ optional \`uni.js\`); no optics | see JSON |"
+            echo "| \`uni-rel-1\` Network | \`modern.js\` (+ optional \`rel.js\`); no optics | see JSON |"
             echo "| \`bench:uni-first\` | subject volume sim counts | see JSON |"
             echo ""
             echo "#### uni-cm Network"
@@ -489,6 +493,11 @@ jobs:
             echo "#### uni-qm Network"
             echo '```json'
             echo "$qm" | sed -n '/^{/,/^}/p'
+            echo '```'
+            echo ""
+            echo "#### uni-rel Network"
+            echo '```json'
+            echo "$rel" | sed -n '/^{/,/^}/p'
             echo '```'
             echo ""
             echo "#### bench:uni-first"
