@@ -69,6 +69,31 @@ if (!/min-height:\s*28px/.test(block320)) {
   console.log('ok 320px CSSOM book-select / chrome min-height ≥28px tap');
 }
 
+// Sticky phases on narrow teach-above-stage must not use a huge top offset that buries CTA.
+{
+  const block1100 = mediaBlock(css, /@media\s*\(\s*max-width:\s*1100px\s*\)/);
+  if (!block1100 || !/\.phases\s*\{[^}]*position:\s*sticky/.test(block1100)) {
+    failed += 1;
+    console.error('FAIL edu.css@1100: .phases must be position:sticky for narrow teach column');
+  } else if (!/top:\s*0/.test(block1100.match(/\.phases\s*\{[^}]+\}/)?.[0] || '')) {
+    failed += 1;
+    console.error('FAIL edu.css@1100: sticky .phases should use top:0 (CTA clearance hand-tested 320/360/768)');
+  } else {
+    console.log('ok sticky .phases top:0 @≤1100 (CTA clearance band documented)');
+  }
+}
+
+// @320 .top-nav must be row (column stacking blew topH to ~87).
+if (!block320 || !/\.top-nav\s*\{[^}]*flex-direction:\s*row/.test(block320)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: .top-nav must set flex-direction: row');
+} else if (!/#regions\.seg[\s\S]*?flex-wrap:\s*nowrap/.test(block320)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: #regions.seg must flex-wrap: nowrap');
+} else {
+  console.log('ok 320px .top-nav row + #regions nowrap (topH band)');
+}
+
 // Title character budget: at 11px tabular-ish, 「人教版初中物理」(7 chars) must fit ~280px.
 const approxPx = zhTitle.length * 11;
 if (approxPx > 280) {

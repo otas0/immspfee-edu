@@ -204,8 +204,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
-      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-07:
-      # latest release still v5.0.1 (2026-09-01) — no v5.0.2+; #433 PR open upstream; hold pin.
+      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-07 PM:
+      # latest release still v5.0.1 (2026-09-01); #433 still open/unmerged — hold pin; bump day-of merge.
       # When #413 ships a patch (v5.0.2+), bump immediately and confirm DEP0040 gone before merge.
       # Keep this bump track separate from push-main watch-flake soft-ok work.
       # ubuntu-24.04 pin: probe with `bash scripts/pages-ubuntu26-probe.sh` before moving to 26.
@@ -248,8 +248,8 @@ jobs:
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          # One id per PATHS group (optics…rel); override only if a group id is renamed.
-          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,ising,length-contraction
+          # One id per PATHS group (optics…rel). Stat rotation: wave-packet (was ising; next: hydrogen-radial).
+          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,wave-packet,length-contraction
         run: node scripts/smoke-live-getsim.mjs
       - name: Upload live getSim fail diag
         if: failure() && steps.live_getsim.outcome == 'failure'

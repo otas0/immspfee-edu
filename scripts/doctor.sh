@@ -130,14 +130,29 @@ if [[ "${DOCTOR_FIXTURE:-}" == "redirect-sandbox-200" ]]; then
   if echo "$status" | grep -qE '200' && [[ -z "$loc" ]]; then
     out='skip rename redirect (HTTP 200 without Location — likely sandbox/proxy spoof; re-run outside sandbox or REQUIRE_REDIRECT_CHECK=1 on a real network)'
     echo "$out"
+    soft_out="$ROOT/.local-shots/redirect-soft-skip.txt"
+    mkdir -p "$(dirname "$soft_out")"
+    {
+      echo "# rename redirect soft-skip"
+      echo "when: fixture"
+      echo "why: sandbox/proxy fake HTTP 200 without Location"
+      echo "confirm: REQUIRE_REDIRECT_CHECK=1 npm run test:redirect"
+      echo "$out"
+    } >"$soft_out"
     echo "tip: rename redirect soft-skipped (sandbox fake 200). Confirm with: npm run test:redirect"
+    echo "wrote $soft_out"
     if ! echo "$out" | grep -q 'sandbox/proxy spoof'; then
       echo "FAIL doctor redirect-sandbox-200: expected soft-skip copy" >&2
+      rm -f "$fake" "$soft_out"
+      exit 1
+    fi
+    if [[ ! -f "$soft_out" ]] || ! grep -q 'sandbox/proxy spoof' "$soft_out"; then
+      echo "FAIL doctor redirect-sandbox-200: missing redirect-soft-skip.txt" >&2
       rm -f "$fake"
       exit 1
     fi
     rm -f "$fake"
-    echo "ok doctor redirect-sandbox-200 fixture (soft-skip tip)"
+    echo "ok doctor redirect-sandbox-200 fixture (soft-skip tip + redirect-soft-skip.txt)"
     exit 0
   fi
   echo "FAIL doctor redirect-sandbox-200: soft-skip branch not taken" >&2

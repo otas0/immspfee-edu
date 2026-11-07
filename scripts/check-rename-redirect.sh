@@ -72,7 +72,22 @@ if echo "$status" | grep -qE '200' && [[ -z "$loc" ]]; then
     echo "FAIL rename redirect: expected 301/302/308, got: $status (no Location)" >&2
     exit 1
   fi
-  echo "skip rename redirect (HTTP 200 without Location — likely sandbox/proxy spoof; re-run outside sandbox or REQUIRE_REDIRECT_CHECK=1 on a real network)"
+  soft_msg="skip rename redirect (HTTP 200 without Location — likely sandbox/proxy spoof; re-run outside sandbox or REQUIRE_REDIRECT_CHECK=1 on a real network)"
+  echo "$soft_msg"
+  # Paste-ready note for doctor / agents (gitignored under .local-shots/).
+  soft_out="${REDIRECT_SOFT_SKIP_OUT:-$ROOT/.local-shots/redirect-soft-skip.txt}"
+  mkdir -p "$(dirname "$soft_out")"
+  {
+    echo "# rename redirect soft-skip"
+    echo "when: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "url: $OLD_URL"
+    echo "status: $status"
+    echo "location: (empty)"
+    echo "why: sandbox/proxy fake HTTP 200 without Location (real GitHub returns 301 → $EXPECT)"
+    echo "confirm: REQUIRE_REDIRECT_CHECK=1 npm run test:redirect"
+    echo "$soft_msg"
+  } >"$soft_out"
+  echo "wrote $soft_out"
   exit 0
 fi
 

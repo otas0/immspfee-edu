@@ -37,7 +37,7 @@ const DEFAULT_LIVE_GETSIM_IDS = [
   'charges', // charge
   'time-dilation', // modern
   'finite-well', // uni
-  'ising', // stat
+  'wave-packet', // stat (rotated with ising / hydrogen-radial in CI)
   'length-contraction', // rel
 ].join(',');
 const ids = String(process.env.LIVE_GETSIM_IDS || DEFAULT_LIVE_GETSIM_IDS)
@@ -68,6 +68,9 @@ function writeDiag(extra = {}) {
   try {
     mkdirSync(diagDir, { recursive: true });
     mkdirSync(dirname(failMd), { recursive: true });
+    const mirrorList = Array.isArray(extra.mirrored)
+      ? [...extra.mirrored].sort()
+      : [];
     const body = [
       '# live getSim fail',
       '',
@@ -75,6 +78,14 @@ function writeDiag(extra = {}) {
       `- SHORT: \`${short}\``,
       `- LIVE_GETSIM_IDS: \`${ids.join(',')}\``,
       `- when: ${new Date().toISOString()}`,
+      extra.mirrorRoot ? `- mirror: \`${extra.mirrorRoot}\`` : '',
+      mirrorList.length ? `- mirrored files: **${mirrorList.length}**` : '',
+      '',
+      '## Mirror file list',
+      '',
+      ...(mirrorList.length
+        ? mirrorList.map((rel) => `- \`${rel}\``)
+        : ['-(none — fail before mirror crawl)']),
       '',
       '## Log',
       '',
@@ -82,13 +93,12 @@ function writeDiag(extra = {}) {
       ...logLines,
       '```',
       '',
-      extra.mirrorRoot ? `- mirror: \`${extra.mirrorRoot}\`` : '',
-      '',
-    ].filter(Boolean).join('\n');
+    ].filter((line) => line !== '').join('\n');
     writeFileSync(failMd, body);
     writeFileSync(join(diagDir, 'log.txt'), logLines.join('\n') + '\n');
+    writeFileSync(join(diagDir, 'mirror-files.txt'), mirrorList.join('\n') + (mirrorList.length ? '\n' : ''));
     writeFileSync(join(diagDir, 'meta.json'), JSON.stringify({
-      base, short, ids, when: new Date().toISOString(), ...extra,
+      base, short, ids, when: new Date().toISOString(), mirrored: mirrorList, ...extra,
     }, null, 2));
     const summary = process.env.GITHUB_STEP_SUMMARY;
     if (summary) {

@@ -62,8 +62,18 @@ if (!/swReload:\s*'Reload'/.test(i18n) || !/swUpdate:\s*'Site updated'/.test(i18
 if (!app.includes("t(lang, 'swReload')") || !app.includes('sw-reload')) {
   failed += 1;
   console.error('FAIL app.js must wire swReload onto #sw-reload');
+} else if (!app.includes('function hardReloadFromUi')
+  || !/hardReloadFromUi\(\)/.test(app)
+  || !/unregister/.test(app)
+  || !/caches\.delete/.test(app)) {
+  failed += 1;
+  console.error('FAIL app.js hardReloadFromUi must unregister SW + clear caches (toast + #sw-reload)');
+} else if (!app.includes("btn.addEventListener('click', () => hardReloadFromUi())")
+  && !/toast-reload[\s\S]*hardReloadFromUi/.test(app)) {
+  failed += 1;
+  console.error('FAIL toast Reload must call hardReloadFromUi');
 } else {
-  console.log('ok app.js wires swReload button');
+  console.log('ok app.js wires swReload + toast Reload → hardReloadFromUi (SW unregister)');
 }
 
 // Reload control should stay tappable on narrow chrome (same 28px budget as book-select).

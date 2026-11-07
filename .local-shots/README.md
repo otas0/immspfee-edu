@@ -24,10 +24,11 @@ Do not collapse these breakpoints: 340px is intentionally “stack + ellipsis”
 | `340px-projectile-ellipsis.png` | **340×720** (321–360 band) | Projectile **stacked** teachPanel (`w <= 360`); book-select still **`text-overflow: ellipsis`**. |
 | `340px-zh-long-title-ellipsis.png` | **340×720**, `lang=zh` | Force a long selected label. Expect **`ellipsis`** and canvas `measureText` width + padding **>** select `clientWidth`. Also asserts `.top` ≤100px. |
 | `320px-pep-zh-book.png` | 320×720, `lang=zh` | 「人教版初中物理」 fully visible; computed `text-overflow: clip`. |
-| `320px-top-remeasure.json` | 320×720 | `.top` height, book-select `min-height` (≥28), overflow — `npm run capture:320-remeasure` or CDP. **2026-11-07:** topH **91.5** (pre-tweak), book/lang/region **≥28**, overflow **clip**, 「人教版初中物理」 fully readable. CSS then tightened brand/padding toward ~75–85 without dropping taps below 28. Safari 真机 still authoritative for subpixel. |
+| `320px-top-remeasure.json` | 320 / 360 / 768 | topH + sticky CTA — CDP. **2026-11-07 PM:** after `.top-nav` row + `#regions` nowrap, Chromium 320 **topH 57.5** (taps ≥28, title clip OK). Sticky phases clear primary at 360/768. Safari 真机 still pending Computer Use ACL. |
 | `320px-projectile-stack.png` | 320×720 | Strobe path above stacked x–t · y–t panel. |
-| `live-getsim-fail.md` / `live-getsim-diag/` | CI fail-only | Uploaded as `live-getsim-fail-<sha>` when post-deploy getSim smoke fails. |
-| `1280-desktop-diff.md` | optional | Byte-level drift vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`). |
+| `live-getsim-fail.md` / `live-getsim-diag/` | CI fail-only | Uploaded as `live-getsim-fail-<sha>` when post-deploy getSim smoke fails; summary includes **mirror file list**. |
+| `redirect-soft-skip.txt` | local doctor | Written when rename redirect soft-skips sandbox fake HTTP 200 (paste into issues). |
+| `1280-desktop-diff.md` | optional | Decoded-pixel drift vs prior `capture-1280-desktop-*` (`CAPTURE_1280_DIFF=1`; ±8/channel, 1.5% default). |
 | `poster-a4-reference.png` | A4 210×297mm | Education promo baseline (`npm run capture:poster`). Inner 10mm safe pad; square frames. |
 | `poster-340px-screen.png` | **340×720** screen | One column; hero line-height ≤1.25em; no horizontal overflow. |
 | `poster-speaker-zh.png` | A4 speaker `?speaker=1&lang=zh` | Larger projection QR; site-style lang pills. |

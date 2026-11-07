@@ -389,15 +389,30 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
   }
 }
 @media (max-width: 320px) {
-  /* Remeasure 2026-11-07 (Chromium 320): aim topH ~75–85 while taps stay ≥28.
-     Brand row + nav row + 28px book-select; Safari 真机 still authoritative. */
-  .top { padding: 1px 4px; row-gap: 0; column-gap: 4px; }
-  .brand { max-width: min(96px, calc(100vw - 72px)); padding: 0; }
-  .brand img { max-width: min(90px, calc(100vw - 80px)); }
+  /* Remeasure 2026-11-07 PM: Chromium topH was ~87–91 because .top-nav wrapped
+     regions above the book select (~58px). Keep nav on one 28px row → aim ~75–85. */
+  .top { padding: 0 4px; row-gap: 0; column-gap: 4px; }
+  .brand { max-width: min(88px, calc(100vw - 72px)); padding: 0; line-height: 0; }
+  .brand img { max-width: min(84px, calc(100vw - 80px)); max-height: 28px; width: auto; }
+  .top-nav {
+    display: flex;
+    flex-direction: row; /* base is column — that alone made topH ~87 */
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 2px;
+    min-height: 28px;
+  }
+  #regions.seg {
+    flex: 0 0 auto;
+    flex-wrap: nowrap; /* 上海/人教版/大学 must stay one line or navH doubles */
+    gap: 2px;
+  }
+  #books.book-select-wrap,
+  .book-select-wrap { flex: 1 1 auto; min-width: 0; max-width: none; }
   /* Prefer readable book titles + ~28px tap height while keeping the bar under ~100px. */
   .seg button {
-    padding: 3px 7px;
-    font-size: 12px;
+    padding: 3px 5px;
+    font-size: 11px;
     min-height: 28px;
   }
   .lang button {

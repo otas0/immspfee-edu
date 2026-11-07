@@ -24,6 +24,33 @@ import {
 const DEV_TOAST = new URLSearchParams(location.search).has('dev');
 const narrowMq = window.matchMedia('(max-width: 768px)');
 
+/** Same recovery path for #sw-reload and toast Reload: drop SW + Cache Storage, then reload. */
+function hardReloadFromUi() {
+  const bar = document.getElementById('sw-update');
+  if (bar) bar.hidden = true;
+  const toast = document.getElementById('toast');
+  if (toast) toast.hidden = true;
+  const go = () => {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('boot', String(Date.now()));
+      location.replace(u.pathname + u.search + u.hash);
+    } catch {
+      location.reload();
+    }
+  };
+  const clearCaches = () => {
+    if (!('caches' in window)) return Promise.resolve();
+    return caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+  };
+  const dropSW = () => {
+    if (!('serviceWorker' in navigator)) return Promise.resolve();
+    return navigator.serviceWorker.getRegistrations().then((regs) =>
+      Promise.all(regs.map((r) => r.unregister())));
+  };
+  Promise.all([clearCaches(), dropSW()]).then(go, go);
+}
+
 function showToast(message, opts = {}) {
   const host = document.getElementById('toast');
   if (!host) return;
@@ -37,10 +64,7 @@ function showToast(message, opts = {}) {
     btn.type = 'button';
     btn.className = 'toast-reload';
     btn.textContent = t(lang, 'swReload');
-    btn.addEventListener('click', () => {
-      host.hidden = true;
-      location.reload();
-    });
+    btn.addEventListener('click', () => hardReloadFromUi());
     host.appendChild(btn);
   }
   clearTimeout(showToast._t);
@@ -896,11 +920,7 @@ if ('serviceWorker' in navigator) {
   });
   const reloadBtn = document.getElementById('sw-reload');
   if (reloadBtn) {
-    reloadBtn.addEventListener('click', () => {
-      const bar = document.getElementById('sw-update');
-      if (bar) bar.hidden = true;
-      location.reload();
-    });
+    reloadBtn.addEventListener('click', () => hardReloadFromUi());
   }
 }
 
