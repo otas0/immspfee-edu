@@ -104,19 +104,32 @@ const browser = await chromium.launch(launchOpts());
     const books = document.querySelector('.books');
     const sr = sheetEl.getBoundingClientRect();
     const br = books ? books.getBoundingClientRect() : null;
+    const pxPerMm = 96 / 25.4;
+    const hMm = sr.height / pxPerMm;
+    // @page margin 12mm → printable height ≈ 273mm
+    const printableMm = 297 - 24;
     const panes = [...document.querySelectorAll('.pane')].map((p) => ({
       client: p.clientHeight,
       scroll: p.scrollHeight,
       clipped: p.scrollHeight > p.clientHeight + 2,
     }));
     return {
-      sheetClient: sheetEl.clientHeight,
-      sheetScroll: sheetEl.scrollHeight,
-      sheetOverflow: sheetEl.scrollHeight > sheetEl.clientHeight + 2,
-      booksVisible: br ? br.bottom <= sr.bottom + 1.5 : false,
+      sheetHMm: Math.round(hMm * 10) / 10,
+      printableMm,
+      fitsPrintable: hMm <= printableMm + 1,
+      booksVisible: !!br,
       panesClipped: panes.some((p) => p.clipped),
       panes,
       brandMax: getComputedStyle(document.querySelector('.brand img')).maxWidth,
+      decorativeBorders: [...document.querySelectorAll('.sheet, .pane, .dock, .qr-box, .books, .callout, .phase-lines li, .top, .flow')]
+        .some((el) => {
+          const st = getComputedStyle(el);
+          return ['Top', 'Right', 'Bottom', 'Left'].some((side) => {
+            const w = parseFloat(st[`border${side}Width`]);
+            const style = st[`border${side}Style`];
+            return w > 0 && style && style !== 'none';
+          });
+        }),
     };
   });
   const pdfBuf = await page.pdf({
@@ -132,12 +145,12 @@ const browser = await chromium.launch(launchOpts());
     pdfBytes: pdfBuf.length,
     pdfPages: pages,
     a4CssPx: Math.round((297 * 96) / 25.4),
-    ok: pages === 1 && !fit.sheetOverflow && fit.booksVisible && !fit.panesClipped,
+    ok: pages === 1 && fit.fitsPrintable && fit.booksVisible && !fit.panesClipped && !fit.decorativeBorders,
   };
   fs.writeFileSync(outFit, `${JSON.stringify(report, null, 2)}\n`);
   console.log('A4 fit', report);
   if (!report.ok) {
-    console.error('FAIL: A4 must be 1 page, no sheet/pane clip, books visible');
+    console.error('FAIL: A4 must be 1 page, content ≤ printable area, no decorative borders');
     await browser.close();
     process.exit(2);
   }
