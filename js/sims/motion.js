@@ -420,13 +420,19 @@ export const energySim = {
   },
   draw(ctx, w, h, _p, d, ui) {
     clear(ctx, w, h);
-    const x0 = w * 0.1;
-    const floor = h * 0.62;
-    const px = Math.min(80, (floor - 30) / Math.max(d.H, 0.3));
+    // Wide: track left / KE·PE panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.08;
+    const schW = narrow ? w * 0.88 : w * 0.55;
+    const schH = narrow ? h * 0.48 : h * 0.84;
+    const x0 = schX + schW * 0.08;
+    const floor = schY + schH * 0.78;
+    const px = Math.min(schW * 0.22, (floor - schY - 20) / Math.max(d.H, 0.3));
     const Lpx = d.L * px * Math.cos((d.alpha * Math.PI) / 180);
     const Hpx = d.H * px;
     line(ctx, x0, floor - Hpx, x0 + Lpx, floor, INK, 2);
-    line(ctx, x0 + Lpx, floor, w * 0.62, floor, INK, 2);
+    line(ctx, x0 + Lpx, floor, schX + schW * 0.92, floor, INK, 2);
     let cx;
     let cy;
     if (d.onSlope && d.L > 0) {
@@ -441,19 +447,25 @@ export const energySim = {
     ctx.beginPath();
     ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
     ctx.fill();
-    const base = h * 0.9;
-    const scale = (h * 0.22) / Math.max(d.E0, d.E, 0.5);
+
+    const panelX = narrow ? w * 0.06 : w * 0.62;
+    const panelY = narrow ? h * 0.58 : h * 0.1;
+    const panelW = narrow ? w * 0.88 : w * 0.34;
+    const panelH = narrow ? h * 0.38 : h * 0.8;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'KE · PE · E', '动能 · 势能 · E'));
+    const base = panelY + panelH * 0.82;
+    const scale = (panelH * 0.55) / Math.max(d.E0, d.E, 0.5);
     const shownE = ui.wrong ? d.E0 : d.E;
     const bars = [[lab(ui, 'KE', '动能'), d.KE, RAY], [lab(ui, 'PE', '势能'), d.PE, RAY2]];
     bars.forEach((bar, i) => {
-      const x = w * 0.72 + i * 36;
+      const x = panelX + panelW * 0.22 + i * (panelW * 0.32);
       ctx.fillStyle = bar[2];
-      ctx.fillRect(x, base - bar[1] * scale, 24, bar[1] * scale);
-      text(ctx, bar[0], x + 12, base + 12, MUTED, 11, 'center');
+      ctx.fillRect(x, base - bar[1] * scale, panelW * 0.18, bar[1] * scale);
+      text(ctx, bar[0], x + panelW * 0.09, base + 14, MUTED, 11, 'center');
     });
     const yE = base - shownE * scale;
-    line(ctx, w * 0.68, yE, w * 0.92, yE, INK, 1.5, [4, 3]);
-    text(ctx, lab(ui, 'E', '总能量'), w * 0.93, yE, INK, 11);
+    line(ctx, panelX + panelW * 0.12, yE, panelX + panelW * 0.88, yE, INK, 1.5, [4, 3]);
+    text(ctx, lab(ui, 'E', '总能量'), panelX + panelW * 0.9, yE, INK, 11);
   },
 };
 

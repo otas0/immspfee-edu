@@ -630,6 +630,48 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('length-contraction', 640, 400);
+  const narrow = await runDraw('length-contraction', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL length-contraction@640: ℓ=ℓ0/γ panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL length-contraction@320: ℓ=ℓ0/γ panel should stack under rods', np[0]);
+  } else console.log('ok length-contraction dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('energy', 640, 400);
+  const narrow = await runDraw('energy', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL energy@640: KE·PE panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.5) {
+    failed += 1;
+    console.error('FAIL energy@320: KE·PE panel should stack under track', np[0]);
+  } else console.log('ok energy dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('internal-energy', 640, 400);
+  const narrow = await runDraw('internal-energy', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL internal-energy@640: ΔU=W+Q panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL internal-energy@320: ΔU=W+Q panel should stack under bars', np[0]);
+  } else console.log('ok internal-energy dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

@@ -47,6 +47,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/modern.js', id: 'resistivity', needles: ['R = ρ L / A', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'mass-energy', needles: ['E = m c²', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'time-dilation', needles: ['Δt = γ Δτ', 'w <= 360'] },
+  { file: 'js/sims/modern.js', id: 'internal-energy', needles: ['ΔU = W + Q', 'w <= 360'] },
+  { file: 'js/sims/motion.js', id: 'energy', needles: ['KE · PE · E', 'w <= 360'] },
+  { file: 'js/sims/rel.js', id: 'length-contraction', needles: ['ℓ = ℓ0 / γ', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

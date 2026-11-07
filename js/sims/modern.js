@@ -108,20 +108,33 @@ export const internalSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const mid = h * 0.55;
+    // Wide: W·Q·ΔU bars left / first-law panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const mid = schY + schH * 0.55;
     const bar = (x, val, label, color) => {
-      const hh = Math.min(h * 0.35, Math.abs(val) * 1.2);
+      const hh = Math.min(schH * 0.35, Math.abs(val) * 1.2);
       const y0 = mid;
       const y1 = val >= 0 ? y0 - hh : y0 + hh;
       line(ctx, x, y0, x, y1, color, 10);
       text(ctx, label, x, y0 + (val >= 0 ? 18 : -12), MUTED, 12, 'center');
       text(ctx, fmt(val, 0), x, y1 + (val >= 0 ? -10 : 14), color, 12, 'center');
     };
-    bar(w * 0.25, d.W, 'W', RAY);
-    bar(w * 0.45, d.Q, 'Q', RAY2);
+    bar(schX + schW * 0.2, d.W, 'W', RAY);
+    bar(schX + schW * 0.5, d.Q, 'Q', RAY2);
     const dUshow = ui.wrong ? d.W - d.Q : d.dU;
-    bar(w * 0.7, dUshow, 'ΔU', ui.wrong ? '#a33' : INK);
-    text(ctx, 'ΔU = W + Q', w * 0.5, h * 0.14, INK, 16, 'center');
+    bar(schX + schW * 0.8, dUshow, 'ΔU', ui.wrong ? '#a33' : INK);
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'ΔU = W + Q', 'ΔU = W + Q'));
+    text(ctx, `ΔU=${fmt(dUshow, 1)} J`, panelX + panelW / 2, panelY + panelH * 0.45, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? 'ΔU = W − Q' : 'first law', panelX + panelW / 2, panelY + panelH * 0.7, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
