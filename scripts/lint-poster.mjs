@@ -21,9 +21,9 @@ for (const needle of banned) {
     console.error(`FAIL poster.html: ban lab chassis font ${JSON.stringify(needle)}`);
   }
 }
-if (!html.includes('--paper: #f3efe6') && !html.includes('--paper:#f3efe6')) {
+if (html.includes('#f3efe6')) {
   failed += 1;
-  console.error('FAIL poster.html: keep Education cream --paper #f3efe6 for sheet background');
+  console.error('FAIL poster.html: no cream paper #f3efe6 — keep pure white sheet');
 }
 if (!/\.top\s*\{[^}]*background:\s*#fff/.test(html)) {
   failed += 1;
