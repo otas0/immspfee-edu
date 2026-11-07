@@ -65,7 +65,17 @@ async function loadPlaywright() {
 await ensurePreview();
 const { chromium } = await loadPlaywright();
 fs.mkdirSync(path.dirname(outA4), { recursive: true });
-const browser = await chromium.launch();
+const launchOpts = {};
+if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+  launchOpts.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+} else {
+  const fallback = path.join(
+    process.env.HOME || '',
+    'Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+  );
+  if (fs.existsSync(fallback)) launchOpts.executablePath = fallback;
+}
+const browser = await chromium.launch(launchOpts);
 
 // A4 reference at ~96dpi (210mm ≈ 794px, 297mm ≈ 1123px) + hint chrome
 {

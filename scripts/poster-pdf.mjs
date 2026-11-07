@@ -74,7 +74,17 @@ async function loadPlaywright() {
 await ensurePreview();
 const { chromium } = await loadPlaywright();
 fs.mkdirSync(path.dirname(out), { recursive: true });
-const browser = await chromium.launch();
+const launchOpts = {};
+if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+  launchOpts.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+} else {
+  const fallback = path.join(
+    process.env.HOME || '',
+    'Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+  );
+  if (fs.existsSync(fallback)) launchOpts.executablePath = fallback;
+}
+const browser = await chromium.launch(launchOpts);
 const page = await browser.newPage();
 await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
 await page.emulateMedia({ media: 'print' });
