@@ -3,6 +3,7 @@
 Linked from the top of [README.md](README.md).
 
 - Stage with `bash scripts/git-stage-allow.sh --default` (never blind `git add -A`). Optional: `git config core.hooksPath scripts/githooks` — see [docs/hooks/stage-allow.md](docs/hooks/stage-allow.md).
+- **Promo poster:** use Education’s own chrome (`css/edu.css` tokens)—never copy the lab / buusdo instrument poster. Local only (Pages does not host `docs/`): `http://127.0.0.1:4174/docs/promo/poster.html`. PDF: `npm run poster:pdf`. Reference shot: `npm run capture:poster` → `.local-shots/poster-a4-reference.png`. Details: [docs/promo/README.md](docs/promo/README.md).
 - Local health: `npm run doctor` (not on Pages). Doctor fixtures (no server): `DOCTOR_FIXTURE=auto-ensure-0` · `auto-ensure-1` (mock ensure) · `missing-ready`.
 - Minkowski sticky γ/Δt: wait for product confirmation on [issue #1](https://github.com/otas0/immspfee-edu/issues/1) before changing the sticky map or painting hi (map+smoke first, paint `hi` last).
 - Offline-first PRECACHE flip: [ADR 001](docs/adr/001-ui-chrome-precache.md) + `npm run offline-first:dry-run` (`OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1`; optional `OFFLINE_FIRST_REQUIRE_MP=1`). **Do not open a real flip PR until ADR gates are checked.** Local rehearsal: `npm run offline-first:sidebranch`.

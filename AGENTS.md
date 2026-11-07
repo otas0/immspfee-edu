@@ -27,6 +27,8 @@ This repository is IMMSPFEE Education. Do not point it at the standard lab remot
 
 When a task is finished and `npm test` is green, commit and push `main` immediately so GitHub Pages deploys. Do not batch finished tasks. Do not wait to be asked again.
 
+Promo poster lives at `docs/promo/poster.html` (local `http://127.0.0.1:4174/docs/promo/…` only—Pages does not stage `docs/`). Keep Education chrome; do not restyle from lab/buusdo posters. PDF/ref: `npm run poster:pdf` · `npm run capture:poster`.
+
 If the test fails, fix it before pushing. Never deploy a red tree.
 
 Before pushing, check the remote. Push to `otas0/immspfee-edu` if the repo has been renamed; otherwise `otas0/immspfee-education`. Prefer `bash scripts/push-main.sh` (HTTP/1.1 + exponential backoff). Otherwise use `git -c credential.helper='!gh auth git-credential'` / a token HTTPS URL. Do not change git config. Do not touch `otas0/immspfee`.
