@@ -364,6 +364,62 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('sound-wave', 640, 400);
+  const narrow = await runDraw('sound-wave', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.3) {
+    failed += 1;
+    console.error('FAIL sound-wave@640: y(t) panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL sound-wave@320: y(t) panel should stack under fork', np[0]);
+  } else console.log('ok sound-wave dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('dispersion', 640, 400);
+  const narrow = await runDraw('dispersion', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL dispersion@640: vp·vg panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL dispersion@320: vp·vg panel should stack under ω(k)', np[0]);
+  } else console.log('ok dispersion dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('atom-levels', 640, 400);
+  const narrow = await runDraw('atom-levels', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL atom-levels@640: ΔE panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.5) {
+    failed += 1;
+    console.error('FAIL atom-levels@320: ΔE panel should stack under ladder', np[0]);
+  } else console.log('ok atom-levels dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('photoelectric', 640, 400);
+  const narrow = await runDraw('photoelectric', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL photoelectric@640: Kmax panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL photoelectric@320: Kmax panel should stack under K(f)', np[0]);
+  } else console.log('ok photoelectric dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

@@ -43,17 +43,30 @@ export const soundSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const forkX = w * 0.18;
-    const midY = h * 0.45;
+    // Wide: fork left / y(t) panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const forkBoxX = narrow ? w * 0.06 : w * 0.04;
+    const forkBoxY = narrow ? h * 0.06 : h * 0.1;
+    const forkBoxW = narrow ? w * 0.88 : w * 0.28;
+    const forkBoxH = narrow ? h * 0.36 : h * 0.8;
+    const forkX = forkBoxX + forkBoxW * (narrow ? 0.5 : 0.55);
+    const midY = forkBoxY + forkBoxH * 0.55;
     const spread = 18 + d.y * 22;
-    line(ctx, forkX, midY - 70, forkX, midY + 70, INK, 4);
-    line(ctx, forkX, midY - 55, forkX - spread, midY - 90, RAY, 3);
-    line(ctx, forkX, midY + 55, forkX - spread, midY + 90, RAY, 3);
-    text(ctx, lab(ui, 'fork', '音叉'), forkX, h * 0.12, MUTED, 12, 'center');
-    const gx = w * 0.32;
-    const gy = midY;
-    const gw = w * 0.58;
-    const gh = h * 0.28;
+    const forkSpan = Math.min(forkBoxH * 0.38, 70);
+    line(ctx, forkX, midY - forkSpan, forkX, midY + forkSpan, INK, 4);
+    line(ctx, forkX, midY - forkSpan * 0.78, forkX - spread, midY - forkSpan * 1.28, RAY, 3);
+    line(ctx, forkX, midY + forkSpan * 0.78, forkX - spread, midY + forkSpan * 1.28, RAY, 3);
+    text(ctx, lab(ui, 'fork', '音叉'), forkBoxX + forkBoxW / 2, forkBoxY + 14, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.36;
+    const panelY = narrow ? h * 0.46 : h * 0.1;
+    const panelW = narrow ? w * 0.88 : w * 0.6;
+    const panelH = narrow ? h * 0.5 : h * 0.8;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'y = A sin(2π f t)', 'y = A sin(2π f t)'));
+    const gx = panelX + panelW * 0.08;
+    const gy = panelY + panelH * 0.55;
+    const gw = panelW * 0.84;
+    const gh = panelH * 0.28;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     ctx.beginPath();
     const wrong = !!ui.wrong;
@@ -74,9 +87,9 @@ export const soundSim = {
     ctx.beginPath();
     ctx.arc(gx + gw, yNow, 5, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, `f=${fmt(d.f, 0)} Hz`, w * 0.55, h * 0.14, INK, 14, 'center');
-    text(ctx, `A=${fmt(d.A, 2)}`, w * 0.75, h * 0.14, MUTED, 14, 'center');
-    if (ui.wrong) text(ctx, lab(ui, 'f missing in the wave', '波形里没有 f'), w * 0.55, h * 0.88, '#a33', 13, 'center');
+    text(ctx, `f=${fmt(d.f, 0)} Hz`, panelX + panelW * 0.35, panelY + panelH * 0.22, INK, 13, 'center');
+    text(ctx, `A=${fmt(d.A, 2)}`, panelX + panelW * 0.7, panelY + panelH * 0.22, MUTED, 13, 'center');
+    if (ui.wrong) text(ctx, lab(ui, 'f missing in the wave', '波形里没有 f'), panelX + panelW / 2, panelY + panelH * 0.88, '#a33', 12, 'center');
   },
   pointer() { return null; },
 };
@@ -424,9 +437,56 @@ export const dispersionSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    text(ctx, `vp=${fmt(d.vp, 2)}`, w * 0.35, h * 0.4, RAY, 16, 'center');
-    text(ctx, ui.wrong ? `vg?=${fmt(d.vp, 2)}` : `vg=${fmt(d.vg, 2)}`, w * 0.65, h * 0.4, ui.wrong ? '#a33' : RAY2, 16, 'center');
-    text(ctx, `ω=${fmt(d.omega, 2)}`, w * 0.5, h * 0.7, MUTED, 13, 'center');
+    // Wide: ω(k) left / vp·vg panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const plotX = narrow ? w * 0.06 : w * 0.04;
+    const plotY = narrow ? h * 0.08 : h * 0.1;
+    const plotW = narrow ? w * 0.88 : w * 0.5;
+    const plotH = narrow ? h * 0.4 : h * 0.8;
+    text(ctx, lab(ui, 'ω(k)', 'ω(k)'), plotX + plotW / 2, plotY + 4, MUTED, 12, 'center');
+    const gx = plotX + plotW * 0.12;
+    const gy = plotY + plotH * 0.88;
+    const gw = plotW * 0.78;
+    const gh = plotH * 0.7;
+    line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
+    line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
+    const kMax = Math.max(4, d.k * 1.6);
+    let wMax = 1e-9;
+    const pts = [];
+    for (let i = 0; i <= 80; i += 1) {
+      const k = (kMax * i) / 80 || 1e-9;
+      const sample = dispersion({ omega0: d.omega0, c: d.c, k });
+      pts.push({ k, omega: sample.omega });
+      if (sample.omega > wMax) wMax = sample.omega;
+    }
+    ctx.beginPath();
+    pts.forEach((pt, i) => {
+      const X = gx + (pt.k / kMax) * gw;
+      const Y = gy - (pt.omega / wMax) * gh;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const kx = gx + (d.k / kMax) * gw;
+    const ky = gy - (d.omega / wMax) * gh;
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(kx, ky, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, 'k', gx + gw + 8, gy, MUTED, 11, 'left');
+    text(ctx, 'ω', gx - 10, gy - gh, MUTED, 11, 'right');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'vp · vg', 'vp · vg'));
+    text(ctx, `vp=${fmt(d.vp, 2)}`, panelX + panelW / 2, panelY + panelH * 0.32, RAY, 15, 'center');
+    text(ctx, ui.wrong ? `vg?=${fmt(d.vp, 2)}` : `vg=${fmt(d.vg, 2)}`, panelX + panelW / 2, panelY + panelH * 0.52, ui.wrong ? '#a33' : RAY2, 15, 'center');
+    text(ctx, `ω=${fmt(d.omega, 2)}`, panelX + panelW / 2, panelY + panelH * 0.72, MUTED, 13, 'center');
+    text(ctx, ui.wrong ? 'vp labeled as vg' : 'vg = c² k / ω', panelX + panelW / 2, panelY + panelH * 0.88, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

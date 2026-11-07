@@ -44,20 +44,36 @@ export const atomSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const x = w * 0.35;
+    // Wide: Eₙ ladder left / ΔE panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const ladX = narrow ? w * 0.06 : w * 0.04;
+    const ladY = narrow ? h * 0.06 : h * 0.08;
+    const ladW = narrow ? w * 0.88 : w * 0.52;
+    const ladH = narrow ? h * 0.48 : h * 0.84;
+    const x = ladX + ladW * 0.28;
     const levels = [1, 2, 3, 4, 5];
-    const Y = (n) => h * 0.82 - ((-13.6 / (n * n) + 13.6) / 13.6) * h * 0.6;
+    const Y = (n) => ladY + ladH * 0.9 - ((-13.6 / (n * n) + 13.6) / 13.6) * ladH * 0.72;
     for (const n of levels) {
       const y = Y(n);
       const En = ui.wrong ? -13.6 * n : -13.6 / (n * n);
-      line(ctx, x, y, x + w * 0.35, y, n === d.n || n === d.n2 ? RAY : MUTED, n === d.n || n === d.n2 ? 2.5 : 1);
-      text(ctx, `n=${n}`, x - 28, y, MUTED, 12, 'right');
-      text(ctx, `${fmt(En, 1)} eV`, x + w * 0.38, y, MUTED, 11);
+      line(ctx, x, y, x + ladW * 0.42, y, n === d.n || n === d.n2 ? RAY : MUTED, n === d.n || n === d.n2 ? 2.5 : 1);
+      text(ctx, `n=${n}`, x - 22, y, MUTED, 11, 'right');
+      text(ctx, `${fmt(En, 1)}`, x + ladW * 0.46, y, MUTED, 10);
     }
     const y1 = Y(d.n);
     const y2 = Y(d.n2);
-    line(ctx, x + w * 0.18, y1, x + w * 0.18, y2, RAY2, 2);
-    text(ctx, `ΔE=${fmt(ui.wrong ? Math.abs(-13.6 * d.n2 + 13.6 * d.n) : Math.abs(d.photon), 2)} eV`, w * 0.72, h * 0.2, ui.wrong ? '#a33' : INK, 14, 'center');
+    line(ctx, x + ladW * 0.2, y1, x + ladW * 0.2, y2, RAY2, 2);
+    text(ctx, lab(ui, 'Eₙ ladder', 'Eₙ 能级'), ladX + ladW / 2, ladY + 12, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'ΔE = |Eₙ₂−Eₙ|', 'ΔE = |Eₙ₂−Eₙ|'));
+    const dE = ui.wrong ? Math.abs(-13.6 * d.n2 + 13.6 * d.n) : Math.abs(d.photon);
+    text(ctx, `ΔE=${fmt(dE, 2)} eV`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `n=${d.n} → n₂=${d.n2}`, panelX + panelW / 2, panelY + panelH * 0.62, MUTED, 12, 'center');
+    text(ctx, ui.wrong ? 'E ∝ −n' : 'Eₙ = −13.6 / n²', panelX + panelW / 2, panelY + panelH * 0.82, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };
@@ -387,10 +403,17 @@ export const photoSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.7;
-    const gw = w * 0.76;
-    const gh = h * 0.45;
+    // Wide: K(f) left / cutoff panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const plotX = narrow ? w * 0.06 : w * 0.04;
+    const plotY = narrow ? h * 0.08 : h * 0.1;
+    const plotW = narrow ? w * 0.88 : w * 0.52;
+    const plotH = narrow ? h * 0.42 : h * 0.8;
+    text(ctx, lab(ui, 'Kmax(f)', 'Kmax(f)'), plotX + plotW / 2, plotY + 4, MUTED, 12, 'center');
+    const gx = plotX + plotW * 0.12;
+    const gy = plotY + plotH * 0.88;
+    const gw = plotW * 0.78;
+    const gh = plotH * 0.68;
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
     const fMax = 2e15;
@@ -407,10 +430,20 @@ export const photoSim = {
     ctx.strokeStyle = ui.wrong ? '#a33' : RAY2;
     ctx.lineWidth = 2;
     ctx.stroke();
-    const x0 = gx + (d.f0 / fMax) * gw;
+    const x0 = gx + (Math.min(d.f0, fMax) / fMax) * gw;
     line(ctx, x0, gy, x0, gy - gh, MUTED, 1, [4, 4]);
-    text(ctx, 'f0', x0, gy + 16, MUTED, 11, 'center');
-    text(ctx, `Kmax=${fmt(ui.wrong ? Math.max(0, d.W - (d.h * d.f) / 1.602176634e-19) : d.Kmax, 2)} eV`, w * 0.7, h * 0.18, ui.wrong ? '#a33' : INK, 14);
+    text(ctx, 'f0', x0, gy + 14, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Kmax = hf − W', 'Kmax = hf − W'));
+    const Kshow = ui.wrong ? Math.max(0, d.W - (d.h * d.f) / 1.602176634e-19) : d.Kmax;
+    text(ctx, `f0=${d.f0.toExponential(2)}`, panelX + panelW / 2, panelY + panelH * 0.32, MUTED, 12, 'center');
+    text(ctx, `Kmax=${fmt(Kshow, 2)} eV`, panelX + panelW / 2, panelY + panelH * 0.52, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, d.emits ? lab(ui, 'emits', '出射') : lab(ui, 'no emit', '不出射'), panelX + panelW / 2, panelY + panelH * 0.72, MUTED, 12, 'center');
+    text(ctx, 'f0 = W / h', panelX + panelW / 2, panelY + panelH * 0.88, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };
