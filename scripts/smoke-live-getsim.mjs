@@ -118,10 +118,32 @@ const seedRels = [
   ...Object.values(PATHS).map((f) => `js/sims/${f}`),
 ];
 
+/** Pages CDN can briefly 502/503 right after deploy-pages; retry before failing CI. */
+const FETCH_TRIES = Math.max(1, Number(process.env.LIVE_GETSIM_FETCH_TRIES || 5));
+const FETCH_DELAY_MS = Math.max(50, Number(process.env.LIVE_GETSIM_FETCH_DELAY_MS || 400));
+const TRANSIENT = new Set([502, 503, 429]);
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchOk(url, { tries = FETCH_TRIES } = {}) {
+  let last = null;
+  for (let i = 1; i <= tries; i += 1) {
+    const res = await fetch(url, { redirect: 'follow' });
+    last = res;
+    if (res.ok) return res;
+    if (!TRANSIENT.has(res.status) || i === tries) return res;
+    note(`retry http ${url} -> ${res.status} (${i}/${tries})`);
+    await sleep(FETCH_DELAY_MS * i);
+  }
+  return last;
+}
+
 let failed = 0;
 for (const p of seedRels) {
   const url = `${base}/${p}?v=${short}`;
-  const res = await fetch(url, { redirect: 'follow' });
+  const res = await fetchOk(url);
   if (!res.ok) {
     failed += 1;
     failNote(`FAIL http ${url} -> ${res.status}`);
@@ -152,7 +174,7 @@ async function mirror(rel) {
   if (mirrored.has(rel)) return;
   mirrored.add(rel);
   const url = `${base}/${rel}?v=${short}`;
-  const res = await fetch(url, { redirect: 'follow' });
+  const res = await fetchOk(url);
   if (!res.ok) throw new Error(`mirror ${url} -> ${res.status}`);
   let text = await res.text();
   text = text.replace(/\?v=[A-Za-z0-9_-]+/g, '');
