@@ -8,6 +8,7 @@ Classroom edition of IMMSPFEE. Lessons follow a textbook, one section at a time.
 | --- | --- |
 | [中文说明](#中文说明镜像) | [Run](#run) |
 | [Contributing](CONTRIBUTING.md) | [Local shots / CI artifacts](.local-shots/README.md) |
+| [A4 promo poster](docs/promo/README.md) | Preview `http://127.0.0.1:4174/docs/promo/poster.html` (Pages does **not** host `docs/`) |
 
 This edition: [github.com/otas0/immspfee-edu](https://github.com/otas0/immspfee-edu) · live Pages [otas0.github.io/immspfee-edu](https://otas0.github.io/immspfee-edu/) (GitHub Pages from `main`). The older path `github.com/otas0/immspfee-education` should redirect to the renamed repo.
 
@@ -37,6 +38,9 @@ npm start -- --verbose   # 复用 4174 时恢复双语横幅（默认 quiet）
 npm run capture:340-title  # 340px 长书名 ellipsis 截帧（探测失败则 --no-exec 再拍）
 CAPTURE_FORCE_FAIL=1 npm run capture:340-title  # 故意失败，检查 overflow/topH 摘要模板
 npm run pw:pin-dry-run     # Playwright pin → issue 逻辑 dry-run（不建 issue；见 package.json scripts）
+npm run capture:poster     # A4 参考图 + 340 屏 + 讲解员版 + 单页 fit 断言
+npm run poster:pdf         # .local-shots/poster-a4.pdf（缺 Chromium 时有安装提示）
+npm run lint:poster        # 禁 lab 字体壳 + poster-books 与课表同步
 ```
 
 无 `pretest` 钩子。用 `npm test`（含 rename redirect；GitHub 不可达时软跳过）或 `npm run test:offline`（完全跳过 redirect）。本地：`npm run doctor`（清 sidecar 后默认 `DOCTOR_AUTO_ENSURE=1` 调 ensure-dev-server；不进 Pages）· hooksPath → [docs/hooks/stage-allow.md](docs/hooks/stage-allow.md) / [CONTRIBUTING.md](CONTRIBUTING.md)。`npm run offline-first:dry-run`（`OFFLINE_FIRST_FIXTURE=1` / `OFFLINE_FIRST_REALTREE=1` 绿路径；main 勿设 OFFLINE_FIRST）。CI：`CAPTURE_FORCE_FAIL` + `CAPTURE_FORCE_COLS_FAIL`（**verify only**，绿跑不上传 `capture-cols-fail`；真失败走 `capture-last-fail`）+ `redir-retries-diag`。提交用 `bash scripts/git-stage-allow.sh --default`。

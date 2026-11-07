@@ -1,0 +1,58 @@
+{
+  "generated": "scripts/sync-poster-books.mjs",
+  "books": [
+    {
+      "id": "sh-junior",
+      "zh": "沪科初中物理",
+      "en": "Shanghai junior physics"
+    },
+    {
+      "id": "sh-senior",
+      "zh": "沪科高中物理",
+      "en": "Shanghai senior physics"
+    },
+    {
+      "id": "pep-junior",
+      "zh": "人教版初中物理",
+      "en": "PEP junior physics"
+    },
+    {
+      "id": "university",
+      "zh": "大学物理",
+      "en": "University physics"
+    }
+  ],
+  "regions": [
+    {
+      "id": "shanghai",
+      "zh": "上海",
+      "en": "Shanghai",
+      "books": [
+        "sh-junior",
+        "sh-senior"
+      ]
+    },
+    {
+      "id": "pep",
+      "zh": "人教版",
+      "en": "PEP",
+      "books": [
+        "pep-junior"
+      ]
+    },
+    {
+      "id": "university",
+      "zh": "大学",
+      "en": "University",
+      "books": [
+        "university"
+      ]
+    }
+  ],
+  "line": {
+    "labelZh": "教材覆盖",
+    "labelEn": "Coverage",
+    "shortZh": "沪科 / 人教 / 大学",
+    "shortEn": "Shanghai · PEP · University"
+  }
+}

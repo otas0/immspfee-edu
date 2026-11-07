@@ -3,10 +3,10 @@
  * Export docs/promo/poster.html to a fixed A4 PDF via Chromium (no browser Print UI).
  *
  *   npm run poster:pdf
- *   POSTER_SPEAKER=1 npm run poster:pdf   → speaker layout
+ *   POSTER_SPEAKER=1 npm run poster:pdf
  *   POSTER_LANG=zh POSTER_SPEAKER=1 npm run poster:pdf
  *
- * Output (gitignored): .local-shots/poster-a4.pdf  (or poster-a4-speaker[-zh].pdf)
+ * Output (gitignored): .local-shots/poster-a4.pdf
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -27,6 +27,23 @@ if (speaker) {
   qs.set('lang', lang);
 }
 const url = `http://127.0.0.1:4174/docs/promo/poster.html${qs.toString() ? `?${qs}` : ''}`;
+
+function dieChromium(err) {
+  console.error('poster:pdf — Chromium unavailable.');
+  console.error(String(err && err.message ? err.message : err));
+  console.error('');
+  console.error('Install the pinned Playwright browser (see .local-shots/README.md):');
+  console.error('  PW_VER=$(tr -d \" \\\\n\\\\r\" < scripts/playwright-version.txt)');
+  console.error('  mkdir -p /tmp/pw-shot && cd /tmp/pw-shot');
+  console.error('  npm init -y && npm install \"playwright@${PW_VER}\"');
+  console.error('  npx playwright install chromium');
+  console.error('  cd -');
+  console.error('  NODE_PATH=/tmp/pw-shot/node_modules npm run poster:pdf');
+  console.error('');
+  console.error('Or point at an existing Chrome/Chromium:');
+  console.error('  PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/path/to/Chromium npm run poster:pdf');
+  process.exit(1);
+}
 
 async function probe4174() {
   try {
@@ -51,7 +68,7 @@ async function ensurePreview() {
     if (await probe4174()) return;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  console.error('4174 still unreachable');
+  console.error('4174 still unreachable — run: npm start');
   process.exit(1);
 }
 
@@ -66,13 +83,21 @@ async function loadPlaywright() {
   }
   try {
     return await import('playwright');
-  } catch {
-    throw new Error('Install playwright (e.g. in /tmp/pw-shot) or set NODE_PATH');
+  } catch (err) {
+    dieChromium(err);
   }
 }
 
 await ensurePreview();
-const { chromium } = await loadPlaywright();
+spawnSync(process.execPath, ['scripts/sync-poster-books.mjs'], { cwd: root, stdio: 'inherit' });
+
+let chromium;
+try {
+  ({ chromium } = await loadPlaywright());
+} catch (err) {
+  dieChromium(err);
+}
+
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const launchOpts = {};
 if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
@@ -84,7 +109,14 @@ if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
   );
   if (fs.existsSync(fallback)) launchOpts.executablePath = fallback;
 }
-const browser = await chromium.launch(launchOpts);
+
+let browser;
+try {
+  browser = await chromium.launch(launchOpts);
+} catch (err) {
+  dieChromium(err);
+}
+
 const page = await browser.newPage();
 await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
 await page.emulateMedia({ media: 'print' });

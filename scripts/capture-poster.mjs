@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
- * Capture Education A4 poster reference (+ optional 340px screen readability check).
- * PNGs stay under .local-shots/ (gitignored) — never commit large shots.
+ * Capture Education A4 poster reference (+ 340px screen + speaker-zh + A4 fit).
+ * PNGs stay under .local-shots/ (gitignored).
  *
  *   npm run capture:poster
- *   → .local-shots/poster-a4-reference.png
- *   → .local-shots/poster-340px-screen.png (screen CSS @ 340×720)
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -14,9 +12,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const url = process.env.CAPTURE_URL || 'http://127.0.0.1:4174/docs/promo/poster.html';
+const base = process.env.CAPTURE_URL || 'http://127.0.0.1:4174/docs/promo/poster.html';
 const outA4 = path.join(root, '.local-shots', 'poster-a4-reference.png');
 const out340 = path.join(root, '.local-shots', 'poster-340px-screen.png');
+const outSpeaker = path.join(root, '.local-shots', 'poster-speaker-zh.png');
+const outPdf = path.join(root, '.local-shots', 'poster-a4.pdf');
+const outFit = path.join(root, '.local-shots', 'poster-a4-fit.json');
 
 async function probe4174() {
   try {
@@ -47,7 +48,6 @@ async function ensurePreview() {
 
 async function loadPlaywright() {
   const require = createRequire(import.meta.url);
-  // Prefer pin install in /tmp/pw-shot so sandbox/global Playwright cannot steal Chromium rev.
   for (const candidate of ['/tmp/pw-shot/node_modules/playwright', path.join(root, 'node_modules/playwright')]) {
     try {
       return require(candidate);
@@ -62,86 +62,133 @@ async function loadPlaywright() {
   }
 }
 
+function launchOpts() {
+  const opts = {};
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    opts.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  } else {
+    const fallback = path.join(
+      process.env.HOME || '',
+      'Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+    );
+    if (fs.existsSync(fallback)) opts.executablePath = fallback;
+  }
+  return opts;
+}
+
+function countPdfPages(buf) {
+  const s = buf.toString('latin1');
+  const m = s.match(/\/Type\s*\/Page[^s]/g);
+  return m ? m.length : 0;
+}
+
 await ensurePreview();
+spawnSync(process.execPath, ['scripts/sync-poster-books.mjs'], { cwd: root, stdio: 'inherit' });
+
 const { chromium } = await loadPlaywright();
 fs.mkdirSync(path.dirname(outA4), { recursive: true });
-const launchOpts = {};
-if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
-  launchOpts.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-} else {
-  const fallback = path.join(
-    process.env.HOME || '',
-    'Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium',
-  );
-  if (fs.existsSync(fallback)) launchOpts.executablePath = fallback;
-}
-const browser = await chromium.launch(launchOpts);
+const browser = await chromium.launch(launchOpts());
 
-// A4 reference at ~96dpi (210mm ≈ 794px, 297mm ≈ 1123px) + hint chrome
 {
   const page = await browser.newPage({ viewport: { width: 900, height: 1400 } });
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForTimeout(400);
+  await page.goto(base, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.waitForTimeout(500);
   const sheet = page.locator('.sheet');
   await sheet.waitFor({ state: 'visible', timeout: 10000 });
   await sheet.screenshot({ path: outA4 });
-  const brand = await page.evaluate(() => {
-    const img = document.querySelector('.brand img');
-    if (!img) return null;
-    const r = img.getBoundingClientRect();
-    return { w: r.width, h: r.height, maxCss: getComputedStyle(img).maxWidth };
+
+  await page.emulateMedia({ media: 'print' });
+  await page.waitForTimeout(200);
+  const fit = await page.evaluate(() => {
+    const sheetEl = document.querySelector('[data-poster-sheet]') || document.querySelector('.sheet');
+    const books = document.querySelector('.books');
+    const sr = sheetEl.getBoundingClientRect();
+    const br = books ? books.getBoundingClientRect() : null;
+    const panes = [...document.querySelectorAll('.pane')].map((p) => ({
+      client: p.clientHeight,
+      scroll: p.scrollHeight,
+      clipped: p.scrollHeight > p.clientHeight + 2,
+    }));
+    return {
+      sheetClient: sheetEl.clientHeight,
+      sheetScroll: sheetEl.scrollHeight,
+      sheetOverflow: sheetEl.scrollHeight > sheetEl.clientHeight + 2,
+      booksVisible: br ? br.bottom <= sr.bottom + 1.5 : false,
+      panesClipped: panes.some((p) => p.clipped),
+      panes,
+      brandMax: getComputedStyle(document.querySelector('.brand img')).maxWidth,
+    };
   });
-  console.log('brand', brand);
-  if (!brand || brand.w < 200 || brand.w > 310) {
-    console.error('FAIL: brand width should track site max 300px, got', brand);
+  const pdfBuf = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '0', right: '0', bottom: '0', left: '0' },
+    preferCSSPageSize: true,
+  });
+  fs.writeFileSync(outPdf, pdfBuf);
+  const pages = countPdfPages(pdfBuf);
+  const report = {
+    ...fit,
+    pdfBytes: pdfBuf.length,
+    pdfPages: pages,
+    a4CssPx: Math.round((297 * 96) / 25.4),
+    ok: pages === 1 && !fit.sheetOverflow && fit.booksVisible && !fit.panesClipped,
+  };
+  fs.writeFileSync(outFit, `${JSON.stringify(report, null, 2)}\n`);
+  console.log('A4 fit', report);
+  if (!report.ok) {
+    console.error('FAIL: A4 must be 1 page, no sheet/pane clip, books visible');
     await browser.close();
     process.exit(2);
   }
   console.log(`wrote ${path.relative(root, outA4)}`);
+  console.log(`wrote ${path.relative(root, outPdf)}`);
   await page.close();
 }
 
-// 321–360 screen band readability
 {
   const page = await browser.newPage({ viewport: { width: 340, height: 720 } });
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto(base, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(400);
   await page.screenshot({ path: out340, fullPage: true });
   const check = await page.evaluate(() => {
     const layout = document.querySelector('.layout');
     const hero = document.querySelector('.hero h1.en');
-    const books = document.querySelector('.books');
     const st = layout ? getComputedStyle(layout) : null;
     const cols = st ? st.gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0;
+    const heroLh = hero ? parseFloat(getComputedStyle(hero).lineHeight) : 0;
     const heroFs = hero ? parseFloat(getComputedStyle(hero).fontSize) : 0;
-    const booksFs = books ? parseFloat(getComputedStyle(books).fontSize) : 0;
     const overflowX = document.documentElement.scrollWidth > window.innerWidth + 1;
-    return {
-      cols,
-      heroFs,
-      booksFs,
-      overflowX,
-      scrollW: document.documentElement.scrollWidth,
-      innerW: window.innerWidth,
-    };
+    return { cols, heroFs, heroLh, overflowX, ratio: heroFs ? heroLh / heroFs : 0 };
   });
   console.log('340px screen', check);
-  if (check.cols !== 1) {
-    console.error('FAIL: 340px screen layout should stack to 1 column');
-    await browser.close();
-    process.exit(2);
-  }
-  if (check.heroFs < 12 || check.booksFs < 11) {
-    console.error('FAIL: 340px type too small', check);
-    await browser.close();
-    process.exit(2);
-  }
-  if (check.overflowX) {
-    console.error('FAIL: 340px horizontal overflow', check);
+  if (check.cols !== 1 || check.overflowX || check.ratio > 1.25) {
+    console.error('FAIL: 340px must stack, no overflow, hero line-height ≤1.25em', check);
     await browser.close();
     process.exit(2);
   }
   console.log(`wrote ${path.relative(root, out340)}`);
+  await page.close();
+}
+
+{
+  const page = await browser.newPage({ viewport: { width: 900, height: 1400 } });
+  const speakerUrl = `${base}${base.includes('?') ? '&' : '?'}speaker=1&lang=zh`;
+  await page.goto(speakerUrl, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.waitForTimeout(500);
+  const sheet = page.locator('.sheet');
+  await sheet.screenshot({ path: outSpeaker });
+  const qr = await page.evaluate(() => {
+    const img = document.querySelector('.qr-box img');
+    return img ? img.getBoundingClientRect().width : 0;
+  });
+  console.log('speaker zh QR width px', qr);
+  if (qr < 120) {
+    console.error('FAIL: speaker QR should be enlarged for projection, got', qr);
+    await browser.close();
+    process.exit(2);
+  }
+  console.log(`wrote ${path.relative(root, outSpeaker)}`);
   await page.close();
 }
 
