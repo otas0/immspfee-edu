@@ -26,6 +26,8 @@ const requiredTeachPanel = [
   { file: 'js/sims/waves.js', id: 'sound-wave', needles: ['y = A sin(2π f t)', 'w <= 360'] },
   { file: 'js/sims/waves.js', id: 'dispersion', needles: ['vp · vg', 'w <= 360'] },
   { file: 'js/sims/waves.js', id: 'doppler', needles: ['f′ = f (v±vo)/(v±vs)', 'w <= 360'] },
+  { file: 'js/sims/waves.js', id: 'em-wave', needles: ['c = f λ', 'w <= 360'] },
+  { file: 'js/sims/waves.js', id: 'echo-range', needles: ['s = v t / 2', 'w <= 360'] },
   { file: 'js/sims/thermal.js', id: 'heat-engine', needles: ['teachPanel', 'p–V', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'ising', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'fourier-square', needles: ['odd harmonics', 'w <= 360'] },
@@ -35,6 +37,7 @@ const requiredTeachPanel = [
   { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel', 'midGutter', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'atom-levels', needles: ['ΔE = |Eₙ₂−Eₙ|', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'photoelectric', needles: ['Kmax = hf − W', 'w <= 360'] },
+  { file: 'js/sims/modern.js', id: 'capacitance', needles: ['C = Q / U', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */
@@ -108,10 +111,15 @@ const block1100 = mediaInner(css, 1100);
 const block768 = mediaInner(css, 768);
 const block420 = mediaInner(css, 420);
 const block320 = mediaInner(css, 320);
-// Mobile single-column: teach (phases / params / CTA) before stage so users need not scroll past canvas.
+// Mobile single-column: introduce keeps teach before stage; explore/check/debug flip so the model is on-screen.
 if (!block1100 || !/\.teach\s*\{\s*order:\s*2\s*;/.test(block1100) || !/main\s*\{\s*order:\s*3\s*;/.test(block1100)) {
   failed += 1;
-  console.error('FAIL edu.css@1100: .teach order:2 must precede main order:3 (mobile teach-before-stage)');
+  console.error('FAIL edu.css@1100: .teach order:2 must precede main order:3 (mobile introduce teach-before-stage)');
+} else if (!/html\[data-phase="explore"\][\s\S]*main\s*\{\s*order:\s*2/.test(block1100)
+  || !/html\[data-phase="check"\][\s\S]*main\s*\{\s*order:\s*2/.test(block1100)
+  || !/html\[data-phase="debug"\][\s\S]*main\s*\{\s*order:\s*2/.test(block1100)) {
+  failed += 1;
+  console.error('FAIL edu.css@1100: explore/check/debug must set main order:2 so the stage is not buried under params');
 } else if (!/\.phases\s*\{[^}]*position:\s*sticky/.test(block1100)) {
   failed += 1;
   console.error('FAIL edu.css@1100: .phases must be sticky so phase CTAs stay reachable while scrolling');
@@ -124,6 +132,20 @@ if (!block1100 || !/\.teach\s*\{\s*order:\s*2\s*;/.test(block1100) || !/main\s*\
   console.error('FAIL edu.css@1100: aside must set -webkit-overflow-scrolling: touch for iOS inertia');
 } else {
   console.log('ok edu.css@1100 teach-before-stage + sticky phases + capped aside');
+}
+// Lang pills: auto/min-width so 「中文」never clips (fixed 40px + side padding was the overflow).
+const langBtn = css.match(/\.lang button\s*\{[^}]+\}/g) || [];
+if (!langBtn.some((b) => /min-width:\s*(44|48|52)px/.test(b) && /width:\s*auto/.test(b))) {
+  failed += 1;
+  console.error('FAIL edu.css: .lang button must use width:auto + min-width 44/48/52px so 中文 fits');
+} else if (/\.lang button\s*\{[^}]*width:\s*40px/.test(css) || /flex-basis:\s*40px/.test(block320 || '')) {
+  failed += 1;
+  console.error('FAIL edu.css: do not pin .lang button to 40px (padding ate the 中文 glyphs)');
+} else if (block320 && !/\.lang button\s*\{[^}]*min-width:\s*52px/.test(block320)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: .lang button min-width must be 52px for Safari PingFang 中文');
+} else {
+  console.log('ok edu.css lang button auto width for 中文');
 }
 if (!hasTwoRowAreas(block768)) {
   failed += 1;

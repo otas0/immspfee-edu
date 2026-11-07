@@ -477,14 +477,28 @@ export const capSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cx = w * 0.5;
-    const y = h * 0.45;
-    line(ctx, cx - 40, y - 50, cx - 40, y + 50, INK, 4);
-    line(ctx, cx + 40, y - 50, cx + 40, y + 50, INK, 4);
-    text(ctx, '+', cx - 40, y - 70, RAY, 18, 'center');
-    text(ctx, '−', cx + 40, y - 70, RAY2, 18, 'center');
+    // Wide: plates left / C=Q/U panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const cx = schX + schW * 0.5;
+    const y = schY + schH * 0.5;
+    line(ctx, cx - 36, y - 48, cx - 36, y + 48, INK, 4);
+    line(ctx, cx + 36, y - 48, cx + 36, y + 48, INK, 4);
+    text(ctx, '+', cx - 36, y - 64, RAY, 16, 'center');
+    text(ctx, '−', cx + 36, y - 64, RAY2, 16, 'center');
+    text(ctx, lab(ui, 'plates', '极板'), cx, schY + 14, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'C = Q / U', 'C = Q / U'));
     const Cshow = ui.wrong ? d.Q * d.U : d.C;
-    text(ctx, `C=${Cshow.toExponential(3)} F`, w * 0.5, h * 0.78, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `C=${Cshow.toExponential(3)} F`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, ui.wrong ? 'C = Q U' : 'definition only', panelX + panelW / 2, panelY + panelH * 0.7, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

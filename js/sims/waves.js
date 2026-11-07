@@ -131,41 +131,53 @@ export const emWaveSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: E·B travel left / c=fλ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const lambdaShow = ui.wrong ? d.c * d.f : d.lambda;
-    const gx = w * 0.1;
-    const gy = h * 0.55;
-    const gw = w * 0.8;
+    const waveX = narrow ? w * 0.06 : w * 0.04;
+    const waveY = narrow ? h * 0.08 : h * 0.1;
+    const waveW = narrow ? w * 0.88 : w * 0.52;
+    const waveH = narrow ? h * 0.42 : h * 0.8;
+    const gx = waveX + waveW * 0.08;
+    const gy = waveY + waveH * 0.55;
+    const gw = waveW * 0.84;
     const cycles = 2;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     arrow(ctx, gx, gy, gx + gw, gy, INK, 1.5);
-    text(ctx, lab(ui, 'travel', '传播'), gx + gw - 8, gy + 16, MUTED, 11, 'right');
+    text(ctx, lab(ui, 'travel', '传播'), gx + gw - 4, gy + 14, MUTED, 11, 'right');
     ctx.beginPath();
     for (let i = 0; i <= 160; i += 1) {
       const u = i / 160;
       const x = gx + u * gw;
       const phase = 2 * Math.PI * cycles * u - d.omega * d.t;
-      const y = gy - d.A * Math.sin(phase) * h * 0.22;
+      const y = gy - d.A * Math.sin(phase) * waveH * 0.28;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = RAY;
     ctx.lineWidth = 2;
     ctx.stroke();
-    text(ctx, 'E', gx + 8, gy - h * 0.28, RAY, 13);
-    for (let i = 0; i <= 12; i += 1) {
-      const u = i / 12;
+    text(ctx, 'E', gx + 4, gy - waveH * 0.32, RAY, 12);
+    for (let i = 0; i <= 10; i += 1) {
+      const u = i / 10;
       const x = gx + u * gw;
       const phase = 2 * Math.PI * cycles * u - d.omega * d.t;
       const b = d.A * Math.sin(phase);
-      const mark = b >= 0 ? '·' : '×';
-      text(ctx, mark, x, gy + h * 0.18, RAY2, 12, 'center');
+      text(ctx, b >= 0 ? '·' : '×', x, gy + waveH * 0.22, RAY2, 11, 'center');
     }
-    text(ctx, 'B', gx + 8, gy + h * 0.22, RAY2, 13);
+    text(ctx, 'B', gx + 4, gy + waveH * 0.28, RAY2, 12);
     const span = gw / cycles;
-    line(ctx, gx, h * 0.12, gx + span, h * 0.12, INK, 1.5);
-    text(ctx, `λ=${fmt(lambdaShow, ui.wrong ? 0 : 2)}${ui.wrong ? '' : ' m'}`, gx + span / 2, h * 0.08, ui.wrong ? '#a33' : INK, 13, 'center');
-    text(ctx, `c=fλ → ${fmt(d.f / 1e6, 0)} MHz`, w * 0.7, h * 0.1, MUTED, 12, 'center');
-    if (ui.wrong) text(ctx, lab(ui, 'λ = c f', 'λ = c f'), w * 0.5, h * 0.92, '#a33', 13, 'center');
+    line(ctx, gx, waveY + 18, gx + span, waveY + 18, INK, 1.5);
+    text(ctx, `λ=${fmt(lambdaShow, ui.wrong ? 0 : 2)}${ui.wrong ? '' : ' m'}`, gx + span / 2, waveY + 10, ui.wrong ? '#a33' : INK, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.54 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.42 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'c = f λ', 'c = f λ'));
+    text(ctx, `f=${fmt(d.f / 1e6, 0)} MHz`, panelX + panelW / 2, panelY + panelH * 0.35, MUTED, 13, 'center');
+    text(ctx, `λ=${fmt(lambdaShow, ui.wrong ? 0 : 2)}${ui.wrong ? '' : ' m'}`, panelX + panelW / 2, panelY + panelH * 0.55, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, ui.wrong ? 'λ = c f' : 'E ∥ B phase', panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -258,21 +270,35 @@ export const echoSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.55;
-    const x0 = w * 0.18;
-    const span = Math.min(w * 0.55, d.s * w * 0.08);
-    const x1 = x0 + Math.max(40, span);
+    // Wide: echo path left / s=vt/2 panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.5;
+    const x0 = schX + schW * 0.18;
+    const span = Math.min(schW * 0.55, d.s * schW * 0.12);
+    const x1 = x0 + Math.max(36, span);
     ctx.fillStyle = RAY;
-    ctx.fillRect(x0 - 18, y - 18, 36, 36);
-    text(ctx, lab(ui, 'source', '声源'), x0, y + 40, MUTED, 12, 'center');
-    line(ctx, x0 + 20, y, x1 - 10, y, INK, 1.5);
-    arrow(ctx, x0 + 20, y - 20, x1 - 10, y - 20, RAY2, 2);
-    arrow(ctx, x1 - 10, y + 20, x0 + 20, y + 20, RAY2, 2);
+    ctx.fillRect(x0 - 16, y - 16, 32, 32);
+    text(ctx, lab(ui, 'source', '声源'), x0, y + 36, MUTED, 11, 'center');
+    line(ctx, x0 + 18, y, x1 - 8, y, INK, 1.5);
+    arrow(ctx, x0 + 18, y - 18, x1 - 8, y - 18, RAY2, 2);
+    arrow(ctx, x1 - 8, y + 18, x0 + 18, y + 18, RAY2, 2);
     ctx.fillStyle = MUTED;
-    ctx.fillRect(x1, y - 50, 14, 100);
-    text(ctx, lab(ui, 'wall', '墙'), x1 + 7, y + 70, MUTED, 12, 'center');
+    ctx.fillRect(x1, y - 44, 12, 88);
+    text(ctx, lab(ui, 'wall', '墙'), x1 + 6, y + 62, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 's = v t / 2', 's = v t / 2'));
     const sShow = ui.wrong ? d.v * d.t : d.s;
-    text(ctx, `s=${fmt(sShow, 2)} m`, w * 0.5, h * 0.2, ui.wrong ? '#a33' : INK, 18, 'center');
+    text(ctx, `s=${fmt(sShow, 2)} m`, panelX + panelW / 2, panelY + panelH * 0.38, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `t=${fmt(d.t, 3)} s`, panelX + panelW / 2, panelY + panelH * 0.58, MUTED, 12, 'center');
+    text(ctx, ui.wrong ? 's = v t' : 'round-trip / 2', panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 11, 'center');
   },
   pointer() { return null; },
 };

@@ -79,7 +79,16 @@ button { cursor: pointer; }
   border-color: var(--dark);
 }
 .lang { grid-area: lang; display: flex; gap: 6px; flex: 0 0 auto; }
-.lang button { width: 52px; height: 32px; padding: 0; flex: 0 0 52px; }
+/* Auto width so 「中文」never clips; keep ≥44px tap. Do not pair fixed width with side padding. */
+.lang button {
+  width: auto;
+  min-width: 44px;
+  height: 32px;
+  padding: 0 10px;
+  flex: 0 0 auto;
+  line-height: 1;
+  white-space: nowrap;
+}
 
 .layout {
   display: grid;
@@ -139,11 +148,17 @@ button { cursor: pointer; }
     padding: 2px 22px 2px 8px;
     line-height: 1.1;
   }
-  .seg button, .lang button {
+  .seg button {
     padding: 2px 8px;
     font-size: 12px;
   }
-  .lang button { width: 40px; height: 24px; flex-basis: 40px; }
+  .lang button {
+    height: 28px;
+    min-height: 28px;
+    min-width: 44px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
 }
 .edu-update, .sw-update {
   display: flex;
@@ -326,6 +341,14 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
   aside { order: 1; }
   .teach { order: 2; }
   main { order: 3; }
+  /* Introduce keeps teach (CTA) above the stage. Explore/check/debug bring the
+     stage up so the model is on-screen instead of buried under params. */
+  html[data-phase="explore"] .layout .teach,
+  html[data-phase="check"] .layout .teach,
+  html[data-phase="debug"] .layout .teach { order: 3; }
+  html[data-phase="explore"] .layout main,
+  html[data-phase="check"] .layout main,
+  html[data-phase="debug"] .layout main { order: 2; }
   /* Cap chapter list so long university volumes do not bury phases below the fold. */
   aside {
     max-height: min(30vh, 220px);
@@ -372,12 +395,18 @@ canvas { width: 100%; height: 440px; display: block; border-radius: 12px; touch-
   .brand { max-width: min(96px, calc(100vw - 72px)); padding: 0; }
   .brand img { max-width: min(90px, calc(100vw - 80px)); }
   /* Prefer readable book titles + ~28px tap height while keeping the bar under ~100px. */
-  .seg button, .lang button {
+  .seg button {
     padding: 3px 7px;
     font-size: 12px;
     min-height: 28px;
   }
-  .lang button { width: 40px; height: 28px; flex-basis: 40px; }
+  .lang button {
+    height: 28px;
+    min-height: 28px;
+    min-width: 52px; /* Safari PingFang 「中文」 needs more than 48−20pad */
+    padding: 0 10px;
+    font-size: 12px;
+  }
   /* Keep 「沪科初中物理」「沪科高中物理」「人教版初中物理」 fully visible.
      Match .book-select-wrap select specificity so clip beats the base ellipsis. */
   .book-select-wrap select,
