@@ -24,20 +24,20 @@
   ],
   "regions": [
     {
-      "id": "shanghai",
-      "zh": "上海",
-      "en": "Shanghai",
+      "id": "junior",
+      "zh": "初中",
+      "en": "Junior",
       "books": [
         "sh-junior",
-        "sh-senior"
+        "pep-junior"
       ]
     },
     {
-      "id": "pep",
-      "zh": "人教版",
-      "en": "PEP",
+      "id": "senior",
+      "zh": "高中",
+      "en": "Senior",
       "books": [
-        "pep-junior"
+        "sh-senior"
       ]
     },
     {

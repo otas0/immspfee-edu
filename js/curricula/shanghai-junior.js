@@ -7,7 +7,7 @@ const C = chapter;
 /** 沪科版五四制 2024, 上海科学技术出版社. Section titles follow the published contents. */
 export const shanghaiJunior = {
   id: 'sh-junior',
-  region: 'shanghai',
+  region: 'junior',
   stage: 'junior',
   title: { zh: '沪科初中物理', en: 'Shanghai junior physics' },
   edition: {

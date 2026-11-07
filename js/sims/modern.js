@@ -293,9 +293,15 @@ export const scalesSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.55;
-    const gw = w * 0.76;
+    // Wide: decade ladder left / log₁₀ panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const gx = schX + schW * 0.08;
+    const gy = schY + schH * 0.55;
+    const gw = schW * 0.84;
     line(ctx, gx, gy, gx + gw, gy, INK, 1.5);
     const logs = d.refs.map((r) => Math.log10(r.L));
     const lo = Math.min(...logs, d.log10) - 1;
@@ -312,7 +318,14 @@ export const scalesSim = {
     ctx.beginPath();
     ctx.arc(xm, gy, 7, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, ui.wrong ? `ln=${fmt(mark, 2)}` : `log10=${fmt(d.log10, 2)}`, w * 0.5, h * 0.22, ui.wrong ? '#a33' : INK, 16, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'log₁₀ L', 'log₁₀ L'));
+    text(ctx, ui.wrong ? `ln=${fmt(mark, 2)}` : `log10=${fmt(d.log10, 2)}`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, lab(ui, d.nearest.en, d.nearest.zh), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

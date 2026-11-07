@@ -22,7 +22,7 @@ export const COPY = {
     h2: 'One section at a time—readouts and checks from the governing equation',
     try: 'Try',
     steps: [
-      'Open the live URL → pick region / textbook / lesson',
+      'Open the live URL → pick stage / textbook / lesson',
       'Walk Introduce → Explore → Check → Debug',
       'Drag the stage or edit params; answers recompute from physics/',
     ],
@@ -47,7 +47,7 @@ export const COPY = {
     h2: '一节一节上——读数与判定都来自方程',
     try: '试用',
     steps: [
-      '打开在线地址 → 选地区 / 教材 / 课节',
+      '打开在线地址 → 选学段 / 教材 / 课节',
       '按 引入 → 探究 → 判定 → 排故 走完一节',
       '拖舞台或改参数；答案由 physics/ 方程重算',
     ],

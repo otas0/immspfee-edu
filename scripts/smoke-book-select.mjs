@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getBook, findLesson, flatten } from '../js/curricula/index.js';
+import { getBook, findLesson, flatten, REGIONS } from '../js/curricula/index.js';
 import { t } from '../js/i18n.js';
 import { uniFoldHintFromQuery, applyFoldHintEl } from '../js/uni-fold.js';
 import { createDom } from './dom-lite.mjs';
@@ -21,6 +21,23 @@ if (!/人教版初中物理/.test(zhTitle)) {
   console.error('FAIL pep-junior title.zh must be 人教版初中物理', zhTitle);
 } else {
   console.log('ok pep-junior zh title', zhTitle);
+}
+
+{
+  const ids = REGIONS.map((r) => r.id).join(',');
+  const zh = REGIONS.map((r) => r.zh).join('/');
+  const expectIds = 'junior,senior,university';
+  const expectZh = '初中/高中/大学';
+  if (ids !== expectIds || zh !== expectZh) {
+    failed += 1;
+    console.error('FAIL REGIONS must be stage tabs 初中/高中/大学', { ids, zh });
+  } else if (!REGIONS[0].books.includes('sh-junior') || !REGIONS[0].books.includes('pep-junior')) {
+    failed += 1;
+    console.error('FAIL junior region must list sh-junior + pep-junior', REGIONS[0].books);
+  } else if (pep.region !== 'junior' || getBook('sh-senior').region !== 'senior') {
+    failed += 1;
+    console.error('FAIL book.region must match stage tab id', { pep: pep.region, senior: getBook('sh-senior').region });
+  } else console.log('ok REGIONS stage tabs', zh);
 }
 
 const css = fs.readFileSync(path.join(root, 'css/edu.css'), 'utf8');

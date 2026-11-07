@@ -9,6 +9,7 @@
     "test:offline": "node scripts/test-edu.mjs && node scripts/audit-physics.mjs && node scripts/lint-teach-layout.mjs && node scripts/lint-poster.mjs && node scripts/smoke-layout.mjs && node scripts/smoke-book-select.mjs && node scripts/smoke-hard-boot.mjs && node scripts/smoke-hard-boot-mismatch.mjs && node scripts/smoke-loading-ui.mjs",
     "sync:poster-books": "node scripts/sync-poster-books.mjs",
     "audit:physics": "node scripts/audit-physics.mjs",
+    "audit:draw-cost": "node scripts/audit-draw-cost.mjs",
     "test:redirect": "REQUIRE_REDIRECT_CHECK=1 bash scripts/check-rename-redirect.sh",
     "lint:layout": "node scripts/lint-teach-layout.mjs",
     "smoke:layout": "node scripts/smoke-layout.mjs",

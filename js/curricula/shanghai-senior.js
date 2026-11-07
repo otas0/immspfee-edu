@@ -14,7 +14,7 @@ function live(id, sim, zh, en, iz, ie, preset, exam = false) {
  */
 export const shanghaiSenior = {
   id: 'sh-senior',
-  region: 'shanghai',
+  region: 'senior',
   stage: 'senior',
   tocConfidence: 'compulsory-1-3-and-elective-2-2021',
   title: { zh: '沪科高中物理', en: 'Shanghai senior physics' },

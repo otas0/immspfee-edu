@@ -5,18 +5,19 @@ import { university } from './university.js?v=__BUILD__';
 
 export const BOOKS = [shanghaiJunior, shanghaiSenior, pepJunior, university];
 
+// Stage tabs (not publisher). Book titles still name 沪科 / 人教 editions.
 export const REGIONS = [
   {
-    id: 'shanghai',
-    zh: '上海',
-    en: 'Shanghai',
-    books: ['sh-junior', 'sh-senior'],
+    id: 'junior',
+    zh: '初中',
+    en: 'Junior',
+    books: ['sh-junior', 'pep-junior'],
   },
   {
-    id: 'pep',
-    zh: '人教版',
-    en: 'PEP',
-    books: ['pep-junior'],
+    id: 'senior',
+    zh: '高中',
+    en: 'Senior',
+    books: ['sh-senior'],
   },
   {
     id: 'university',

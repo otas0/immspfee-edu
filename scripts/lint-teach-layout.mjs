@@ -59,6 +59,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/uni.js', id: 'kinetic-gas', needles: ['p = (1/3) ρ v_rms²', 'w <= 360'] },
   { file: 'js/sims/uni.js', id: 'infinite-well', needles: ['Eₙ ∝ n² / L²', 'w <= 360'] },
   { file: 'js/sims/charge.js', id: 'field-potential', needles: ['U = E d', 'w <= 360'] },
+  { file: 'js/sims/modern.js', id: 'scales', needles: ['log₁₀ L', 'w <= 360'] },
+  { file: 'js/sims/stat.js', id: 'barrier-tunnel', needles: ['T(E) barrier', 'w <= 360'] },
+  { file: 'js/sims/stat.js', id: 'hydrogen-radial', needles: ['P(r) = r² R²', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

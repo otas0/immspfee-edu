@@ -231,10 +231,16 @@ export const tunnelSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.1;
-    const gy = h * 0.82;
-    const gw = w * 0.8;
-    const gh = h * 0.55;
+    // Wide: T(E) left / transmission panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
+    const gx = schX + schW * 0.1;
+    const gy = schY + schH * 0.88;
+    const gw = schW * 0.8;
+    const gh = schH * 0.62;
     line(ctx, gx, gy, gx + gw, gy, MUTED, 1);
     line(ctx, gx, gy, gx, gy - gh, MUTED, 1);
     ctx.beginPath();
@@ -266,7 +272,15 @@ export const tunnelSim = {
     const eX = gx + ((d.E - d.Emin) / (d.Emax - d.Emin)) * gw;
     line(ctx, eX, gy, eX, gy - gh, RAY, 1, [2, 2]);
     const Tshow = ui.wrong && d.regime === 'tunnel' ? 0 : d.T;
-    text(ctx, `T=${fmt(Tshow, 4)}  peaks=${d.peaks.length}  k₂a=nπ×${d.resonances.length}`, w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 13, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'T(E) barrier', 'T(E) 势垒'));
+    text(ctx, `T=${fmt(Tshow, 4)}`, panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `peaks=${d.peaks.length}`, panelX + panelW / 2, panelY + panelH * 0.55, MUTED, 12, 'center');
+    text(ctx, `k₂a=nπ×${d.resonances.length}`, panelX + panelW / 2, panelY + panelH * 0.75, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -321,10 +335,16 @@ export const hydrogenRadialSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.1;
-    const gy = h * 0.78;
-    const gw = w * 0.8;
-    const gh = h * 0.55;
+    // Wide: P(r) left / radial panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
+    const gx = schX + schW * 0.1;
+    const gy = schY + schH * 0.82;
+    const gw = schW * 0.8;
+    const gh = schH * 0.58;
     const rMax = d.a * (3 * d.n * d.n + 2);
     let maxY = 1e-40;
     const pts = [];
@@ -350,8 +370,15 @@ export const hydrogenRadialSim = {
     ctx.stroke();
     const px = gx + (Math.min(d.r, rMax) / rMax) * gw;
     line(ctx, px, gy, px, gy - gh, RAY, 1, [3, 3]);
-    text(ctx, ui.wrong ? '|R|' : 'r² R²', w * 0.5, h * 0.1, ui.wrong ? '#a33' : INK, 14, 'center');
-    text(ctx, `n=${d.n}, l=${d.l}`, w * 0.5, h * 0.9, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'P(r) = r² R²', 'P(r) = r² R²'));
+    text(ctx, ui.wrong ? '|R|' : 'r² R²', panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `n=${d.n}, l=${d.l}`, panelX + panelW / 2, panelY + panelH * 0.55, MUTED, 12, 'center');
+    text(ctx, `∫P=${fmt(d.integ, 3)}`, panelX + panelW / 2, panelY + panelH * 0.75, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

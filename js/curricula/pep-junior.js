@@ -10,7 +10,7 @@ const S = section;
  */
 export const pepJunior = {
   id: 'pep-junior',
-  region: 'pep',
+  region: 'junior',
   stage: 'junior',
   tocConfidence: 'grade8-2024',
   title: { zh: '人教版初中物理', en: 'PEP junior physics' },

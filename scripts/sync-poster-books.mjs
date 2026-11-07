@@ -20,8 +20,8 @@ const uni = await import(pathToFileURL(path.join(root, 'js/curricula/university.
 
 const BOOKS = [sj.shanghaiJunior, ss.shanghaiSenior, pep.pepJunior, uni.university];
 const REGIONS = [
-  { id: 'shanghai', zh: '上海', en: 'Shanghai', books: ['sh-junior', 'sh-senior'] },
-  { id: 'pep', zh: '人教版', en: 'PEP', books: ['pep-junior'] },
+  { id: 'junior', zh: '初中', en: 'Junior', books: ['sh-junior', 'pep-junior'] },
+  { id: 'senior', zh: '高中', en: 'Senior', books: ['sh-senior'] },
   { id: 'university', zh: '大学', en: 'University', books: ['university'] },
 ];
 
