@@ -921,6 +921,70 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('sublimation', 640, 400);
+  const narrow = await runDraw('sublimation', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL sublimation@640: Q=m Ls panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL sublimation@320: Ls panel should stack under T–t', np[0]);
+  } else console.log('ok sublimation dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('friction', 640, 400);
+  const narrow = await runDraw('friction', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL friction@640: f≤μN panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL friction@320: μN panel should stack under block', np[0]);
+  } else console.log('ok friction dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('density', 640, 400);
+  const narrow = await runDraw('density', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL density@640: ρ=m/V panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL density@320: ρ panel should stack under sample', np[0]);
+  } else console.log('ok density dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  // Narrow melting: clock drag stays in the T–t schematic band (above Lf panel).
+  const { ctx, h, ui, sim, p, d } = await runDraw('melting', 320, 400);
+  const np = panelFills(ctx.ops);
+  const g = ui._geo;
+  const panelY = np[0]?.[2] ?? h;
+  if (!g || !(g.gy < panelY - 8) || !(g.gx + g.gw > g.gx)) {
+    failed += 1;
+    console.error('FAIL melting@320: T–t band should sit above Lf panel', { gy: g?.gy, panelY, gx: g?.gx, gw: g?.gw });
+  } else {
+    const midX = g.gx + g.gw * 0.55;
+    const midY = g.gy - (g.gh || 40) * 0.3;
+    sim.pointer({ type: 'down', x: midX, y: midY }, p, d, ui);
+    const moved = sim.pointer({ type: 'move', x: g.gx + g.gw * 0.8, y: midY }, p, d, ui);
+    const clock = moved?.__clock;
+    if (!(Number.isFinite(clock) && clock > 0 && midY < panelY)) {
+      failed += 1;
+      console.error('FAIL melting@320: clock drag should update in T–t band', { clock, midY, panelY });
+    } else console.log('ok melting@320 clock drag above panel', { gy: g.gy.toFixed(0), panelY: panelY.toFixed(0), clock: clock.toFixed(1) });
+  }
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

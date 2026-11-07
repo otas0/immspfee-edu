@@ -65,6 +65,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/phase.js', id: 'melting', needles: ['Q = m Lf', 'w <= 360'] },
   { file: 'js/sims/phase.js', id: 'boiling', needles: ['Q = m Lv', 'w <= 360'] },
   { file: 'js/sims/thermal.js', id: 'specific-heat', needles: ['ΔT = Q / (c m)', 'w <= 360'] },
+  { file: 'js/sims/phase.js', id: 'sublimation', needles: ['Q = m Ls', 'w <= 360'] },
+  { file: 'js/sims/mech.js', id: 'friction', needles: ['f ≤ μ N', 'w <= 360'] },
+  { file: 'js/sims/fluids.js', id: 'density', needles: ['ρ = m / V', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

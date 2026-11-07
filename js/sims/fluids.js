@@ -3,7 +3,7 @@ import {
   DENSITIES, densityOf, densityLab, solidPressure, hydrostatics, torricelli,
   bernoulliPipe, wingLift, buoyancyOrigin, weighingBuoyancy, archimedes, floatState,
 } from '../physics/fluids.js?v=__BUILD__';
-import { num, sel, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2, WATER, WATER_EDGE } from './kit.js?v=__BUILD__';
+import { num, sel, clear, line, arrow, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2, WATER, WATER_EDGE } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -59,17 +59,32 @@ export const densitySim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const base = h * 0.75;
-    const bw = 70;
-    const bh = Math.min(h * 0.4, 40 + d.m * 80);
+    // Wide: sample left / ρ=m/V panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const base = schY + schH * 0.82;
+    const bw = Math.min(70, schW * 0.35);
+    const bh = Math.min(schH * 0.55, 40 + d.m * 80);
+    const bx = schX + schW * 0.5 - bw / 2;
     ctx.fillStyle = '#d5dde3';
-    ctx.fillRect(w * 0.32, base - bh, bw, bh);
+    ctx.fillRect(bx, base - bh, bw, bh);
     ctx.strokeStyle = INK;
-    ctx.strokeRect(w * 0.32, base - bh, bw, bh);
-    text(ctx, `${fmt(d.m, 3)} kg`, w * 0.32 + bw / 2, base - bh - 14, INK, 13, 'center');
-    text(ctx, `V=${fmt(d.V, 4)} m³`, w * 0.32 + bw / 2, base + 16, MUTED, 12, 'center');
-    if (ui.wrong) text(ctx, `m? ${fmt(d.rho, 0)}`, w * 0.62, base - 40, '#a33', 14);
-    line(ctx, w * 0.2, base, w * 0.8, base, INK, 2);
+    ctx.strokeRect(bx, base - bh, bw, bh);
+    text(ctx, `${fmt(d.m, 3)} kg`, bx + bw / 2, base - bh - 12, INK, 12, 'center');
+    text(ctx, `V=${fmt(d.V, 4)} m³`, bx + bw / 2, base + 16, MUTED, 11, 'center');
+    line(ctx, schX + schW * 0.1, base, schX + schW * 0.9, base, INK, 2);
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    const mShow = ui.wrong ? d.rho : d.m;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'ρ = m / V', 'ρ = m / V'));
+    text(ctx, ui.wrong ? `m? ${fmt(mShow, 0)}` : `m=${fmt(d.m, 3)} kg`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `ρ=${fmt(d.rho, 0)} kg/m³`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

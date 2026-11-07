@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js?v=__BUILD__';
 import { forceElements, hooke, weight, collinearResultant, twoForce, friction, inertiaCart } from '../physics/mech.js?v=__BUILD__';
-import { num, tog, clear, line, arrow, text, handle, hit, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
+import { num, tog, clear, line, arrow, text, handle, hit, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -358,10 +358,16 @@ export const frictionSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const ground = h * 0.72;
-    line(ctx, 16, ground, w - 16, ground, INK, 2);
-    const bw = 40 + p.area * 400;
-    const x = w * 0.45 + d.x * 30;
+    // Wide: block left / μN panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const ground = schY + schH * 0.78;
+    line(ctx, schX + 8, ground, schX + schW - 8, ground, INK, 2);
+    const bw = Math.min(schW * 0.45, 40 + p.area * 400);
+    const x = schX + schW * 0.5 + Math.max(-schW * 0.15, Math.min(schW * 0.15, d.x * 20));
     ctx.fillStyle = '#ddd4c6';
     ctx.fillRect(x - bw / 2, ground - 36, bw, 36);
     ctx.strokeStyle = INK;
@@ -369,12 +375,19 @@ export const frictionSim = {
     const pressure = d.N / Math.max(p.area, 1e-9);
     ctx.fillStyle = `rgba(196, 73, 29, ${Math.min(0.55, pressure / 2000)})`;
     ctx.fillRect(x - bw / 2, ground - 6, bw, 6);
-    arrow(ctx, x + bw / 2, ground - 18, x + bw / 2 + p.F * 6, ground - 18, RAY, 3);
-    arrow(ctx, x - bw / 2, ground - 18, x - bw / 2 + d.friction * 6, ground - 18, RAY2, 3);
-    if (ui.wrong) {
-      text(ctx, `f∝A → ${fmt(d.friction * (p.area / 0.04), 1)}`, x, ground - 52, '#a33', 12, 'center');
-    }
-    text(ctx, lab(ui, d.regime, d.regime === 'static' ? '静止' : '滑动'), x, ground + 18, MUTED, 12, 'center');
+    const fScale = Math.min(6, (schW * 0.25) / Math.max(Math.abs(p.F), Math.abs(d.friction), 1));
+    arrow(ctx, x + bw / 2, ground - 18, x + bw / 2 + p.F * fScale, ground - 18, RAY, 3);
+    arrow(ctx, x - bw / 2, ground - 18, x - bw / 2 + d.friction * fScale, ground - 18, RAY2, 3);
+    text(ctx, lab(ui, d.regime, d.regime === 'static' ? '静止' : '滑动'), schX + schW / 2, ground + 18, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    const fShow = ui.wrong ? d.friction * (p.area / 0.04) : d.friction;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'f ≤ μ N', 'f ≤ μ N'));
+    text(ctx, `f=${fmt(fShow, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, ui.wrong ? lab(ui, 'f ∝ A', 'f ∝ A') : `μN=${fmt(d.muK * d.N, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
