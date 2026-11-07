@@ -95,12 +95,29 @@ export const gasSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: box left / pV=nRT panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
     const pShow = ui.wrong ? (d.n * d.R * d.T) / (d.V * d.V) : d.p;
+    const bx = schX + schW * 0.2;
+    const by = schY + schH * 0.2;
+    const bw = schW * 0.6;
+    const bh = schH * 0.55;
     ctx.strokeStyle = INK;
     ctx.lineWidth = 3;
-    ctx.strokeRect(w * 0.3, h * 0.25, w * 0.4, h * 0.4);
-    text(ctx, `p=${pShow.toExponential(2)} Pa`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
-    text(ctx, `V=${fmt(d.V, 3)} m³  T=${fmt(d.T, 0)} K`, w * 0.5, h * 0.78, MUTED, 13, 'center');
+    ctx.strokeRect(bx, by, bw, bh);
+    text(ctx, `V=${fmt(d.V, 3)} m³`, schX + schW / 2, schY + schH * 0.88, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'p V = n R T', 'p V = n R T'));
+    text(ctx, `p=${pShow.toExponential(2)} Pa`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, `T=${fmt(d.T, 0)} K`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 13, 'center');
   },
   pointer() { return null; },
 };
@@ -133,14 +150,27 @@ export const carnotSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: Th/Tc reservoirs left / η panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
     const etaShow = ui.wrong ? d.Tc / d.Th : d.eta;
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.2, h * 0.3, w * 0.25, h * 0.35);
+    ctx.fillRect(schX + schW * 0.08, schY + schH * 0.22, schW * 0.38, schH * 0.55);
     ctx.fillStyle = RAY2;
-    ctx.fillRect(w * 0.55, h * 0.45, w * 0.25, h * 0.2);
-    text(ctx, `Th=${fmt(d.Th, 0)} K`, w * 0.32, h * 0.25, MUTED, 12, 'center');
-    text(ctx, `Tc=${fmt(d.Tc, 0)} K`, w * 0.67, h * 0.4, MUTED, 12, 'center');
-    text(ctx, `η=${fmt(etaShow, 3)}`, w * 0.5, h * 0.85, ui.wrong ? '#a33' : INK, 18, 'center');
+    ctx.fillRect(schX + schW * 0.54, schY + schH * 0.4, schW * 0.38, schH * 0.32);
+    text(ctx, `Th=${fmt(d.Th, 0)} K`, schX + schW * 0.27, schY + schH * 0.14, MUTED, 12, 'center');
+    text(ctx, `Tc=${fmt(d.Tc, 0)} K`, schX + schW * 0.73, schY + schH * 0.32, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'η = 1 − Tc/Th', 'η = 1 − Tc/Th'));
+    text(ctx, `η=${fmt(etaShow, 3)}`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 16, 'center');
+    text(ctx, ui.wrong ? 'η = Tc/Th' : `Tc/Th=${fmt(d.Tc / d.Th, 3)}`, panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

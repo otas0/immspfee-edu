@@ -714,6 +714,68 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('carnot', 640, 400);
+  const narrow = await runDraw('carnot', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL carnot@640: η=1−Tc/Th panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL carnot@320: η panel should stack under reservoirs', np[0]);
+  } else console.log('ok carnot dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('ideal-gas', 640, 400);
+  const narrow = await runDraw('ideal-gas', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL ideal-gas@640: pV=nRT panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL ideal-gas@320: pV=nRT panel should stack under box', np[0]);
+  } else console.log('ok ideal-gas dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('point-field', 640, 400);
+  const narrow = await runDraw('point-field', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL point-field@640: E=k|q|/r² panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.5) {
+    failed += 1;
+    console.error('FAIL point-field@320: E panel should stack under charge', np[0]);
+  } else console.log('ok point-field dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  // Narrow induction: rod handle stays in the schematic band (above the Φ panel).
+  const { ctx, w, h, ui, sim, p, d } = await runDraw('induction', 320, 400, { x: 0.25 });
+  const np = panelFills(ctx.ops);
+  const g = ui._geo;
+  const panelY = np[0]?.[2] ?? h;
+  if (!g || g.y >= panelY - 8) {
+    failed += 1;
+    console.error('FAIL induction@320: rod handle should sit above Φ panel', { gy: g?.y, panelY });
+  } else {
+    const hitX = g.x0 + p.x * g.scale;
+    const down = sim.pointer({ type: 'down', x: hitX, y: g.y }, p, d, ui);
+    const moved = sim.pointer({ type: 'move', x: g.x0 + 0.45 * g.scale, y: g.y }, { ...p, ...down }, d, ui);
+    if (!moved || !(moved.x > p.x + 0.05)) {
+      failed += 1;
+      console.error('FAIL induction@320: rod drag should update x in schematic', { from: p.x, to: moved?.x });
+    } else console.log('ok induction@320 rod drag above panel', { gy: g.y.toFixed(0), panelY: panelY.toFixed(0), x: moved.x.toFixed(2) });
+  }
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

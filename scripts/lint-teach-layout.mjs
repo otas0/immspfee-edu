@@ -53,6 +53,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/em.js', id: 'induction', needles: ['Φ = B ℓ x', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'efficiency', needles: ['η = Eu / Ein', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'energy-share', needles: ['E1 + E2 = E0', 'w <= 360'] },
+  { file: 'js/sims/uni.js', id: 'carnot', needles: ['η = 1 − Tc/Th', 'w <= 360'] },
+  { file: 'js/sims/uni.js', id: 'ideal-gas', needles: ['p V = n R T', 'w <= 360'] },
+  { file: 'js/sims/charge.js', id: 'point-field', needles: ['E = k |q| / r²', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

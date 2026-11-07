@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js?v=__BUILD__';
 import { twoCharges, currentFromCharge, pointField, fieldPotential } from '../physics/charge.js?v=__BUILD__';
-import { num, clear, line, text, handle, hit, lab, arrow, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
+import { num, clear, line, text, handle, hit, lab, arrow, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -161,20 +161,34 @@ export const fieldSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cx = w * 0.35;
-    const cy = h * 0.5;
+    // Wide: charge left / E=k|q|/r² panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
+    const cx = schX + schW * 0.28;
+    const cy = schY + schH * 0.52;
+    const scale = schW * 0.55;
     ctx.beginPath();
     ctx.arc(cx, cy, 22, 0, Math.PI * 2);
     ctx.fillStyle = p.q >= 0 ? RAY : RAY2;
     ctx.fill();
     text(ctx, p.q >= 0 ? '+' : '−', cx, cy, '#fff', 18, 'center');
-    const px = cx + Math.min(w * 0.45, d.r * w * 0.6);
+    const px = cx + Math.min(schW * 0.55, d.r * scale);
     handle(ctx, px, cy, false);
-    const Eshow = ui.wrong ? d.k * Math.abs(d.q) * d.r : d.E;
     if (d.sense === 'away') arrow(ctx, px - 10, cy - 40, px + 40, cy - 40, RAY, 2);
     else arrow(ctx, px + 40, cy - 40, px - 10, cy - 40, RAY, 2);
-    text(ctx, `E=${fmt(Eshow, 3)} N/C`, w * 0.65, h * 0.22, ui.wrong ? '#a33' : INK, 14, 'center');
-    ui._geo = { cx, cy, scale: w * 0.6 };
+    const Eshow = ui.wrong ? d.k * Math.abs(d.q) * d.r : d.E;
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'E = k |q| / r²', 'E = k |q| / r²'));
+    text(ctx, `E=${fmt(Eshow, 3)} N/C`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, d.sense === 'away' ? lab(ui, 'away', '向外') : lab(ui, 'toward', '向内'), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
+    ui._geo = { cx, cy, scale };
   },
   pointer(ev, _p, _d, ui) {
     const g = ui._geo;
