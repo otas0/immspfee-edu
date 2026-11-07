@@ -42,11 +42,11 @@ Weekly check: if [#1](https://github.com/otas0/immspfee-edu/issues/1) gains a ch
 
 | Item | Hold |
 | --- | --- |
-| `deploy-pages` bump | Latest still **v5.0.1**; **#433 still open / unmerged** (re-checked 2026-11-07 afternoon) — hold pin; bump the day #433 ships v5.0.2+ and confirm DEP0040 gone |
-| `ubuntu-24.04` → 26 | Pin stays; `npm run probe:ubuntu26` on runner-image announcement change, then dry-branch Pages |
+| `deploy-pages` bump | Latest still **v5.0.1**; **#433 still open / unmerged** (re-checked 2026-11-07 PM) — hold pin; **bump the day #433 merges** and confirm DEP0040 gone in deploy logs |
+| `ubuntu-24.04` → 26 | Pin stays; on runner-images announcement change: `npm run probe:ubuntu26` then dry-branch Pages (`runs-on: ubuntu-latest`) before moving main |
 | Minkowski γ/Δt sticky | [#1](https://github.com/otas0/immspfee-edu/issues/1) unchecked — β only |
 | Close #1 as not planned | Only after explicit product “no” |
-| OFFLINE_FIRST flip PR | **Gate 1 unmet** (no product ask for offline-first first paint) — do **not** open flip PR; local only `npm run offline-first:sidebranch` |
+| OFFLINE_FIRST flip PR | **Gate 1 unmet** (product has not asked for offline-first first paint) — do **not** open flip PR until gate 1 is explicit yes; local only `npm run offline-first:sidebranch` |
 | True L di/dt sim | See `docs/defer-eddy-inductance.md` |
 | cancel+queued dual URLs | Still no live pair; paste into `docs/pages-cancel-race.md` when seen |
 | SW Reload analytics | No product telemetry yet — DOM/CSSOM smoke only (`smoke-hard-boot`); true “did users click?” needs product ask |

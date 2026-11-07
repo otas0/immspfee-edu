@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
  * Intentional BUILD / ?v= mismatch recovery smoke (no browser required for the
- * structural path; optional CAPTURE_URL browser probe when Playwright present).
+ * structural path; optional Playwright e2e when available).
  *
  * Models: stamped HTML advertises BUILD=newsha while a stale module graph still
  * carries ?v=oldsha. Hard-boot must sync-redirect with ?boot= when session KEY
  * ≠ BUILD, then wipe Cache Storage / SW on the landing tick.
  *
  *   node scripts/smoke-hard-boot-mismatch.mjs
+ *   HARD_BOOT_MISMATCH_E2E=1 CAPTURE_URL=http://127.0.0.1:4174/ node scripts/smoke-hard-boot-mismatch.mjs
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
@@ -46,7 +47,6 @@ if (!keyed || !hasBootRedirect || !clearsCache || !dropsSw) {
     failed += 1;
     console.error('FAIL mismatch fixture: old KEY must force wipe');
   } else {
-    // Sync redirect happens before async wipe (no race with stale ?v= modules).
     const bootUrl = (() => {
       const u = new URL('http://127.0.0.1:4174/?v=oldsha#/pep-junior/pep-1-1a/introduce');
       u.searchParams.set('boot', '1');
@@ -66,8 +66,11 @@ if (!keyed || !hasBootRedirect || !clearsCache || !dropsSw) {
 if (!app.includes('function hardReloadFromUi') || !/unregister/.test(app)) {
   failed += 1;
   console.error('FAIL hardReloadFromUi must exist for post-deploy short-SHA recovery');
+} else if (!/sessionStorage\.removeItem\('immspfee-edu-hard-boot'\)/.test(app)) {
+  failed += 1;
+  console.error('FAIL hardReloadFromUi must clear hard-boot KEY (toast Reload recovery)');
 } else {
-  console.log('ok hardReloadFromUi available for ?v= short-SHA stale recovery');
+  console.log('ok hardReloadFromUi available for ?v= short-SHA stale recovery (+ KEY clear)');
 }
 
 // --- docs: README points at Reload / hard-boot ---
@@ -78,6 +81,109 @@ if (!/Reload|hard-boot|Cache Storage/i.test(readme)) {
 } else {
   console.log('ok README documents Reload / hard-boot recovery');
 }
+
+async function loadPlaywright() {
+  const normalize = (mod) => {
+    if (!mod) return null;
+    const m = mod.default && mod.default.chromium ? mod.default : mod;
+    return m && m.chromium ? m : null;
+  };
+  try {
+    const m = normalize(await import('playwright'));
+    if (m) return m;
+  } catch { /* fall through */ }
+  for (const candidate of ['/tmp/pw-shot/node_modules/playwright', path.join(root, 'node_modules/playwright')]) {
+    const entry = path.join(candidate, 'index.js');
+    if (fs.existsSync(entry)) {
+      try {
+        const m = normalize(await import(pathToFileURL(entry).href));
+        if (m) return m;
+      } catch { /* next */ }
+    }
+  }
+  return null;
+}
+
+/** Optional e2e: plant KEY=oldsha + ?v=oldsha, assert hard-boot lands KEY=BUILD.
+ *  Default: try when Playwright + preview are up; soft-skip otherwise.
+ *  HARD_BOOT_MISMATCH_E2E=0 skips; =1 fails soft-skip (require e2e). */
+async function optionalMismatchE2e() {
+  if (process.env.HARD_BOOT_MISMATCH_E2E === '0') {
+    console.log('skip hard-boot mismatch e2e (HARD_BOOT_MISMATCH_E2E=0)');
+    return;
+  }
+  const requireE2e = process.env.HARD_BOOT_MISMATCH_E2E === '1';
+  const pw = await loadPlaywright();
+  if (!pw) {
+    if (requireE2e) {
+      failed += 1;
+      console.error('FAIL hard-boot mismatch e2e required but Playwright missing');
+    } else {
+      console.log('skip hard-boot mismatch e2e: Playwright not installed');
+    }
+    return;
+  }
+  const base = (process.env.CAPTURE_URL || 'http://127.0.0.1:4174/').replace(/\/?$/, '/');
+  let browser;
+  try {
+    const launchOpts = {};
+    const chrome = [
+      path.join(process.env.HOME || '', 'Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium'),
+    ].find((p) => p && fs.existsSync(p));
+    if (chrome) launchOpts.executablePath = chrome;
+    browser = await pw.chromium.launch(launchOpts);
+    const page = await browser.newPage();
+    // Plant KEY once only — hard-boot sync-redirects with ?boot=; re-planting on
+    // every document would loop and hang Playwright's domcontentloaded wait.
+    await page.addInitScript(() => {
+      try {
+        if (sessionStorage.getItem('__hb_e2e_planted')) return;
+        sessionStorage.setItem('__hb_e2e_planted', '1');
+        sessionStorage.setItem('immspfee-edu-hard-boot', 'oldsha-intentional');
+      } catch { /* */ }
+    });
+    const url = `${base}?v=oldsha-intentional#/pep-junior/pep-1-1a/introduce`;
+    const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    if (!resp || !resp.ok()) {
+      if (requireE2e) {
+        failed += 1;
+        console.error('FAIL hard-boot mismatch e2e: preview not reachable', base);
+      } else {
+        console.log('skip hard-boot mismatch e2e: preview not reachable', base);
+      }
+      return;
+    }
+    await page.waitForTimeout(800);
+    const after = await page.evaluate(() => ({
+      key: sessionStorage.getItem('immspfee-edu-hard-boot'),
+      href: location.href,
+      hasBoot: /[?&]boot=/.test(location.search),
+    }));
+    if (after.key === 'oldsha-intentional') {
+      failed += 1;
+      console.error('FAIL e2e: hard-boot left KEY=oldsha-intentional (expected wipe + set BUILD)', after);
+    } else if (!after.key) {
+      failed += 1;
+      console.error('FAIL e2e: hard-boot KEY missing after load (expected stamped BUILD)', after);
+    } else {
+      console.log('ok hard-boot mismatch e2e: KEY oldsha → BUILD', {
+        key: String(after.key).slice(0, 12),
+        hasBoot: after.hasBoot,
+      });
+    }
+  } catch (err) {
+    if (requireE2e) {
+      failed += 1;
+      console.error('FAIL hard-boot mismatch e2e:', err && err.message ? err.message : err);
+    } else {
+      console.log('skip hard-boot mismatch e2e:', err && err.message ? err.message : err);
+    }
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+}
+
+await optionalMismatchE2e();
 
 if (failed) {
   console.error(`smoke-hard-boot-mismatch: ${failed} failure(s)`);

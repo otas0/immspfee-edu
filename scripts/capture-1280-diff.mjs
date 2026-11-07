@@ -21,12 +21,16 @@ const prev = process.env.CAPTURE_1280_PREV
   || path.join(root, '.local-shots', '1280-desktop-prev.png');
 const outMd = process.env.CAPTURE_1280_DIFF_MD
   || path.join(root, '.local-shots', '1280-desktop-diff.md');
+const outThumb = process.env.CAPTURE_1280_DIFF_THUMB
+  || path.join(root, '.local-shots', '1280-desktop-diff-thumb.png');
 const enabled = process.env.CAPTURE_1280_DIFF === '1';
 const strict = process.env.CAPTURE_1280_DIFF_STRICT === '1';
 /** Max fraction of differing pixels (decoded) before soft-warn (default 1.5%). */
 const maxFrac = Number(process.env.CAPTURE_1280_DIFF_MAX_FRAC || '0.015');
 /** Per-channel absolute delta to count a pixel as different (default 8). */
 const maxChan = Number(process.env.CAPTURE_1280_DIFF_MAX_CHAN || '8');
+/** Max thumb width (height scales). Override: CAPTURE_1280_DIFF_THUMB_W=240 */
+const thumbW = Math.max(64, Number(process.env.CAPTURE_1280_DIFF_THUMB_W || '320'));
 
 function writeMd(lines) {
   fs.mkdirSync(path.dirname(outMd), { recursive: true });
@@ -35,6 +39,91 @@ function writeMd(lines) {
   if (summary) {
     try { fs.appendFileSync(summary, '\n' + lines.join('\n') + '\n'); } catch { /* ignore */ }
   }
+}
+
+/** Encode 8-bit RGB PNG (filter-none rows). */
+function encodePngRgb(width, height, rgb) {
+  const stride = width * 3;
+  const raw = Buffer.alloc((stride + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    raw[y * (stride + 1)] = 0;
+    Buffer.from(rgb.subarray(y * stride, (y + 1) * stride)).copy(raw, y * (stride + 1) + 1);
+  }
+  const compressed = zlib.deflateSync(raw);
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n += 1) {
+      let c = n;
+      for (let k = 0; k < 8; k += 1) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  const crc32 = (buf) => {
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i += 1) c = crcTable[(c ^ buf[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length, 0);
+    const typeBuf = Buffer.from(type, 'ascii');
+    const crcBuf = Buffer.alloc(4);
+    crcBuf.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
+    return Buffer.concat([len, typeBuf, data, crcBuf]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2; // RGB
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', compressed),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+/** Downscale diff map: red where channels differ, dim gray elsewhere. */
+function writeDiffThumb(a, b) {
+  const w0 = Math.min(a.width, b.width);
+  const h0 = Math.min(a.height, b.height);
+  const scale = Math.min(1, thumbW / w0);
+  const tw = Math.max(1, Math.round(w0 * scale));
+  const th = Math.max(1, Math.round(h0 * scale));
+  const rgb = new Uint8Array(tw * th * 3);
+  const ch = Math.min(a.channels, b.channels);
+  for (let ty = 0; ty < th; ty += 1) {
+    for (let tx = 0; tx < tw; tx += 1) {
+      const x = Math.min(w0 - 1, Math.floor(tx / scale));
+      const y = Math.min(h0 - 1, Math.floor(ty / scale));
+      const ia = (y * a.width + x) * a.channels;
+      const ib = (y * b.width + x) * b.channels;
+      let hit = false;
+      for (let c = 0; c < ch; c += 1) {
+        if (Math.abs(a.data[ia + c] - b.data[ib + c]) > maxChan) {
+          hit = true;
+          break;
+        }
+      }
+      const o = (ty * tw + tx) * 3;
+      if (hit) {
+        rgb[o] = 220; rgb[o + 1] = 48; rgb[o + 2] = 48;
+      } else {
+        const g = a.channels >= 3
+          ? Math.round((a.data[ia] + a.data[ia + 1] + a.data[ia + 2]) / 6)
+          : Math.round((a.data[ia] || 0) / 2);
+        rgb[o] = g; rgb[o + 1] = g; rgb[o + 2] = g;
+      }
+    }
+  }
+  fs.mkdirSync(path.dirname(outThumb), { recursive: true });
+  fs.writeFileSync(outThumb, encodePngRgb(tw, th, rgb));
+  return { tw, th, path: outThumb };
 }
 
 /** Decode 8-bit greyscale/RGB/RGBA PNG → { width, height, channels, data: Uint8Array }. */
@@ -156,6 +245,15 @@ try {
   const da = decodePng(aBuf);
   const db = decodePng(bBuf);
   const r = pixelDiff(da, db);
+  let thumbNote = '';
+  try {
+    const t = writeDiffThumb(da, db);
+    thumbNote = `- thumb: \`${path.basename(t.path)}\` ${t.tw}×${t.th} (red = channel Δ > ${maxChan})`;
+    console.log('ok capture-1280-diff thumb', { w: t.tw, h: t.th, path: t.path });
+  } catch (thumbErr) {
+    thumbNote = `- thumb: skip (${thumbErr && thumbErr.message ? thumbErr.message : thumbErr})`;
+    console.error('WARN capture-1280-diff thumb failed', thumbErr && thumbErr.message ? thumbErr.message : thumbErr);
+  }
   lines = [
     '# 1280 pixel diff',
     '',
@@ -165,6 +263,7 @@ try {
     `- differing pixels: ${r.diff} / ${r.total} (${(r.frac * 100).toFixed(2)}%)`,
     `- channel tolerance: ±${maxChan}`,
     `- threshold: ${(maxFrac * 100).toFixed(2)}%`,
+    thumbNote,
     r.sizeMismatch ? '- note: dimension mismatch' : '',
     '',
   ].filter(Boolean);

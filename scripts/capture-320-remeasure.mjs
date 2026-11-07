@@ -123,6 +123,13 @@ if (metrics.bookOverflow !== 'clip') {
 } else {
   console.log('ok 320 book text-overflow clip', metrics.bookText);
 }
+// ≤320 abbreviates PEP/沪科 in the select (full name remains in title=).
+if (/^(人教|沪科|大学|PEP|SH|Uni)$/.test(metrics.bookText || '')) {
+  console.log('ok 320 book-select abbreviated label', metrics.bookText);
+} else if (/人教版|沪科初中|沪科高中/.test(metrics.bookText || '')) {
+  failed += 1;
+  console.error('FAIL 320 book-select should abbreviate to 人教/沪科', metrics.bookText);
+}
 console.log('wrote', outJson, outPng);
 if (failed) process.exit(1);
 console.log('ok capture-320-remeasure');

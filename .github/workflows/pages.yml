@@ -248,8 +248,8 @@ jobs:
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          # One id per PATHS group (optics…rel). Stat rotation: wave-packet (was ising; next: hydrogen-radial).
-          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,wave-packet,length-contraction
+          # One id per PATHS group (optics…rel). Stat rotation: hydrogen-radial (was wave-packet ← ising).
+          LIVE_GETSIM_IDS: convex-lens,friction,density,lever,circuit,projectile,melting,oscillator,heat-engine,ruler,sound-wave,induction,collide,charges,time-dilation,finite-well,hydrogen-radial,length-contraction
         run: node scripts/smoke-live-getsim.mjs
       - name: Upload live getSim fail diag
         if: failure() && steps.live_getsim.outcome == 'failure'
@@ -692,7 +692,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: capture-1280-diff-${{ env.SHORT }}
-          path: .local-shots/1280-desktop-diff.md
+          path: |
+            .local-shots/1280-desktop-diff.md
+            .local-shots/1280-desktop-diff-thumb.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Capture step summary

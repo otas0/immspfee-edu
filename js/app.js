@@ -30,6 +30,8 @@ function hardReloadFromUi() {
   if (bar) bar.hidden = true;
   const toast = document.getElementById('toast');
   if (toast) toast.hidden = true;
+  // Drop hard-boot KEY so the next paint re-runs BUILD wipe (stale ?v= recovery).
+  try { sessionStorage.removeItem('immspfee-edu-hard-boot'); } catch { /* private mode */ }
   const go = () => {
     try {
       const u = new URL(location.href);
@@ -383,12 +385,21 @@ function renderChrome() {
     const sel = document.createElement('select');
     sel.className = 'book-select';
     sel.setAttribute('aria-label', t(lang, 'books'));
+    // At ≤320 the nav row is tight: abbreviate 人教/沪科 in the select; full name stays in title.
+    const tightBook = window.matchMedia('(max-width: 320px)').matches;
+    const shortBookLabel = (book) => {
+      if (!tightBook) return tx(lang, book.title);
+      if (book.id.startsWith('pep')) return lang === 'zh' ? '人教' : 'PEP';
+      if (book.id.startsWith('sh-')) return lang === 'zh' ? '沪科' : 'SH';
+      if (book.id === 'university') return lang === 'zh' ? '大学' : 'Uni';
+      return tx(lang, book.title);
+    };
     for (const id of region.books) {
       const book = getBook(id);
       const opt = document.createElement('option');
       opt.value = id;
       const label = tx(lang, book.title);
-      opt.textContent = label;
+      opt.textContent = shortBookLabel(book);
       opt.title = label;
       if (id === bookId) opt.selected = true;
       sel.appendChild(opt);

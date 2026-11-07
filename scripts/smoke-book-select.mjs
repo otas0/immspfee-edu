@@ -120,6 +120,38 @@ if (approxPx > 280) {
   console.log('ok pep zh title width budget', { chars: zhTitle.length, approxPx });
 }
 
+// Narrow ≤320 abbreviates book-select labels (人教 / 沪科 / 大学); full title stays in title=.
+const appJs = fs.readFileSync(path.join(root, 'js/app.js'), 'utf8');
+if (!/max-width:\s*320px/.test(appJs) || !/人教/.test(appJs) || !/沪科/.test(appJs)
+  || !/shortBookLabel/.test(appJs)) {
+  failed += 1;
+  console.error('FAIL app.js@320 must abbreviate book-select (人教/沪科) via shortBookLabel');
+} else {
+  console.log('ok app.js@320 shortBookLabel 人教/沪科');
+}
+
+// push-main concurrent-reset guard: merge-base --is-ancestor + pinned GUARD_SHA.
+const pushMain = fs.readFileSync(path.join(root, 'scripts/push-main.sh'), 'utf8');
+if (!/merge-base --is-ancestor origin\/main/.test(pushMain) || !/GUARD_SHA=/.test(pushMain)) {
+  failed += 1;
+  console.error('FAIL push-main.sh must guard with merge-base --is-ancestor + GUARD_SHA pin');
+} else if (!/HEAD moved under us/.test(pushMain)) {
+  failed += 1;
+  console.error('FAIL push-main.sh must refuse when HEAD moves under GUARD_SHA');
+} else {
+  console.log('ok push-main concurrent-reset guard (merge-base + GUARD_SHA)');
+}
+
+// doctor soft-skip chains to push-main-last-summary.md
+const doctor = fs.readFileSync(path.join(root, 'scripts/doctor.sh'), 'utf8');
+if (!/push-main-last-summary\.md/.test(doctor) || !/chain:/.test(doctor)) {
+  failed += 1;
+  console.error('FAIL doctor.sh soft-skip must chain to push-main-last-summary.md');
+} else {
+  console.log('ok doctor soft-skip → push-main-last-summary.md chain');
+}
+
+
 const motion = fs.readFileSync(path.join(root, 'js/sims/motion.js'), 'utf8');
 const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
 if (!/w\s*<=\s*360/.test(motion)) {

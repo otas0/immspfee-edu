@@ -76,6 +76,7 @@ if echo "$status" | grep -qE '200' && [[ -z "$loc" ]]; then
   echo "$soft_msg"
   # Paste-ready note for doctor / agents (gitignored under .local-shots/).
   soft_out="${REDIRECT_SOFT_SKIP_OUT:-$ROOT/.local-shots/redirect-soft-skip.txt}"
+  summary_md="${ROOT}/.local-shots/push-main-last-summary.md"
   mkdir -p "$(dirname "$soft_out")"
   {
     echo "# rename redirect soft-skip"
@@ -85,9 +86,20 @@ if echo "$status" | grep -qE '200' && [[ -z "$loc" ]]; then
     echo "location: (empty)"
     echo "why: sandbox/proxy fake HTTP 200 without Location (real GitHub returns 301 → $EXPECT)"
     echo "confirm: REQUIRE_REDIRECT_CHECK=1 npm run test:redirect"
+    echo "chain: .local-shots/push-main-last-summary.md (push-main embeds this note when present)"
     echo "$soft_msg"
   } >"$soft_out"
   echo "wrote $soft_out"
+  if [[ -f "$summary_md" ]]; then
+    {
+      echo ""
+      echo "## Redirect soft-skip (from check-rename-redirect)"
+      echo ""
+      echo "See \`.local-shots/redirect-soft-skip.txt\` (written $(date -u +%Y-%m-%dT%H:%M:%SZ))."
+      echo ""
+    } >>"$summary_md"
+    echo "chained soft-skip → $summary_md"
+  fi
   exit 0
 fi
 

@@ -28,6 +28,29 @@ if ! gh api --method GET "/repos/${REPO}" --jq .full_name >/dev/null; then
 fi
 echo "precheck ok"
 
+# Concurrent-reset guard: pin the tip we intend to push. Refuse if HEAD moves
+# under us (HEAD~1 rewrite mid-script) or if origin/main is not an ancestor of
+# HEAD (divergent / behind — re-cherry-pick before pushing).
+GUARD_SHA="$(git rev-parse HEAD)"
+echo "push-guard: pinned HEAD $GUARD_SHA"
+if attempt_git_fetch "$AUTH_URL"; then
+  :
+else
+  echo "push-guard: soft-fetch origin failed; merge-base check uses cached origin/main if present" >&2
+fi
+if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  if ! git merge-base --is-ancestor origin/main "$GUARD_SHA" 2>/dev/null; then
+    echo "REFUSING push: origin/main is not an ancestor of HEAD ($GUARD_SHA)." >&2
+    echo "Likely concurrent reset (HEAD~1) or divergent history. Re-cherry-pick / rebase, then retry." >&2
+    echo "  git log --oneline --decorate -8 HEAD origin/main" >&2
+    git log --oneline --decorate -8 HEAD origin/main >&2 || true
+    exit 1
+  fi
+  echo "push-guard: origin/main is ancestor of HEAD (ok)"
+else
+  echo "push-guard: no origin/main ref yet; skipping merge-base (first push?)"
+fi
+
 attempts=6
 delay=5
 # Cap backoff (default 30s). Override: PAGES_PUSH_MAX_DELAY=60
@@ -45,6 +68,11 @@ if push_preclear_enabled; then
   fi
 fi
 while (( i <= attempts )); do
+  HEAD_NOW="$(git rev-parse HEAD)"
+  if [[ "$HEAD_NOW" != "$GUARD_SHA" ]]; then
+    echo "REFUSING push: HEAD moved under us ($GUARD_SHA → $HEAD_NOW). Concurrent reset?" >&2
+    exit 1
+  fi
   echo "push attempt $i/$attempts (HTTP/1.1)"
   err_log="$(mktemp)"
   if git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push "$AUTH_URL" HEAD:main 2>"$err_log"; then
@@ -205,6 +233,19 @@ mkdir -p "${ROOT}/.local-shots"
   echo "- run: $RID"
   echo "- run URL: https://github.com/${REPO}/actions/runs/${RID}"
   echo ""
+  soft_skip="${ROOT}/.local-shots/redirect-soft-skip.txt"
+  if [[ -f "$soft_skip" ]]; then
+    echo "## Redirect soft-skip (linked)"
+    echo ""
+    echo "Local doctor / rename-check soft-skipped sandbox fake HTTP 200. Paste-ready note:"
+    echo ""
+    echo "\`\`\`"
+    cat "$soft_skip"
+    echo "\`\`\`"
+    echo ""
+    echo "_Source file: \`.local-shots/redirect-soft-skip.txt\` (also points back here)._"
+    echo ""
+  fi
   echo "## Heartbeats"
   echo ""
   echo "<!-- HEARTBEATS_END -->"

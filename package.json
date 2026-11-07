@@ -18,6 +18,7 @@
     "capture:1280": "node scripts/capture-1280-desktop.mjs",
     "capture:1280-diff": "CAPTURE_1280_DIFF=1 node scripts/capture-1280-diff.mjs",
     "capture:320-remeasure": "node scripts/capture-320-remeasure.mjs",
+    "capture:uni-sticky": "node scripts/capture-uni-sticky-hand.mjs",
     "capture:poster": "node scripts/capture-poster.mjs",
     "poster:pdf": "node scripts/poster-pdf.mjs",
     "lint:poster": "node scripts/lint-poster.mjs",

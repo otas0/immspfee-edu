@@ -131,16 +131,29 @@ if [[ "${DOCTOR_FIXTURE:-}" == "redirect-sandbox-200" ]]; then
     out='skip rename redirect (HTTP 200 without Location — likely sandbox/proxy spoof; re-run outside sandbox or REQUIRE_REDIRECT_CHECK=1 on a real network)'
     echo "$out"
     soft_out="$ROOT/.local-shots/redirect-soft-skip.txt"
+    summary_md="$ROOT/.local-shots/push-main-last-summary.md"
     mkdir -p "$(dirname "$soft_out")"
     {
       echo "# rename redirect soft-skip"
       echo "when: fixture"
       echo "why: sandbox/proxy fake HTTP 200 without Location"
       echo "confirm: REQUIRE_REDIRECT_CHECK=1 npm run test:redirect"
+      echo "chain: .local-shots/push-main-last-summary.md (push-main embeds this note when present)"
       echo "$out"
     } >"$soft_out"
     echo "tip: rename redirect soft-skipped (sandbox fake 200). Confirm with: npm run test:redirect"
     echo "wrote $soft_out"
+    {
+      echo "# push-main summary"
+      echo ""
+      echo "> fixture stub from doctor redirect-sandbox-200"
+      echo ""
+      echo "## Redirect soft-skip (linked)"
+      echo ""
+      echo "See \`.local-shots/redirect-soft-skip.txt\`."
+      echo ""
+    } >"$summary_md"
+    echo "chained soft-skip → $summary_md"
     if ! echo "$out" | grep -q 'sandbox/proxy spoof'; then
       echo "FAIL doctor redirect-sandbox-200: expected soft-skip copy" >&2
       rm -f "$fake" "$soft_out"
@@ -151,8 +164,13 @@ if [[ "${DOCTOR_FIXTURE:-}" == "redirect-sandbox-200" ]]; then
       rm -f "$fake"
       exit 1
     fi
+    if ! grep -q 'push-main-last-summary' "$soft_out" || [[ ! -f "$summary_md" ]]; then
+      echo "FAIL doctor redirect-sandbox-200: soft-skip must chain to push-main-last-summary.md" >&2
+      rm -f "$fake"
+      exit 1
+    fi
     rm -f "$fake"
-    echo "ok doctor redirect-sandbox-200 fixture (soft-skip tip + redirect-soft-skip.txt)"
+    echo "ok doctor redirect-sandbox-200 fixture (soft-skip tip + redirect-soft-skip.txt → summary)"
     exit 0
   fi
   echo "FAIL doctor redirect-sandbox-200: soft-skip branch not taken" >&2
