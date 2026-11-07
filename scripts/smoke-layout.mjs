@@ -362,6 +362,36 @@ let failed = 0;
 }
 
 {
+  const { ctx, w, h } = await runDraw('heat-engine', 320, 480);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1) {
+    failed += 1;
+    console.error('FAIL heat-engine@320: no p–V teachPanel');
+  } else {
+    const [, x, y, pw] = panels[0];
+    if (!(y >= h * 0.35 && x <= w * 0.15 && pw >= w * 0.7)) {
+      failed += 1;
+      console.error('FAIL heat-engine@320: p–V should stack under cylinder', { x, y, pw, w, h });
+    } else console.log('ok heat-engine@320 stacked p–V', { y: y.toFixed(0), pw: pw.toFixed(0) });
+  }
+}
+
+{
+  const { ctx, w, h } = await runDraw('coupled-pendula', 320, 480);
+  const panels = panelFills(ctx.ops);
+  if (panels.length < 1) {
+    failed += 1;
+    console.error('FAIL coupled-pendula@320: no P-flow teachPanel');
+  } else {
+    const [, x, y, pw] = panels[0];
+    if (!(y >= h * 0.4 && x <= w * 0.15 && pw >= w * 0.7)) {
+      failed += 1;
+      console.error('FAIL coupled-pendula@320: P-flow panel under pendula', { x, y, pw, w, h });
+    } else console.log('ok coupled-pendula@320 stacked P-flow', { y: y.toFixed(0), pw: pw.toFixed(0) });
+  }
+}
+
+{
   // Minkowski β track sits below the panel with a vertical gutter for labels.
   const { ctx, w, h } = await runDraw('simultaneity', 640, 400, {}, { beta: 0.5 });
   const panels = panelFills(ctx.ops);

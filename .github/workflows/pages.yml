@@ -45,10 +45,12 @@ jobs:
             echo "| capture-fail | \`capture-last-fail-$SHORT\` | 7-day |"
             echo "| capture PNG | \`capture-340px-zh-long-title-$SHORT\` | 7-day |"
             echo "| capture 1280 | \`capture-1280-desktop-$SHORT\` | 7-day |"
+            echo "| capture 1280 diff | \`capture-1280-diff-$SHORT\` | 7-day |"
+            echo "| live-getsim-fail | \`live-getsim-fail-$SHORT\` | 7-day |"
             echo "| force_cols | in-job verify only (no artifact on green; same idea as force_fail template) | — |"
             echo "| force_fail | mirrored — see **Optional capture** job (\`force_fail=ok\` when template passes) | — |"
             echo ""
-            echo "_Footnote: redirect-fail uploads only when the rename-redirect step fails; on redirect green the backfill row is \`not uploaded\` (skip reason: redirect green)._"
+            echo "_Footnote: redirect-fail uploads only when the rename-redirect step fails; on redirect green the backfill row is \`not uploaded\` (skip reason: redirect green). live-getsim-fail is fail-only._"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Test equations and curricula
         run: node scripts/test-edu.mjs
@@ -202,10 +204,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pages artifact: ${AFTER} KiB (was ${BEFORE} KiB working tree)"
       # Node 24 re-scan: configure-pages@v6 + deploy-pages@v5 both using:node24.
-      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-06
-      # (post-audit batch): latest release still v5.0.1 — no v5.0.2+; #433 PR open upstream; hold pin.
+      # punycode DEP0040 still soft (actions/deploy-pages#413 / #434). Re-checked 2026-11-07:
+      # latest release still v5.0.1 (2026-09-01) — no v5.0.2+; #433 PR open upstream; hold pin.
       # When #413 ships a patch (v5.0.2+), bump immediately and confirm DEP0040 gone before merge.
       # Keep this bump track separate from push-main watch-flake soft-ok work.
+      # ubuntu-24.04 pin: probe with `bash scripts/pages-ubuntu26-probe.sh` before moving to 26.
       # Do not suppress. upload-pages-artifact@v5 bundles upload-artifact@v7.
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
@@ -239,13 +242,24 @@ jobs:
             echo "$path -> $code"
             test "$code" = "200"
           done
-      - name: Smoke live getSim (convex-lens, finite-well)
+      - name: Smoke live getSim (lens, finite-well, barrier-tunnel, ising)
+        id: live_getsim
         if: success()
         env:
           PAGES_BASE: ${{ steps.deployment.outputs.page_url }}
           SHORT: ${{ env.SHORT }}
-          LIVE_GETSIM_IDS: convex-lens,finite-well
+          LIVE_GETSIM_IDS: convex-lens,finite-well,barrier-tunnel,ising
         run: node scripts/smoke-live-getsim.mjs
+      - name: Upload live getSim fail diag
+        if: failure() && steps.live_getsim.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: live-getsim-fail-${{ env.SHORT }}
+          path: |
+            .local-shots/live-getsim-fail.md
+            .local-shots/live-getsim-diag/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Smoke home HTML build stamp
         id: stamp_smoke
         if: success()
@@ -449,19 +463,38 @@ jobs:
       - name: Ensure preview for capture
         if: steps.pw.outputs.have == '1'
         run: bash scripts/ensure-dev-server.sh --no-exec --quiet
-      - name: Probe uni-cm first-open prefetch surface
+      - name: Probe uni-cm + uni-qm prefetch (cross-check bench)
         if: steps.pw.outputs.have == '1'
         run: |
-          out=$(PREVIEW_BASE=http://127.0.0.1:4174 node scripts/probe-uni-prefetch.mjs)
-          echo "$out"
+          cm=$(PREVIEW_BASE=http://127.0.0.1:4174 node scripts/probe-uni-prefetch.mjs)
+          qm=$(PREVIEW_BASE=http://127.0.0.1:4174 PROBE_LESSON=uni-qm-1 node scripts/probe-uni-prefetch.mjs)
+          bench=$(node scripts/bench-uni-first-frame.mjs)
+          echo "$cm"
+          echo "$qm"
+          echo "$bench"
           {
-            echo "### University uni-cm Network prefetch"
+            echo "### University prefetch ↔ first-frame bench"
             echo ""
+            echo "| Probe | Expect | Result |"
+            echo "| --- | --- | --- |"
+            echo "| \`uni-cm-1\` Network | \`advance.js\` only (no optics/stat) | see JSON |"
+            echo "| \`uni-qm-1\` Network | \`stat.js\` (+ optional \`uni.js\`); no optics | see JSON |"
+            echo "| \`bench:uni-first\` | subject volume sim counts | see JSON |"
+            echo ""
+            echo "#### uni-cm Network"
             echo '```json'
-            echo "$out" | sed -n '/^{/,/^}/p'
+            echo "$cm" | sed -n '/^{/,/^}/p'
             echo '```'
             echo ""
-            echo "_Cold open \`#/university/uni-cm-1\` — expect \`advance.js\` only among lesson groups (no optics/stat/phase)._"
+            echo "#### uni-qm Network"
+            echo '```json'
+            echo "$qm" | sed -n '/^{/,/^}/p'
+            echo '```'
+            echo ""
+            echo "#### bench:uni-first"
+            echo '```json'
+            echo "$bench" | sed -n '/^{/,/^}/p'
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Force-fail capture summary template
         id: force_fail
@@ -576,6 +609,44 @@ jobs:
         if: steps.pw.outputs.have == '1'
         continue-on-error: true
         run: npm run capture:1280
+      - name: Optional 1280 pixel diff vs prior artifact
+        id: capture1280diff
+        if: always() && steps.pw.outputs.have == '1' && steps.capture1280.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAPTURE_1280_DIFF: '1'
+        run: |
+          # Download newest prior capture-1280-desktop-* from a successful run (best-effort).
+          mkdir -p .local-shots
+          PREV=""
+          set +e
+          art_json="$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=30" --jq \
+            '[.artifacts[] | select(.name | startswith("capture-1280-desktop-")) | select(.expired==false)] | sort_by(.created_at) | reverse | .[0]')"
+          set -e
+          name="$(echo "$art_json" | jq -r '.name // empty')"
+          aid="$(echo "$art_json" | jq -r '.id // empty')"
+          if [ -n "$aid" ] && [ "$name" != "capture-1280-desktop-${SHORT}" ]; then
+            echo "prior artifact: $name ($aid)"
+            gh api "repos/${{ github.repository }}/actions/artifacts/${aid}/zip" > /tmp/1280-prev.zip \
+              && unzip -o /tmp/1280-prev.zip -d /tmp/1280-prev \
+              && PREV="$(find /tmp/1280-prev -name '*.png' | head -n 1)"
+          else
+            echo "No prior distinct 1280 artifact; diff will soft-skip"
+          fi
+          if [ -n "${PREV}" ] && [ -f "${PREV}" ]; then
+            cp "$PREV" .local-shots/1280-desktop-prev.png
+            export CAPTURE_1280_PREV=.local-shots/1280-desktop-prev.png
+          fi
+          node scripts/capture-1280-diff.mjs
+      - name: Upload 1280 diff summary
+        if: always() && steps.capture1280diff.outcome != 'skipped'
+        uses: actions/upload-artifact@v7
+        with:
+          name: capture-1280-diff-${{ env.SHORT }}
+          path: .local-shots/1280-desktop-diff.md
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Capture step summary
         if: always()
         run: |

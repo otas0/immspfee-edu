@@ -5,7 +5,7 @@
 
 **Decision:** Keep them off PRECACHE / REQUIRED. Cache-busting through stamped `app.js` is enough for GitHub Pages today.
 
-**Re-eval (2026-11-06):** Still **off** PRECACHE. Gates 1–3 unmet (no offline-first first-paint product ask; modules stay behind stamped `app.js`; no stale chrome/fold smoke). Do not add to `sw.js` until a flip PR ticks the template below. Lockstep dry-run: `npm run offline-first:dry-run`.
+**Re-eval (2026-11-07):** Still **off** PRECACHE. Gates 1–5 unmet (no offline-first first-paint product ask; modules stay behind stamped `app.js`; no stale chrome/fold smoke; lockstep dry-runs green only via fixture/realtree). **Do not open a flip PR** until the Gates checkboxes below are ticked. Lockstep dry-run: `npm run offline-first:dry-run`.
 
 **Green without touching `main`:** `OFFLINE_FIRST_FIXTURE=1` (minimal temp tree) and `OFFLINE_FIRST_REALTREE=1` (copy of real stamp/sw/index with chrome/fold injected) stand in for a true `OFFLINE_FIRST=1` side branch. Local disposable worktree (not pushed): `bash scripts/offline-first-sidebranch-dry-run.sh`. When you need a reviewable flip PR, open a real branch, edit stamp REQUIRED + `sw.js` PRECACHE (+ modulepreload), set `OFFLINE_FIRST=1`, and run the dry-run there — do not merge until the Flip PR template below is fully checked.
 

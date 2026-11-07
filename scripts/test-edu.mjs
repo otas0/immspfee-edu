@@ -445,9 +445,10 @@ assert(pepLens && shLens && pepLens.lesson.sim === shLens.lesson.sim, 'one lens 
 
 const indexHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 assert(!indexHtml.includes('id="edition"'), 'index has no edition strip');
-assert(indexHtml.includes("sessionStorage.getItem(KEY) === BUILD"), 'hard-boot keyed by stamped BUILD');
+assert(indexHtml.includes("sessionStorage.getItem(KEY) === BUILD") || indexHtml.includes('known === BUILD'), 'hard-boot keyed by stamped BUILD');
 assert(indexHtml.includes("var BUILD = '__BUILD__'"), 'hard-boot BUILD token stamped');
 assert(!/sessionStorage\.getItem\(KEY\) === '1'/.test(indexHtml), 'hard-boot no longer once-per-tab literal 1');
+assert(indexHtml.includes("searchParams.set('boot'") && indexHtml.includes('location.replace'), 'hard-boot sync ?boot= redirect');
 const registryJs = readFileSync(new URL('../js/sims/registry.js', import.meta.url), 'utf8');
 assert(registryJs.includes("phase: './phase.js'"), 'phase sims live in phase.js group');
 assert(registryJs.includes("rel: './rel.js'"), 'relativity length-contraction lives in rel.js group');
@@ -466,12 +467,14 @@ assert(appJs.includes("wrap.className = 'sources'"), 'sourcesBlock builds footer
 assert(appJs.includes('otas0.github.io/immspfee/'), 'About links to the separate lab site');
 assert(appJs.includes("t(lang, 'labRepo')"), 'About shows lab repo plain text');
 assert(!appJs.includes('otas0/immspfee.git'), 'About does not point git at the lab remote');
+assert(appJs.includes('loadingSim') && appJs.includes("t(lang, 'simLoading')"), 'loadLesson paints loading not false fail');
 const i18nJs = readFileSync(new URL('../js/i18n.js', import.meta.url), 'utf8');
 assert(i18nJs.includes('labLink'), 'i18n has labLink');
 assert(i18nJs.includes('labRepo'), 'i18n has labRepo');
 assert(i18nJs.includes("queuedTitle: 'Mapped, not simulated yet'"), 'empty-state Mapped title kept');
 assert(!/ready:\s*'Ready'/.test(i18nJs), 'i18n has no Ready chip string');
 assert(!/exam:\s*'Exam'/.test(i18nJs), 'i18n has no Exam chip string');
+assert(i18nJs.includes('simLoading') && i18nJs.includes('simLoadFail'), 'i18n loading / fail strings');
 const curriculaIndex = readFileSync(new URL('../js/curricula/index.js', import.meta.url), 'utf8');
 assert(curriculaIndex.includes('?v=__BUILD__'), 'curricula entry imports use stamped bust');
 const swJs = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');

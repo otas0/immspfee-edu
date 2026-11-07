@@ -388,10 +388,12 @@ export const coupledPendulaSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const pivotY = h * 0.14;
-    const scale = Math.min(h * 0.32, d.L * 100);
-    const x1p = w * 0.28;
-    const x2p = w * 0.52;
+    // Wide/narrow share the same vertical stack; narrow (≤360) compresses pendula + grows the P-flow panel.
+    const narrow = w <= 360;
+    const pivotY = narrow ? h * 0.1 : h * 0.14;
+    const scale = Math.min(narrow ? h * 0.22 : h * 0.32, d.L * 100);
+    const x1p = narrow ? w * 0.32 : w * 0.28;
+    const x2p = narrow ? w * 0.68 : w * 0.52;
     const kappa = ui.wrong ? 0 : d.kappa;
     const state = ui.wrong ? coupledPendula({ ...p, kappa: 0 }, d.t) : d;
     const bob = (xp, th) => [xp + scale * Math.sin(th), pivotY + scale * Math.cos(th)];
@@ -402,22 +404,23 @@ export const coupledPendulaSim = {
     line(ctx, bx1, by1, bx2, by2, kappa > 0 ? RAY2 : MUTED, 1.5, kappa > 0 ? [] : [4, 4]);
     ctx.fillStyle = RAY;
     ctx.beginPath();
-    ctx.arc(bx1, by1, 9, 0, Math.PI * 2);
-    ctx.arc(bx2, by2, 9, 0, Math.PI * 2);
+    ctx.arc(bx1, by1, narrow ? 7 : 9, 0, Math.PI * 2);
+    ctx.arc(bx2, by2, narrow ? 7 : 9, 0, Math.PI * 2);
     ctx.fill();
     const eMax = Math.max(state.E1 + state.E2, 1e-9);
+    const barY = narrow ? h * 0.42 : h * 0.52;
     ctx.fillStyle = RAY;
-    ctx.fillRect(w * 0.08, h * 0.52, (state.E1 / eMax) * w * 0.28, 7);
+    ctx.fillRect(w * 0.08, barY, (state.E1 / eMax) * w * 0.28, 7);
     ctx.fillStyle = RAY2;
-    ctx.fillRect(w * 0.4, h * 0.52, (state.E2 / eMax) * w * 0.28, 7);
-    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.22, h * 0.48, INK, 11, 'center');
-    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.54, h * 0.48, INK, 11, 'center');
+    ctx.fillRect(w * 0.4, barY, (state.E2 / eMax) * w * 0.28, 7);
+    text(ctx, `E1=${fmt(state.E1, 3)}`, w * 0.22, barY - 10, INK, 11, 'center');
+    text(ctx, `E2=${fmt(state.E2, 3)}`, w * 0.54, barY - 10, INK, 11, 'center');
     // Power-flow panel under the energy bars (separate from the pendula).
     const tMax = this.tMax(p);
     const panelX = w * 0.06;
-    const panelY = h * 0.62;
+    const panelY = narrow ? h * 0.5 : h * 0.62;
     const panelW = w * 0.88;
-    const panelH = h * 0.32;
+    const panelH = narrow ? h * 0.46 : h * 0.32;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'P₁→₂(t)', '功率流 P₁→₂(t)'));
     const gx = panelX + panelW * 0.06;
     const gy = panelY + panelH * 0.78;

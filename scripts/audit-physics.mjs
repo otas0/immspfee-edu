@@ -47,8 +47,15 @@ near(phys.carnotEta({ Th: 400, Tc: 200 }).eta, 0.5, 1e-12, 'Carnot');
 near(phys.idealGas({ n: 2, T: 273.15, V: 0.044821 }).p, (2 * 8.314462618 * 273.15) / 0.044821, 1e-3, 'ideal gas p');
 near(phys.massEnergy({ m: 1 }).E / (2.99792458e8 ** 2), 1, 1e-12, 'E=mc² ratio');
 near(phys.halfLife({ N0: 1024, T: 1, t: 10 }).N, 1, 1e-6, '10 half-lives');
-near(phys.timeDilation({ v: 0.6 * 2.99792458e8, dtau: 1 }).gamma, 1 / Math.sqrt(1 - 0.36), 1e-9, 'γ(β=0.6)');
-near(phys.lengthContraction({ L0: 10, v: 0.6 * 2.99792458e8 }).L, 10 * Math.sqrt(1 - 0.36), 1e-9, 'L contraction');
+const c = 2.99792458e8;
+for (const beta of [0, 0.3, 0.6, 0.9]) {
+  const gExpect = 1 / Math.sqrt(1 - beta * beta);
+  const dil = phys.timeDilation({ v: beta * c, dtau: 1 });
+  near(dil.gamma, gExpect, 1e-9, `γ(β=${beta})`);
+  near(dil.dt, gExpect, 1e-9, `Δt(β=${beta}) with dτ=1`);
+  near(phys.lengthContraction({ L0: 10, v: beta * c }).L, 10 / gExpect, 1e-9, `L contraction β=${beta}`);
+}
+near(phys.simultaneity({ L0: c, v: 0.6 * c }).gamma, 1 / Math.sqrt(1 - 0.36), 1e-9, 'simultaneity γ');
 near(phys.malus({ I0: 2, theta: 45 }).I, 1, 1e-9, 'Malus 45°');
 near(phys.ampereForce({ B: 1, I: 2, L: 0.5 }).F, 1, 1e-12, 'F=BIL');
 near(phys.solenoidField({ n: 500, I: 1, turns: 4 }).B, 4e-7 * Math.PI * 500, 1e-12, 'μ0 n I');
@@ -56,6 +63,18 @@ near(phys.oscillator({ m: 1, k: 4, A: 0.1 }, 0).x, 0.1, 1e-12, 'SHO x(0)');
 near(phys.oscillator({ m: 1, k: 4, A: 0.1 }, Math.PI / 4).x, 0, 1e-9, 'SHO x(T/4)'); // ω=2 → T=π, T/4=π/4
 const fw = phys.finiteWell({ m: 9.1e-31, L: 1e-9, V0: 1.6e-18, E: 2e-18 });
 assert(fw.E1f != null && fw.E1f < fw.E1inf, 'finite-well E1f < E1∞');
+assert(fw.bound.length >= 2, `finite-well ≥2 bound states (got ${fw.bound.length})`);
+for (let i = 0; i < fw.bound.length; i += 1) {
+  const b = fw.bound[i];
+  assert(b.E > 0 && b.E < fw.V0, `bound[${i}] inside well`);
+  if (i > 0) assert(b.E > fw.bound[i - 1].E, `bound[${i}] above previous`);
+  near(b.integ, 1, 0.08, `bound[${i}] ∫|ψ|²`);
+  assert(b.parity === 'even' || b.parity === 'odd', `bound[${i}] parity`);
+  assert(b.samples?.length > 8, `bound[${i}] ψ samples`);
+}
+// Deeper well → at least as many bound states.
+const fwDeep = phys.finiteWell({ m: 9.1e-31, L: 1e-9, V0: 4e-18, E: 3e-18 });
+assert(fwDeep.bound.length >= fw.bound.length, 'deeper well has ≥ bound states');
 const ising = phys.isingMetropolis({ N: 6, T: 0.1, sweeps: 40, seed: 7 });
 assert(ising.absM > 0.5, 'Ising low-T ordered');
 const packet = phys.gaussianPacket({ m: 9.1e-31, sigma0: 1e-10, k0: 1e10, x0: 0 }, 0);

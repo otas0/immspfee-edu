@@ -58,6 +58,17 @@ if (!block320) {
   console.log('ok 320px CSSOM book-select-wrap select → clip');
 }
 
+// @320 tap budget: book-select + lang/seg buttons ≥28px (hand / Safari hit chain).
+if (!/min-height:\s*28px/.test(block320)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: expected min-height: 28px for book-select / buttons');
+} else if (!/\.book-select-wrap\s+select[\s\S]*?min-height:\s*28px|\.book-select[\s\S]*?min-height:\s*28px/.test(block320)) {
+  failed += 1;
+  console.error('FAIL edu.css@320: .book-select must set min-height: 28px');
+} else {
+  console.log('ok 320px CSSOM book-select / chrome min-height ≥28px tap');
+}
+
 // Title character budget: at 11px tabular-ish, 「人教版初中物理」(7 chars) must fit ~280px.
 const approxPx = zhTitle.length * 11;
 if (approxPx > 280) {
@@ -501,6 +512,43 @@ if (!hasTwoRowTop(block768)) {
     });
   } else {
     console.log('ok doctor missing-ready fixture (tip + mock ensure; no server)');
+  }
+  const docRedir = spawnSync('bash', ['scripts/doctor.sh'], {
+    cwd: root,
+    env: { ...process.env, DOCTOR_FIXTURE: 'redirect-sandbox-200' },
+    encoding: 'utf8',
+  });
+  if (docRedir.status !== 0 || !/ok doctor redirect-sandbox-200 fixture/.test(docRedir.stdout || '')) {
+    failed += 1;
+    console.error('FAIL doctor redirect-sandbox-200 fixture', {
+      status: docRedir.status, out: (docRedir.stdout || '').slice(0, 400), err: docRedir.stderr,
+    });
+  } else {
+    console.log('ok doctor redirect-sandbox-200 fixture (soft-skip tip)');
+  }
+  const hardBoot = spawnSync(process.execPath, ['scripts/smoke-hard-boot.mjs'], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  if (hardBoot.status !== 0 || !/ok smoke-hard-boot/.test(hardBoot.stdout || '')) {
+    failed += 1;
+    console.error('FAIL smoke-hard-boot', {
+      status: hardBoot.status, out: (hardBoot.stdout || '').slice(0, 400), err: hardBoot.stderr,
+    });
+  } else {
+    console.log('ok smoke-hard-boot (BUILD wipe + SW Reload tap)');
+  }
+  // push-main must never leave a bare $((…)) statement (was exit 127: "10: command not found").
+  const pushMain = fs.readFileSync(path.join(root, 'scripts/push-main.sh'), 'utf8');
+  const bareArith = pushMain.split('\n').filter((ln) => /^\s*\$\(\(/.test(ln) && !/^\s*#/.test(ln));
+  if (bareArith.length) {
+    failed += 1;
+    console.error('FAIL push-main.sh bare $((…)) would exec as command', bareArith.slice(0, 3));
+  } else if (!fs.existsSync(path.join(root, 'scripts/push-main-heartbeat.sh'))) {
+    failed += 1;
+    console.error('FAIL missing scripts/push-main-heartbeat.sh (source target)');
+  } else {
+    console.log('ok push-main heartbeat extract (no bare $((…)); source file present)');
   }
   const side = spawnSync('bash', ['scripts/offline-first-sidebranch-dry-run.sh'], {
     cwd: root,

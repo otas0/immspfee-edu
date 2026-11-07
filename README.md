@@ -52,7 +52,7 @@ npm start
 
 There is **no** `pretest` hook. Use `npm test` (includes rename redirect; soft-skips when GitHub is unreachable) or `npm run test:offline` when you want to skip redirect entirely.
 
-CI artifact names (short SHA, 7-day): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-last-fail-<sha>` (fail-only), `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). `CAPTURE_FORCE_COLS_FAIL` verifies in-job only (no green `capture-cols-fail` upload). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
+CI artifact names (short SHA, 7-day): `capture-340px-zh-long-title-<sha>`, `capture-1280-desktop-<sha>`, `capture-1280-diff-<sha>` (optional), `capture-last-fail-<sha>` (fail-only), `live-getsim-fail-<sha>` (fail-only), `redirect-fail-headers-<sha>` — see [`.local-shots/README.md`](.local-shots/README.md). `CAPTURE_FORCE_COLS_FAIL` verifies in-job only (no green `capture-cols-fail` upload). PNGs stay in Actions artifacts / `.local-shots/` (gitignored); do not commit large shots.
 
 `npm start` runs `scripts/npm-start.sh` → `ensure-dev-server.sh` with `ENSURE_QUIET=1` by default: reuses an already-listening process on port 4174 (`.dev-server-4174.pid` + `.ready`) and exits 0 with a one-line URL tip (no bilingual banner). Prefer probing first:
 

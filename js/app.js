@@ -108,6 +108,8 @@ let query = '';
 let lastFrame = 0;
 let currentSim = null;
 let loadToken = 0;
+/** null = idle/ready; string sim id = getSim in flight (do not paint false “failed”). */
+let loadingSim = null;
 
 function passedMap() {
   try { return JSON.parse(localStorage.getItem(CHECK_KEY) || '{}'); } catch { return {}; }
@@ -165,6 +167,7 @@ async function loadLesson(nextId, nextPhase) {
   phase = nextPhase || 'introduce';
   const wanted = lesson().sim;
   currentSim = null;
+  loadingSim = wanted || null;
   ui = { drag: null, wrong: false };
   clock = 0;
   playing = false;
@@ -173,6 +176,7 @@ async function loadLesson(nextId, nextPhase) {
   writeHash();
   render();
   if (!wanted) {
+    loadingSim = null;
     params = {};
     if (token === loadToken) draw();
     return;
@@ -180,11 +184,12 @@ async function loadLesson(nextId, nextPhase) {
   let s = await getSim(wanted);
   if (!s) s = await getSim(wanted, { reload: true });
   if (token !== loadToken) return;
+  loadingSim = null;
   currentSim = s;
   const preset = lesson().preset || {};
   params = s ? { ...s.params, ...preset } : {};
   render();
-  prefetchOpenVolume();
+  if (s) prefetchOpenVolume();
 }
 
 function applyPointer(patch) {
@@ -509,10 +514,15 @@ function renderTeach() {
     const ht = document.createElement('h3');
     const p = document.createElement('p');
     if (current.lesson.status === 'ready' && current.lesson.sim) {
-      ht.textContent = lang === 'zh' ? '模拟加载失败' : 'Simulation failed to load';
-      p.textContent = lang === 'zh'
-        ? `已重试一次仍打不开「${current.lesson.sim}」。关掉标签再进站，或在地址后加 ?dev 查看错误。`
-        : `Retried once and still could not open “${current.lesson.sim}”. Close the tab and reopen, or add ?dev to see the error.`;
+      if (loadingSim === current.lesson.sim) {
+        ht.textContent = t(lang, 'simLoading');
+        p.textContent = t(lang, 'simLoadingBody');
+      } else {
+        ht.textContent = t(lang, 'simLoadFail');
+        p.textContent = lang === 'zh'
+          ? `已重试一次仍打不开「${current.lesson.sim}」。关掉标签再进站，或在地址后加 ?dev 查看错误。`
+          : `Retried once and still could not open “${current.lesson.sim}”. Close the tab and reopen, or add ?dev to see the error.`;
+      }
       box.append(ht, p);
     } else {
       ht.textContent = t(lang, 'queuedTitle');

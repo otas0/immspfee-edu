@@ -162,6 +162,7 @@ button { cursor: pointer; }
   color: #fff;
   border-radius: 999px;
   padding: 4px 12px;
+  min-height: 28px; /* match @320 book-select / lang tap budget */
 }
 .edu-toast, .toast {
   position: fixed;

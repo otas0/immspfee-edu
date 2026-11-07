@@ -37,7 +37,7 @@ After each push, watch the Pages workflow until it succeeds (`push-main.sh` does
 
 `scripts/stamp-build.mjs` rewrites only files that opt in with a `__BUILD__` token (plus a small required entry list). Never stamp `scripts/` (especially `test-edu.mjs` asserts). Physics modules stay token-free; `js/sims/*.js` import `kit.js` / `physics/*` / `fmt.js` with `?v=__BUILD__`. Keep `sw.js` PRECACHE aligned with `index.html` modulepreload and that required stamp set.
 
-Pages runners are pinned to `ubuntu-24.04` (not the floating `ubuntu-latest` label). When GitHub moves the default image toward Ubuntu 26, re-run a green Pages deploy on a dry branch first so Node 24 and the Pages actions stay green.
+Pages runners are pinned to `ubuntu-24.04` (not the floating `ubuntu-latest` label). When GitHub moves the default image toward Ubuntu 26, re-run a green Pages deploy on a dry branch first so Node 24 and the Pages actions stay green. Probe: `npm run probe:ubuntu26`.
 
 Lesson commits contain equations, simulations, curricula, and tests only. Logo commits contain only the logo asset, header CSS, and README URL lines. Never mix them.
 

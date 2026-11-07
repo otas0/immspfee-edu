@@ -15,9 +15,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/motion.js', id: 'st-graph / vt', needles: ['teachPanel'] },
   { file: 'js/sims/optics.js', id: 'double-slit', needles: ['teachPanel', 'screen intensity', 'w <= 360'] },
   { file: 'js/sims/optics.js', id: 'convex-lens', needles: ['teachPanel', 'w <= 360'] },
-  { file: 'js/sims/thermal.js', id: 'heat-engine', needles: ['teachPanel', 'p–V'] },
+  { file: 'js/sims/thermal.js', id: 'heat-engine', needles: ['teachPanel', 'p–V', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'ising', needles: ['teachPanel', 'w <= 360'] },
-  { file: 'js/sims/advance.js', id: 'coupled-pendula', needles: ['teachPanel'] },
+  { file: 'js/sims/advance.js', id: 'coupled-pendula', needles: ['teachPanel', 'w <= 360'] },
   { file: 'js/sims/uni.js', id: 'finite-well', needles: ['teachPanel', 'E ladder', 'w <= 360'] },
   { file: 'js/sims/modern.js', id: 'simultaneity', needles: ['teachPanel', 'midGutter'] },
 ];

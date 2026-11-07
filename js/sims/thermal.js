@@ -143,12 +143,13 @@ export const heatEngineSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const left = w * 0.08;
+    // Wide: cylinder left / p–V right. Narrow (≤360): cylinder on top, p–V below.
+    const narrow = w <= 360;
+    const left = narrow ? w * 0.18 : w * 0.08;
     const mid = w * 0.46;
-    // Cylinder + piston
-    const cy = h * 0.22;
-    const ch = h * 0.56;
-    const cw = w * 0.28;
+    const cy = narrow ? h * 0.08 : h * 0.22;
+    const ch = narrow ? h * 0.28 : h * 0.56;
+    const cw = narrow ? w * 0.64 : w * 0.28;
     const cx = left;
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
@@ -159,13 +160,12 @@ export const heatEngineSim = {
     ctx.fillRect(cx + 4, pistonY, cw - 8, 18);
     ctx.strokeRect(cx + 4, pistonY, cw - 8, 18);
     const name = lab(ui, d.stroke.en, d.stroke.zh);
-    text(ctx, name, cx + cw / 2, cy - 14, INK, 15, 'center');
-    text(ctx, `V=${fmt(d.V * 1e3, 2)} L`, cx + cw / 2, cy + ch + 16, MUTED, 12, 'center');
-    // p–V panel (right), separate from the cylinder schematic.
-    const panelX = mid;
-    const panelY = h * 0.14;
-    const panelW = w * 0.48;
-    const panelH = h * 0.74;
+    text(ctx, name, cx + cw / 2, cy - 10, INK, narrow ? 12 : 15, 'center');
+    text(ctx, `V=${fmt(d.V * 1e3, 2)} L`, cx + cw / 2, cy + ch + 14, MUTED, 12, 'center');
+    const panelX = narrow ? w * 0.06 : mid;
+    const panelY = narrow ? h * 0.46 : h * 0.14;
+    const panelW = narrow ? w * 0.88 : w * 0.48;
+    const panelH = narrow ? h * 0.5 : h * 0.74;
     teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'p–V loop', 'p–V 循环'));
     const gx = panelX + panelW * 0.12;
     const gy = panelY + panelH * 0.88;

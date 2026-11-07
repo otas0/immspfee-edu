@@ -6,23 +6,78 @@
  *   PAGES_BASE=https://otas0.github.io/immspfee-edu SHORT=abc1234 \
  *     node scripts/smoke-live-getsim.mjs
  *
- * LIVE_GETSIM_IDS defaults to convex-lens,finite-well.
+ * LIVE_GETSIM_IDS defaults to convex-lens,finite-well,barrier-tunnel,ising.
+ * On failure writes .local-shots/live-getsim-fail.md (+ optional diag dir) for
+ * the Pages artifact upload step.
  */
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const base = String(process.env.PAGES_BASE || '').replace(/\/$/, '');
 const short = String(process.env.SHORT || '').trim();
-const ids = String(process.env.LIVE_GETSIM_IDS || 'convex-lens,finite-well')
+const ids = String(process.env.LIVE_GETSIM_IDS || 'convex-lens,finite-well,barrier-tunnel,ising')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+const diagDir = process.env.LIVE_GETSIM_DIAG_DIR
+  || join(root, '.local-shots', 'live-getsim-diag');
+const failMd = process.env.LIVE_GETSIM_FAIL_MD
+  || join(root, '.local-shots', 'live-getsim-fail.md');
 
 if (!base || !short) {
   console.error('FAIL smoke-live-getsim: set PAGES_BASE and SHORT');
   process.exit(1);
+}
+
+const logLines = [];
+function note(line) {
+  logLines.push(line);
+  console.log(line);
+}
+function failNote(line) {
+  logLines.push(line);
+  console.error(line);
+}
+
+function writeDiag(extra = {}) {
+  try {
+    mkdirSync(diagDir, { recursive: true });
+    mkdirSync(dirname(failMd), { recursive: true });
+    const body = [
+      '# live getSim fail',
+      '',
+      `- PAGES_BASE: \`${base}\``,
+      `- SHORT: \`${short}\``,
+      `- LIVE_GETSIM_IDS: \`${ids.join(',')}\``,
+      `- when: ${new Date().toISOString()}`,
+      '',
+      '## Log',
+      '',
+      '```',
+      ...logLines,
+      '```',
+      '',
+      extra.mirrorRoot ? `- mirror: \`${extra.mirrorRoot}\`` : '',
+      '',
+    ].filter(Boolean).join('\n');
+    writeFileSync(failMd, body);
+    writeFileSync(join(diagDir, 'log.txt'), logLines.join('\n') + '\n');
+    writeFileSync(join(diagDir, 'meta.json'), JSON.stringify({
+      base, short, ids, when: new Date().toISOString(), ...extra,
+    }, null, 2));
+    const summary = process.env.GITHUB_STEP_SUMMARY;
+    if (summary) {
+      try {
+        appendFileSync(summary, `\n### ❌ live getSim failed\n\nSee artifact \`live-getsim-fail-${short}\`.\n\n`);
+        appendFileSync(summary, body + '\n');
+      } catch { /* ignore */ }
+    }
+  } catch (err) {
+    console.error('warn: could not write live-getsim diag', err && err.message ? err.message : err);
+  }
 }
 
 const httpPaths = [
@@ -30,9 +85,11 @@ const httpPaths = [
   'js/sims/kit.js',
   'js/sims/optics.js',
   'js/sims/uni.js',
+  'js/sims/stat.js',
   'js/fmt.js',
   'js/physics/optics.js',
   'js/physics/uni.js',
+  'js/physics/stat.js',
 ];
 
 let failed = 0;
@@ -41,23 +98,29 @@ for (const p of httpPaths) {
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) {
     failed += 1;
-    console.error('FAIL http', url, '->', res.status);
+    failNote(`FAIL http ${url} -> ${res.status}`);
     continue;
   }
   const text = await res.text();
-  if (p.endsWith('uni.js') && p.includes('/sims/') && !/finiteWellSim|export const finiteWell/.test(text)
-    && !text.includes('finiteWell')) {
-    // soft: export name may vary; getSim check is authoritative
-  }
   if (p.endsWith('optics.js') && p.includes('/sims/') && !text.includes('convexLens')) {
     failed += 1;
-    console.error('FAIL optics.js missing convexLens export text');
+    failNote('FAIL optics.js missing convexLens export text');
   }
   if (p.endsWith('uni.js') && p.includes('/sims/') && !text.includes('finiteWell')) {
     failed += 1;
-    console.error('FAIL uni.js missing finiteWell export text');
+    failNote('FAIL uni.js missing finiteWell export text');
   }
-  console.log('ok http', p, res.status);
+  if (p.endsWith('stat.js') && p.includes('/sims/')) {
+    if (!text.includes('tunnelSim') && !text.includes('barrier-tunnel')) {
+      failed += 1;
+      failNote('FAIL stat.js missing barrier-tunnel / tunnelSim export text');
+    }
+    if (!text.includes('isingSim') && !text.includes("id: 'ising'")) {
+      failed += 1;
+      failNote('FAIL stat.js missing ising export text');
+    }
+  }
+  note(`ok http ${p} ${res.status}`);
 }
 
 const mirrorRoot = mkdtempSync(join(tmpdir(), 'immspfee-live-getsim-'));
@@ -79,14 +142,18 @@ const mirrorList = [
   'js/sims/kit.js',
   'js/sims/optics.js',
   'js/sims/uni.js',
+  'js/sims/stat.js',
   'js/fmt.js',
   'js/physics/optics.js',
   'js/physics/uni.js',
+  'js/physics/stat.js',
 ];
 try {
   for (const rel of mirrorList) await mirror(rel);
 } catch (err) {
-  console.error('FAIL mirror', err && err.message ? err.message : err);
+  failNote(`FAIL mirror ${err && err.message ? err.message : err}`);
+  writeDiag({ mirrorRoot });
+  try { rmSync(mirrorRoot, { recursive: true, force: true }); } catch { /* ignore */ }
   process.exit(1);
 }
 
@@ -96,7 +163,8 @@ try {
   const mod = await import(regUrl);
   getSim = mod.getSim;
 } catch (err) {
-  console.error('FAIL import mirrored registry', err && err.stack ? err.stack : err);
+  failNote(`FAIL import mirrored registry ${err && err.stack ? err.stack : err}`);
+  writeDiag({ mirrorRoot });
   process.exit(1);
 }
 
@@ -105,15 +173,18 @@ for (const id of ids) {
     const sim = await getSim(id);
     if (!sim || !sim.id) {
       failed += 1;
-      console.error('FAIL live getSim empty', id);
+      failNote(`FAIL live getSim empty ${id}`);
       continue;
     }
-    console.log('ok live getSim', id, '->', sim.id);
+    note(`ok live getSim ${id} -> ${sim.id}`);
   } catch (err) {
     failed += 1;
-    console.error('FAIL live getSim', id, err && err.message ? err.message : err);
+    failNote(`FAIL live getSim ${id} ${err && err.message ? err.message : err}`);
   }
 }
 
-if (failed) process.exit(1);
-console.log(`ok smoke-live-getsim ${ids.join(', ')} (mirror ${mirrorRoot})`);
+if (failed) {
+  writeDiag({ mirrorRoot, failed });
+  process.exit(1);
+}
+note(`ok smoke-live-getsim ${ids.join(', ')} (mirror ${mirrorRoot})`);

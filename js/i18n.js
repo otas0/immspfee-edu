@@ -39,6 +39,9 @@ export const STR = {
     swUpdate: 'Site updated',
     swReload: 'Reload',
     importFail: 'A simulation module failed to load. Try Reload, or open with ?dev=1 for details.',
+    simLoading: 'Loading simulation…',
+    simLoadingBody: 'Fetching the module for this section. The stage stays blank until it arrives.',
+    simLoadFail: 'Simulation failed to load',
     isingCanvasNeed: 'This lattice needs OffscreenCanvas (or a browser canvas). Try Reload, or open in a normal browser tab.',
   },
   zh: {
@@ -81,6 +84,9 @@ export const STR = {
     swUpdate: '站点已更新',
     swReload: '刷新',
     importFail: '仿真模块加载失败。可点刷新，或加 ?dev=1 查看详情。',
+    simLoading: '正在加载仿真…',
+    simLoadingBody: '正在拉取这一节的模块。加载完成前舞台保持空白。',
+    simLoadFail: '模拟加载失败',
     isingCanvasNeed: '这张点阵需要 OffscreenCanvas（或浏览器 canvas）。请刷新，或在普通浏览器标签页打开。',
   },
 };
