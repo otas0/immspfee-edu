@@ -54,15 +54,21 @@ export const heatSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: T–Q left / ΔT panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
     const end = heatSim.tMax(p);
-    const gx = w * 0.14;
-    const gy = h * 0.78;
-    const gw = w * 0.74;
-    const gh = h * 0.56;
+    const gx = schX + schW * 0.12;
+    const gy = schY + schH * 0.82;
+    const gw = schW * 0.76;
+    const gh = schH * 0.58;
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
-    text(ctx, lab(ui, 'Q', '热量'), gx + gw + 8, gy, MUTED, 12);
-    text(ctx, lab(ui, 'T', '温度'), gx, gy - gh - 10, MUTED, 12);
+    text(ctx, lab(ui, 'Q', '热量'), gx + gw + 4, gy, MUTED, 11);
+    text(ctx, lab(ui, 'T', '温度'), gx, gy - gh - 8, MUTED, 11);
     const samples = [];
     for (let i = 0; i <= 40; i += 1) samples.push(specificHeat(p, (end * i) / 40));
     const wrongC = ui.wrong ? d.c2 : d.c1;
@@ -92,10 +98,17 @@ export const heatSim = {
     ctx.beginPath();
     ctx.arc(X(d.Q), Y(d.T2), 5, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, lab(ui, 'sample 1', '样品 1'), w * 0.22, h * 0.12, RAY, 13);
-    text(ctx, lab(ui, 'sample 2', '样品 2'), w * 0.42, h * 0.12, RAY2, 13);
-    text(ctx, `ΔT1=${fmt(ui.wrong ? d.Q / (d.c2 * d.m1) : d.dT1, 1)}`, w * 0.7, h * 0.1, RAY, 12);
-    text(ctx, `ΔT2=${fmt(d.dT2, 1)}`, w * 0.7, h * 0.16, RAY2, 12);
+    text(ctx, lab(ui, '1', '1'), gx + 8, gy - gh + 14, RAY, 12);
+    text(ctx, lab(ui, '2', '2'), gx + 28, gy - gh + 14, RAY2, 12);
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    const dT1 = ui.wrong ? d.Q / (d.c2 * d.m1) : d.dT1;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'ΔT = Q / (c m)', 'ΔT = Q / (c m)'));
+    text(ctx, `ΔT1=${fmt(dT1, 1)} °C`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 13, 'center');
+    text(ctx, `ΔT2=${fmt(d.dT2, 1)} °C`, panelX + panelW / 2, panelY + panelH * 0.68, RAY2, 13, 'center');
   },
   pointer() { return null; },
 };

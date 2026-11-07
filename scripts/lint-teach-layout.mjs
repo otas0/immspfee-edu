@@ -62,6 +62,9 @@ const requiredTeachPanel = [
   { file: 'js/sims/modern.js', id: 'scales', needles: ['log₁₀ L', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'barrier-tunnel', needles: ['T(E) barrier', 'w <= 360'] },
   { file: 'js/sims/stat.js', id: 'hydrogen-radial', needles: ['P(r) = r² R²', 'w <= 360'] },
+  { file: 'js/sims/phase.js', id: 'melting', needles: ['Q = m Lf', 'w <= 360'] },
+  { file: 'js/sims/phase.js', id: 'boiling', needles: ['Q = m Lv', 'w <= 360'] },
+  { file: 'js/sims/thermal.js', id: 'specific-heat', needles: ['ΔT = Q / (c m)', 'w <= 360'] },
 ];
 
 /** Old circuit-style overlap: port schematic + axes rooted at h·0.8x. */

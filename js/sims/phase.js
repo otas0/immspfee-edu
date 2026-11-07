@@ -1,6 +1,6 @@
 import { fmt } from '../fmt.js?v=__BUILD__';
 import { melting, boiling, sublimation } from '../physics/motion.js?v=__BUILD__';
-import { num, tog, clear, line, text, lab, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
+import { num, tog, clear, line, text, lab, teachPanel, INK, MUTED, RAY, RAY2 } from './kit.js?v=__BUILD__';
 
 function q(id, en, zh, options, answer) { return { id, en, zh, options, answer }; }
 function opt(en, zh) { return { en, zh }; }
@@ -55,10 +55,16 @@ export const meltSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.78;
-    const gw = w * 0.76;
-    const gh = h * 0.55;
+    // Wide: T–t left / Lf panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
+    const gx = schX + schW * 0.1;
+    const gy = schY + schH * 0.82;
+    const gw = schW * 0.8;
+    const gh = schH * 0.58;
     const tEnd = meltSim.tMax(p);
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
@@ -71,7 +77,7 @@ export const meltSim = {
     if (d.crystal && Number.isFinite(d.t1)) {
       ctx.fillStyle = 'rgba(196,73,29,0.2)';
       ctx.fillRect(X(d.t1), Y(d.Tm + 4), Math.max(0, X(d.t2) - X(d.t1)), Y(d.Tm - 4) - Y(d.Tm + 4));
-      text(ctx, lab(ui, 'heat in, T fixed', '吸热但温度不变'), (X(d.t1) + X(d.t2)) / 2, Y(d.Tm) - 14, RAY, 12, 'center');
+      text(ctx, lab(ui, 'T fixed', 'T 不变'), (X(d.t1) + X(d.t2)) / 2, Y(d.Tm) - 12, RAY, 11, 'center');
     }
     ctx.beginPath();
     for (let i = 0; i <= 60; i += 1) {
@@ -92,7 +98,14 @@ export const meltSim = {
     ctx.beginPath();
     ctx.arc(X(d.t), Y(nowT), 5, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, `${fmt(d.T, 1)} °C`, gx, gy - gh - 6, INK, 13);
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Q = m Lf', 'Q = m Lf'));
+    text(ctx, `${fmt(d.T, 1)} °C`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, lab(ui, PHASE[d.phase]?.[0] || d.phase, PHASE[d.phase]?.[1] || d.phase), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
     ui._geo = { gx, gw, tEnd };
   },
   pointer(ev, _p, _d, ui) {
@@ -152,10 +165,16 @@ export const boilSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const gx = w * 0.12;
-    const gy = h * 0.78;
-    const gw = w * 0.76;
-    const gh = h * 0.55;
+    // Wide: T–t left / Lv panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.06 : h * 0.1;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.48 : h * 0.8;
+    const gx = schX + schW * 0.1;
+    const gy = schY + schH * 0.82;
+    const gw = schW * 0.8;
+    const gh = schH * 0.58;
     const tEnd = boilSim.tMax(p);
     line(ctx, gx, gy, gx + gw, gy, INK, 1.2);
     line(ctx, gx, gy, gx, gy - gh, INK, 1.2);
@@ -168,7 +187,7 @@ export const boilSim = {
     if (Number.isFinite(d.t1)) {
       ctx.fillStyle = 'rgba(196,73,29,0.2)';
       ctx.fillRect(X(d.t1), Y(d.Tb + 4), Math.max(0, X(d.t2) - X(d.t1)), Y(d.Tb - 4) - Y(d.Tb + 4));
-      text(ctx, lab(ui, 'heat in, T fixed', '吸热但温度不变'), (X(d.t1) + X(d.t2)) / 2, Y(d.Tb) - 14, RAY, 12, 'center');
+      text(ctx, lab(ui, 'T fixed', 'T 不变'), (X(d.t1) + X(d.t2)) / 2, Y(d.Tb) - 12, RAY, 11, 'center');
     }
     ctx.beginPath();
     for (let i = 0; i <= 60; i += 1) {
@@ -187,7 +206,14 @@ export const boilSim = {
     ctx.beginPath();
     ctx.arc(X(d.t), Y(nowT), 5, 0, Math.PI * 2);
     ctx.fill();
-    text(ctx, `${fmt(d.T, 1)} °C`, gx, gy - gh - 6, INK, 13);
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Q = m Lv', 'Q = m Lv'));
+    text(ctx, `${fmt(d.T, 1)} °C`, panelX + panelW / 2, panelY + panelH * 0.4, ui.wrong ? '#a33' : RAY, 14, 'center');
+    text(ctx, lab(ui, BOIL_PHASE[d.phase]?.[0] || d.phase, BOIL_PHASE[d.phase]?.[1] || d.phase), panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
     ui._geo = { gx, gw, tEnd };
   },
   pointer(ev, _p, _d, ui) {
