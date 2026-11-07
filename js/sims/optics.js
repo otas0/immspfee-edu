@@ -764,18 +764,56 @@ export const malusSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: polarizers left / Malus panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
     const Ishow = ui.wrong ? d.I0 * Math.cos((d.theta * Math.PI) / 180) : d.I;
-    ctx.save();
-    ctx.translate(w * 0.35, h * 0.5);
-    ctx.rotate((-20 * Math.PI) / 180);
-    line(ctx, -40, 0, 40, 0, RAY, 4);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(w * 0.65, h * 0.5);
-    ctx.rotate(((-20 + d.theta) * Math.PI) / 180);
-    line(ctx, -40, 0, 40, 0, RAY2, 4);
-    ctx.restore();
-    text(ctx, `I=${fmt(Ishow, 3)}`, w * 0.5, h * 0.2, ui.wrong ? '#a33' : INK, 16, 'center');
+    const polX = narrow ? w * 0.08 : w * 0.04;
+    const polY = narrow ? h * 0.12 : h * 0.18;
+    const polW = narrow ? w * 0.84 : w * 0.44;
+    const polH = narrow ? h * 0.32 : h * 0.64;
+    const cy = polY + polH * 0.55;
+    const polBar = (cx, angDeg, color) => {
+      const rad = (angDeg * Math.PI) / 180;
+      const dx = Math.cos(rad) * 36;
+      const dy = Math.sin(rad) * 36;
+      line(ctx, cx - dx, cy - dy, cx + dx, cy + dy, color, 4);
+    };
+    polBar(polX + polW * 0.28, -20, RAY);
+    polBar(polX + polW * 0.72, -20 + d.theta, RAY2);
+    text(ctx, lab(ui, 'polarizers', '偏振片'), polX + polW / 2, polY, MUTED, 12, 'center');
+    text(ctx, `θ=${fmt(d.theta, 0)}°`, polX + polW / 2, polY + polH - 6, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'Malus I(θ)', '马吕斯 I(θ)'));
+    const gx = panelX + panelW * 0.12;
+    const gy = panelY + panelH * 0.78;
+    const gw = panelW * 0.76;
+    const gh = panelH * 0.5;
+    line(ctx, gx, gy, gx + gw, gy, INK, 1);
+    line(ctx, gx, gy, gx, gy - gh, INK, 1);
+    ctx.beginPath();
+    for (let i = 0; i <= 90; i += 1) {
+      const th = (i * Math.PI) / 180;
+      const Ii = d.I0 * Math.cos(th) * Math.cos(th);
+      const X = gx + (i / 90) * gw;
+      const Y = gy - (Ii / Math.max(d.I0, 1e-9)) * gh;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    }
+    ctx.strokeStyle = RAY2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const tx = gx + (Math.min(90, Math.max(0, d.theta)) / 90) * gw;
+    const ty = gy - (Ishow / Math.max(d.I0, 1e-9)) * gh;
+    ctx.fillStyle = RAY;
+    ctx.beginPath();
+    ctx.arc(tx, ty, 5, 0, Math.PI * 2);
+    ctx.fill();
+    text(ctx, `I=${fmt(Ishow, 3)}`, panelX + panelW / 2, panelY + 28, ui.wrong ? '#a33' : INK, 14, 'center');
+    text(ctx, ui.wrong ? 'I ∝ cos θ' : 'I = I₀ cos²θ', panelX + panelW / 2, panelY + 48, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
@@ -808,16 +846,33 @@ export const telescopeSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.5;
-    const x1 = w * 0.28;
-    const x2 = w * 0.72;
+    // Wide: tube left / M·L panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const Mshow = ui.wrong ? -d.fEye / d.fObj : d.M;
+    const tubeX = narrow ? w * 0.08 : w * 0.04;
+    const tubeY = narrow ? h * 0.12 : h * 0.18;
+    const tubeW = narrow ? w * 0.84 : w * 0.44;
+    const tubeH = narrow ? h * 0.32 : h * 0.64;
+    const y = tubeY + tubeH * 0.5;
+    const x1 = tubeX + tubeW * 0.22;
+    const x2 = tubeX + tubeW * 0.78;
     line(ctx, x1, y - 50, x1, y + 50, RAY, 3);
     line(ctx, x2, y - 22, x2, y + 22, RAY2, 3);
     line(ctx, x1, y, x2, y, MUTED, 1, [4, 4]);
-    text(ctx, lab(ui, 'objective', '物镜'), x1, y + 70, MUTED, 12, 'center');
-    text(ctx, lab(ui, 'eyepiece', '目镜'), x2, y + 70, MUTED, 12, 'center');
-    const Mshow = ui.wrong ? -d.fEye / d.fObj : d.M;
-    text(ctx, `M=${fmt(Mshow, 2)}`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, lab(ui, 'objective', '物镜'), x1, y + 58, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'eyepiece', '目镜'), x2, y + 58, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'tube', '镜筒'), tubeX + tubeW / 2, tubeY, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.52;
+    const panelY = narrow ? h * 0.48 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.44;
+    const panelH = narrow ? h * 0.48 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'M · tube', 'M · 镜筒'));
+    text(ctx, `M=${fmt(Mshow, 2)}`, panelX + panelW / 2, panelY + panelH * 0.32, ui.wrong ? '#a33' : INK, 16, 'center');
+    text(ctx, `L≈${fmt(d.tube, 1)} cm`, panelX + panelW / 2, panelY + panelH * 0.48, MUTED, 14, 'center');
+    text(ctx, ui.wrong
+      ? lab(ui, 'M = −f_eye / f_obj', 'M = −f_eye / f_obj')
+      : 'M ≈ −f_obj / f_eye', panelX + panelW / 2, panelY + panelH * 0.68, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

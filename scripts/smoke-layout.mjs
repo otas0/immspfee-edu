@@ -280,6 +280,34 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('malus', 640, 400, {}, { theta: 30 });
+  const narrow = await runDraw('malus', 320, 400, {}, { theta: 30 });
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL malus@640: I(θ) panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL malus@320: I(θ) panel should stack under polarizers', np[0]);
+  } else console.log('ok malus dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('telescope', 640, 400);
+  const narrow = await runDraw('telescope', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.45) {
+    failed += 1;
+    console.error('FAIL telescope@640: M·tube panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.4) {
+    failed += 1;
+    console.error('FAIL telescope@320: M·tube panel should stack under tube', np[0]);
+  } else console.log('ok telescope dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);
