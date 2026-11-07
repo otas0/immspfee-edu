@@ -495,9 +495,15 @@ export const circularSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const cx = w * 0.42;
-    const cy = h * 0.52;
-    const scale = Math.min(w, h) * 0.32 / Math.max(d.r, 0.2);
+    // Wide: orbit left / v·a·F panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const orbX = narrow ? w * 0.06 : w * 0.04;
+    const orbY = narrow ? h * 0.06 : h * 0.1;
+    const orbW = narrow ? w * 0.88 : w * 0.52;
+    const orbH = narrow ? h * 0.48 : h * 0.8;
+    const cx = orbX + orbW * 0.5;
+    const cy = orbY + orbH * 0.52;
+    const scale = Math.min(orbW, orbH) * 0.38 / Math.max(d.r, 0.2);
     const R = d.r * scale;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -515,20 +521,27 @@ export const circularSim = {
     ctx.fill();
     const tx = -Math.sin(d.theta);
     const ty = -Math.cos(d.theta);
-    arrow(ctx, px, py, px + tx * 36, py + ty * 36, RAY2, 2);
-    text(ctx, 'v', px + tx * 44, py + ty * 44, RAY2, 12, 'center');
+    arrow(ctx, px, py, px + tx * 28, py + ty * 28, RAY2, 2);
+    text(ctx, 'v', px + tx * 36, py + ty * 36, RAY2, 12, 'center');
     const inward = ui.wrong ? -1 : 1;
     const fx = cx + (px - cx) * (1 - 0.35 * inward);
     const fy = cy + (py - cy) * (1 - 0.35 * inward);
     arrow(ctx, px, py, fx, fy, ui.wrong ? '#a33' : RAY, 2.5);
     text(ctx, 'F', fx, fy - 12, ui.wrong ? '#a33' : RAY, 12, 'center');
-    text(ctx, `v=${fmt(d.v, 2)} m/s`, w * 0.78, h * 0.3, INK, 13);
-    text(ctx, `a=${fmt(d.a, 2)} m/s²`, w * 0.78, h * 0.4, MUTED, 13);
-    text(ctx, `F=${fmt(d.F, 2)} N`, w * 0.78, h * 0.5, RAY, 13);
-    const rs = w * 0.78;
-    handle(ctx, rs, h * 0.7, ui.drag === 'r');
-    text(ctx, lab(ui, 'drag r', '拖半径'), rs, h * 0.78, MUTED, 11, 'center');
-    ui._geo = { rs, hy: h * 0.7 };
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.58 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.38 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'v · a · F', 'v · a · F'));
+    text(ctx, `v=${fmt(d.v, 2)}`, panelX + panelW / 2, panelY + panelH * 0.28, INK, 13, 'center');
+    text(ctx, `a=${fmt(d.a, 2)}`, panelX + panelW / 2, panelY + panelH * 0.48, MUTED, 13, 'center');
+    text(ctx, `F=${fmt(d.F, 2)} N`, panelX + panelW / 2, panelY + panelH * 0.68, ui.wrong ? '#a33' : RAY, 13, 'center');
+    const rs = panelX + panelW / 2;
+    const hy = panelY + panelH * 0.88;
+    handle(ctx, rs, hy, ui.drag === 'r');
+    text(ctx, lab(ui, 'drag r', '拖半径'), rs, hy + 14, MUTED, 10, 'center');
+    ui._geo = { rs, hy, narrow };
   },
   pointer(ev, p, _d, ui) {
     const g = ui._geo;

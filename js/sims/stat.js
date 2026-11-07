@@ -849,14 +849,30 @@ export const filmSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
+    // Wide: film slab left / bright-condition panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.5;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const top = schY + schH * 0.35;
+    const bot = schY + schH * 0.65;
     ctx.fillStyle = 'rgba(100,160,220,0.35)';
-    ctx.fillRect(w * 0.2, h * 0.4, w * 0.6, h * 0.2);
-    line(ctx, w * 0.2, h * 0.4, w * 0.8, h * 0.4, INK, 2);
-    line(ctx, w * 0.2, h * 0.6, w * 0.8, h * 0.6, INK, 2);
+    ctx.fillRect(schX + schW * 0.12, top, schW * 0.76, bot - top);
+    line(ctx, schX + schW * 0.12, top, schX + schW * 0.88, top, INK, 2);
+    line(ctx, schX + schW * 0.12, bot, schX + schW * 0.88, bot, INK, 2);
+    text(ctx, lab(ui, 'thin film', '薄膜'), schX + schW / 2, schY + 14, MUTED, 12, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.58;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.38;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
     const half = ui.wrong ? !d.half : d.half;
     const cond = (d.m + (half ? 0.5 : 0)) * d.lambda;
-    text(ctx, `2nt=${d.lhs.toExponential(2)}`, w * 0.5, h * 0.2, INK, 14, 'center');
-    text(ctx, `${d.mode} · ${half ? '(m+½)λ' : 'mλ'}=${cond.toExponential(2)}`, w * 0.5, h * 0.78, ui.wrong ? '#a33' : MUTED, 13, 'center');
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'bright 2nt', '亮纹 2nt'));
+    text(ctx, `2nt=${d.lhs.toExponential(2)}`, panelX + panelW / 2, panelY + panelH * 0.32, INK, 14, 'center');
+    text(ctx, `${half ? '(m+½)λ' : 'mλ'}=${cond.toExponential(2)}`, panelX + panelW / 2, panelY + panelH * 0.55, ui.wrong ? '#a33' : MUTED, 12, 'center');
+    text(ctx, `${d.mode}`, panelX + panelW / 2, panelY + panelH * 0.78, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };

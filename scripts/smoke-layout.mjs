@@ -504,6 +504,48 @@ let failed = 0;
 }
 
 {
+  const wide = await runDraw('sound-absorb', 640, 400);
+  const narrow = await runDraw('sound-absorb', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL sound-absorb@640: I panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL sound-absorb@320: I panel should stack under barrier', np[0]);
+  } else console.log('ok sound-absorb dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('thin-film', 640, 400);
+  const narrow = await runDraw('thin-film', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL thin-film@640: 2nt panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.45) {
+    failed += 1;
+    console.error('FAIL thin-film@320: 2nt panel should stack under film', np[0]);
+  } else console.log('ok thin-film dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
+  const wide = await runDraw('circular', 640, 400);
+  const narrow = await runDraw('circular', 320, 400);
+  const wp = panelFills(wide.ctx.ops);
+  const np = panelFills(narrow.ctx.ops);
+  if (wp.length < 1 || wp[0][1] < wide.w * 0.5) {
+    failed += 1;
+    console.error('FAIL circular@640: v·a·F panel should sit on the right', wp[0]);
+  } else if (np.length < 1 || np[0][2] < narrow.h * 0.5) {
+    failed += 1;
+    console.error('FAIL circular@320: v·a·F panel should stack under orbit', np[0]);
+  } else console.log('ok circular dual + narrow', { wideX: wp[0][1].toFixed(0), narrowY: np[0][2].toFixed(0) });
+}
+
+{
   // Default N=12 uses OffscreenCanvas buffer (mocked above) — no N=8 special case.
   const { ctx, w } = await runDraw('ising', 640, 400, {}, { N: 24 });
   const panels = panelFills(ctx.ops);

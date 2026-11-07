@@ -219,23 +219,36 @@ export const absorbSim = {
   },
   draw(ctx, w, h, p, d, ui) {
     clear(ctx, w, h);
-    const y = h * 0.5;
-    const x0 = w * 0.12;
-    const x1 = w * 0.38;
-    const x2 = x1 + p.d * w * 0.28;
-    const x3 = w * 0.88;
+    // Wide: barrier path left / I panel right. Narrow (≤360): stack.
+    const narrow = w <= 360;
+    const schX = narrow ? w * 0.06 : w * 0.04;
+    const schY = narrow ? h * 0.08 : h * 0.12;
+    const schW = narrow ? w * 0.88 : w * 0.52;
+    const schH = narrow ? h * 0.4 : h * 0.76;
+    const y = schY + schH * 0.55;
+    const x0 = schX + schW * 0.06;
+    const x1 = schX + schW * 0.32;
+    const x2 = x1 + Math.max(10, p.d * schW * 0.35);
+    const x3 = schX + schW * 0.94;
     line(ctx, x0, y, x1, y, RAY, 3);
     ctx.fillStyle = 'rgba(120,140,160,0.35)';
-    ctx.fillRect(x1, y - 40, Math.max(8, x2 - x1), 80);
-    line(ctx, x1, y - 40, x1, y + 40, INK, 2);
-    line(ctx, x2, y - 40, x2, y + 40, INK, 2);
+    ctx.fillRect(x1, y - 36, Math.max(8, x2 - x1), 72);
+    line(ctx, x1, y - 36, x1, y + 36, INK, 2);
+    line(ctx, x2, y - 36, x2, y + 36, INK, 2);
     const Ishow = ui.wrong ? d.I0 * (1 - d.R) : d.I;
     line(ctx, x2, y, x3, y, RAY2, 1 + 3 * (Ishow / Math.max(d.I0, 1e-6)));
-    text(ctx, lab(ui, 'incident', '入射'), (x0 + x1) / 2, y - 24, MUTED, 12, 'center');
-    text(ctx, lab(ui, 'barrier', '屏障'), (x1 + x2) / 2, y - 52, MUTED, 12, 'center');
-    text(ctx, lab(ui, 'transmitted', '透射'), (x2 + x3) / 2, y - 24, MUTED, 12, 'center');
-    text(ctx, `I=${fmt(Ishow, 3)}`, w * 0.5, h * 0.18, ui.wrong ? '#a33' : INK, 16, 'center');
-    text(ctx, `R=${fmt(d.R, 2)}  α=${fmt(d.alpha, 1)}  d=${fmt(d.d, 2)} m`, w * 0.5, h * 0.82, MUTED, 12, 'center');
+    text(ctx, lab(ui, 'in', '入'), (x0 + x1) / 2, y - 22, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'barrier', '屏障'), (x1 + x2) / 2, y - 48, MUTED, 11, 'center');
+    text(ctx, lab(ui, 'out', '透'), (x2 + x3) / 2, y - 22, MUTED, 11, 'center');
+
+    const panelX = narrow ? w * 0.06 : w * 0.6;
+    const panelY = narrow ? h * 0.52 : h * 0.12;
+    const panelW = narrow ? w * 0.88 : w * 0.36;
+    const panelH = narrow ? h * 0.44 : h * 0.76;
+    teachPanel(ctx, panelX, panelY, panelW, panelH, lab(ui, 'I = I0(1−R)e^{−αd}', 'I = I0(1−R)e^{−αd}'));
+    text(ctx, `I=${fmt(Ishow, 3)}`, panelX + panelW / 2, panelY + panelH * 0.35, ui.wrong ? '#a33' : INK, 15, 'center');
+    text(ctx, `R=${fmt(d.R, 2)}  α=${fmt(d.alpha, 1)}`, panelX + panelW / 2, panelY + panelH * 0.55, MUTED, 12, 'center');
+    text(ctx, ui.wrong ? 'drop e^{−αd}' : `d=${fmt(d.d, 2)} m`, panelX + panelW / 2, panelY + panelH * 0.75, MUTED, 12, 'center');
   },
   pointer() { return null; },
 };
